@@ -1,0 +1,70 @@
+name: Build AI Context Gateway Server
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Express Server
+        shell: bash
+        run: |
+
+          cat > aicg/server.js << 'EOF'
+          require("dotenv").config();
+
+          const express = require("express");
+
+          const app = express();
+
+          const PORT = process.env.PORT || 3000;
+
+          app.use(express.json());
+
+          app.get("/", (req,res)=>{
+            res.json({
+              service:"AI Context Gateway",
+              version:"0.1.0",
+              status:"running"
+            });
+          });
+
+          app.get("/health",(req,res)=>{
+            res.json({
+              status:"ok",
+              service:"AI Context Gateway",
+              version:"0.1.0",
+              timestamp:new Date().toISOString()
+            });
+          });
+
+          app.listen(PORT,()=>{
+            console.log(
+              `AI Context Gateway running on port ${PORT}`
+            );
+          });
+          EOF
+
+      - name: Commit
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+          git add .
+
+          if git diff --cached --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+
+          git commit -m "feat(aicg): build express server"
+
+      - name: Push
+        run: git push
