@@ -23,46 +23,35 @@ Build MevrelBank into a secure, modern, scalable digital banking ecosystem that 
 - [x] Logo system completed
 - [x] Initial hosting strategy decided
 - [x] Initial project structure defined
-
-### In Progress
-
-- [ ] Design System
-- [ ] Color System
-- [ ] Typography System
-- [ ] UI Foundations
-
-### Next
-
-- [ ] Public Website
-- [ ] Component Library
-- [ ] Authentication
-- [ ] Customer Dashboard
-
----
-
-# Project Scope
-
-## Phase 0 — Foundation
-
-- Brand Identity
-- Design System
-- UI Standards
-- Architecture
-- Project Structure
-- Engineering Standards
+- [x] Design System (foundations, components, product screens)
+- [x] Color System
+- [x] Typography System
+- [x] UI Foundations
 
 ---
 
 ## Phase 1 — Public Website
 
-- Homepage
-- About
-- Products & Services
-- Contact
-- FAQs
-- Careers
-- Blog / News
-- Security Center
+### In Progress
+
+- [x] Homepage scaffolded as standalone React app with routing
+- [x] Navbar — responsive, accessible, sticky
+- [x] Hero — brand voice, regulatory badge, stats
+- [x] Trust bar — FSCS, FCA, ISO 27001 signals
+- [x] Features — six product value pillars
+- [x] App Preview — static dashboard mockup embedded in browser frame
+- [x] CTA — open account conversion section
+- [x] Footer — columns, legal, brand mark
+- [x] Brand PNG logos in use (from `brand/logo/web/`)
+- [x] Favicon wired up
+- [x] React Router: `/` → homepage, `/ds` → design system demo
+- [ ] About page
+- [ ] Products & Services page
+- [ ] Contact page
+- [ ] FAQs page
+- [ ] Careers page
+- [ ] Blog / News
+- [ ] Security Center
 
 ---
 
@@ -175,8 +164,8 @@ Build MevrelBank into a secure, modern, scalable digital banking ecosystem that 
 | Repository Created | ✅ |
 | Brand Identity Started | ✅ |
 | Logo System Completed | ✅ |
-| Design System | ⏳ |
-| Public Website | ⬜ |
+| Design System | ✅ |
+| Public Website (homepage) | ⏳ |
 | Customer Banking | ⬜ |
 | Production Launch | ⬜ |
 
@@ -200,6 +189,15 @@ Storage
 
 Repository
 - GitHub
+
+## Website Architecture
+
+- React + Vite (Tailwind CSS v4)
+- React Router v7 for client-side routing
+- `/` → Public website homepage
+- `/ds` → Design system & product demo reference
+- Brand logo PNGs served from `public/brand/`
+- Website components under `src/app/website/`
 
 ---
 
