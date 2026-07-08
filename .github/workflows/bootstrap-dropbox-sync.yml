@@ -1,0 +1,71 @@
+name: Bootstrap Dropbox Sync
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Create folders
+        run: |
+          mkdir -p .github/scripts
+
+      - name: Create starter files
+        run: |
+
+          cat > .github/scripts/config.js <<'EOF'
+          // Dropbox configuration
+          module.exports = {};
+          EOF
+
+          cat > .github/scripts/dropbox.js <<'EOF'
+          // Dropbox API helper
+          module.exports = {};
+          EOF
+
+          cat > .github/scripts/compare.js <<'EOF'
+          // Compare GitHub tree vs Dropbox tree
+          module.exports = {};
+          EOF
+
+          cat > .github/scripts/archive.js <<'EOF'
+          // Archive orphan Dropbox files
+          module.exports = {};
+          EOF
+
+          cat > .github/scripts/upload.js <<'EOF'
+          // Upload changed/new files
+          module.exports = {};
+          EOF
+
+          cat > .github/scripts/dropbox-sync.js <<'EOF'
+          console.log("Dropbox Sync Bootstrap");
+          EOF
+
+      - name: Commit generated files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add .github/scripts
+
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+
+          git commit -m "Bootstrap Dropbox Sync structure"
+          git push
