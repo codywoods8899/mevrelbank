@@ -4,7 +4,9 @@ module.exports = {
   port: process.env.PORT || 3000,
 
   github: {
-    token: process.env.G_TOKEN,
+    // CHAT_GPT_READONLY_PAT is the read-only token the gateway uses to talk to GitHub.
+    // G_TOKEN is the fallback (write-capable — used for Replit pushes, not preferred here).
+    token: process.env.CHAT_GPT_READONLY_PAT || process.env.G_TOKEN,
     owner: process.env.GITHUB_OWNER || 'codywoods8899',
     repo:  process.env.GITHUB_REPO  || 'mevrelbank',
   },
