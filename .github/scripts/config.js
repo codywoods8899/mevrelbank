@@ -1,0 +1,2 @@
+// Dropbox configuration
+module.exports = {};
