@@ -1,0 +1,38 @@
+name: Temporary - Move Brand Folder
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  move-brand:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Move brand folder
+        run: |
+          mkdir -p mevrelbank
+
+          if [ -d "brand" ]; then
+            mv brand mevrelbank/
+          else
+            echo "No brand folder found."
+            exit 1
+          fi
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add .
+          git diff --cached --quiet || git commit -m "chore: move brand folder into mevrelbank"
+
+      - name: Push changes
+        run: |
+          git push
