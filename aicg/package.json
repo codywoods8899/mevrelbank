@@ -1,0 +1,16 @@
+{
+  "name": "aicg",
+  "version": "0.1.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@octokit/rest": "^22.0.0",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "uuid": "^11.1.0"
+  }
+}
