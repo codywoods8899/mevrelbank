@@ -55,11 +55,12 @@ function dropboxPath(root, relativePath) {
  * @returns {string}
  */
 function utcTimestamp() {
+  // "2026-07-08T20:01:02.000Z" → "2026-07-08T200102Z"
+  // Keep date dashes, remove time colons, strip milliseconds.
   return new Date()
     .toISOString()
-    .replace(/[-:]/g, '')
-    .replace(/\.\d{3}Z$/, 'Z')
-    .replace('T', 'T');
+    .replace(/:/g, '')
+    .replace(/\.\d{3}Z$/, 'Z');
 }
 
 /**
