@@ -1,3 +1,4 @@
+run = "cd aicg && node server.js"
 modules = ["nodejs-20", "web"]
 [agent]
 expertMode = true
