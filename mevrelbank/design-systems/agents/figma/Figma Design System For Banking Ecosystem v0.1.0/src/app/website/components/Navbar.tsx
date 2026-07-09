@@ -37,10 +37,10 @@ export function Navbar() {
 
         {/* CTAs */}
         <div className="hidden md:flex items-center gap-2.5">
-          <Btn variant="ghost" size="sm" href="#login">
+          <Btn variant="ghost" size="sm" href="/ds">
             Log in
           </Btn>
-          <Btn variant="primary" size="sm" href="#open-account">
+          <Btn variant="primary" size="sm" href="mailto:hello@mevrelbank.com?subject=Open%20account%20interest">
             Open Account
           </Btn>
         </div>
@@ -72,10 +72,10 @@ export function Navbar() {
             ))}
           </nav>
           <div className="flex flex-col gap-2">
-            <Btn variant="outline" size="md" href="#login" className="w-full justify-center">
+            <Btn variant="outline" size="md" href="/ds" className="w-full justify-center">
               Log in
             </Btn>
-            <Btn variant="primary" size="md" href="#open-account" className="w-full justify-center">
+            <Btn variant="primary" size="md" href="mailto:hello@mevrelbank.com?subject=Open%20account%20interest" className="w-full justify-center">
               Open Account
             </Btn>
           </div>

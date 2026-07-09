@@ -3,19 +3,39 @@ import { Logo } from "../shared/Logo";
 const FOOTER_COLS = [
   {
     title: "Products",
-    links: ["Personal Account", "Savings", "Business", "International"],
+    links: [
+      { label: "Personal Account", href: "#personal" },
+      { label: "Savings", href: "#personal" },
+      { label: "Business", href: "#business" },
+      { label: "International", href: "#business" },
+    ],
   },
   {
     title: "Company",
-    links: ["About Us", "Careers", "Press", "Blog"],
+    links: [
+      { label: "About Us", href: "#about" },
+      { label: "Careers", href: "#careers" },
+      { label: "Press", href: "mailto:press@mevrelbank.com?subject=Press%20enquiry" },
+      { label: "Blog", href: "#about" },
+    ],
   },
   {
     title: "Legal",
-    links: ["Privacy Policy", "Cookie Policy", "Terms", "Accessibility"],
+    links: [
+      { label: "Privacy Policy", href: "#legal-notice" },
+      { label: "Cookie Policy", href: "#legal-notice" },
+      { label: "Terms", href: "#legal-notice" },
+      { label: "Accessibility", href: "#support" },
+    ],
   },
   {
     title: "Support",
-    links: ["Help Centre", "Contact Us", "Security", "Status"],
+    links: [
+      { label: "Help Centre", href: "#support" },
+      { label: "Contact Us", href: "#support-contact" },
+      { label: "Security", href: "#support-security" },
+      { label: "Status", href: "#support-status" },
+    ],
   },
 ];
 
@@ -29,11 +49,10 @@ export function Footer() {
           {/* Brand column */}
           <div className="max-w-[280px]">
             <Logo variant="dark" heightClass="h-7" className="mb-5" />
-            <p className="text-[12px] text-[rgba(255,255,255,0.32)] leading-relaxed">
-              MevrelBank is a digital banking platform. Banking services are
-              subject to regulatory authorisation. All deposits held in your
-              MevrelBank account are eligible for protection under applicable
-              financial services compensation schemes.
+            <p id="legal-notice" className="text-[12px] text-[rgba(255,255,255,0.32)] leading-relaxed">
+              MevrelBank is a digital banking platform in development. Product
+              availability, regulatory status, and customer protections depend
+              on final launch structure and applicable jurisdiction.
             </p>
           </div>
 
@@ -49,12 +68,12 @@ export function Footer() {
                 </div>
                 <ul className="space-y-2.5 list-none p-0 m-0">
                   {col.links.map((link) => (
-                    <li key={link}>
+                    <li key={link.label}>
                       <a
-                        href="#"
+                        href={link.href}
                         className="block text-[12px] text-[rgba(255,255,255,0.45)] hover:text-[rgba(255,255,255,0.80)] transition-colors focus:outline-none focus-visible:underline"
                       >
-                        {link}
+                        {link.label}
                       </a>
                     </li>
                   ))}
