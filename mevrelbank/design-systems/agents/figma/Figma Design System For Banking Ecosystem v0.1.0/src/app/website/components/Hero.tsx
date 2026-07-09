@@ -2,9 +2,9 @@ import { ArrowRight, Shield } from "lucide-react";
 import { Btn } from "../shared/Btn";
 
 const STATS = [
-  { val: "£18B+",  label: "Assets under management" },
-  { val: "99.99%", label: "Platform uptime"          },
-  { val: "4.9★",   label: "App Store rating"         },
+  { val: "24/7", label: "Customer support channels" },
+  { val: "Fast", label: "Digital onboarding path" },
+  { val: "Clear", label: "Product-first experience" },
 ];
 
 export function Hero() {
@@ -41,7 +41,7 @@ export function Hero() {
             <div className="w-1.5 h-1.5 rounded-full bg-[#4AA2D8]" aria-hidden="true" />
             <span className="text-[11px] font-semibold text-[#4AA2D8] tracking-[0.08em]">
               <Shield size={11} className="inline -mt-px mr-1" aria-hidden="true" />
-              FSCS Protected · FCA Authorised
+              Security-first product design
             </span>
           </div>
 
@@ -58,11 +58,11 @@ export function Hero() {
           </p>
 
           <div className="flex items-center gap-4 flex-wrap">
-            <Btn variant="secondary" size="lg" href="#open-account">
+            <Btn variant="secondary" size="lg" href="mailto:hello@mevrelbank.com?subject=Open%20account%20interest">
               Open a Free Account
             </Btn>
             <a
-              href="#how-it-works"
+              href="#product"
               className="flex items-center gap-2 text-[14px] font-semibold text-[rgba(255,255,255,0.55)] hover:text-white transition-colors focus:outline-none focus-visible:underline"
             >
               See how it works <ArrowRight size={14} aria-hidden="true" />

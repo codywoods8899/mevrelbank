@@ -24,18 +24,19 @@ export function CTA() {
           Ready to bank differently?
         </h2>
         <p className="text-[17px] text-[rgba(255,255,255,0.55)] mb-10 leading-relaxed">
-          Open your account in minutes — no branches, no paperwork. Everything you need to manage your money, from day one.
+          Register your interest and our team will contact you with onboarding details and next
+          steps.
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
-          <Btn variant="secondary" size="lg" href="#open-account">
+          <Btn variant="secondary" size="lg" href="mailto:hello@mevrelbank.com?subject=Open%20account%20interest">
             Open a Free Account
           </Btn>
-          <Btn variant="outline" size="lg" href="#compare" className="border-[rgba(255,255,255,0.25)] text-white hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.50)]">
-            Compare Plans
+          <Btn variant="outline" size="lg" href="#business" className="border-[rgba(255,255,255,0.25)] text-white hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.50)]">
+            Explore Business Accounts
           </Btn>
         </div>
         <p className="mt-6 text-[12px] text-[rgba(255,255,255,0.30)]">
-          FCA regulated · FSCS protected · Cancel anytime
+          Regulatory status and account protection details are shared during onboarding.
         </p>
       </div>
     </section>

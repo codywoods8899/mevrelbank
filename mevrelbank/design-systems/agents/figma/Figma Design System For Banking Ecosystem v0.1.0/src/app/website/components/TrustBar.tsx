@@ -1,11 +1,11 @@
 import { Shield, Lock, CheckCircle, Star, Users } from "lucide-react";
 
 const TRUST_ITEMS = [
-  { icon: Shield,      label: "FSCS Protected"           },
-  { icon: Lock,        label: "FCA Regulated"             },
-  { icon: CheckCircle, label: "ISO 27001 Certified"       },
-  { icon: Star,        label: "Which? Recommended 2026"   },
-  { icon: Users,       label: "Growing Customer Base"     },
+  { icon: Shield, label: "Security-first architecture" },
+  { icon: Lock, label: "Encrypted connections" },
+  { icon: CheckCircle, label: "Continuous monitoring" },
+  { icon: Star, label: "Clear product terms" },
+  { icon: Users, label: "Human support channels" },
 ];
 
 export function TrustBar() {
