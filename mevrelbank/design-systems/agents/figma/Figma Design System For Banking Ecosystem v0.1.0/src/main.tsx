@@ -1,15 +1,28 @@
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
-import HomePage from "./app/website/pages/HomePage";
 import App from "./app/App";
+import HomePage from "./app/website/pages/HomePage";
+import {
+  AboutPage,
+  BlogPage,
+  CareersPage,
+  ContactPage,
+  FaqsPage,
+  ProductsPage,
+  SecurityPage,
+} from "./app/website/pages";
 import "./styles/index.css";
 
 const router = createBrowserRouter([
-  // Public website — primary deliverable
   { path: "/", element: <HomePage /> },
-  // Design system & product demo — development reference
+  { path: "/about", element: <AboutPage /> },
+  { path: "/products", element: <ProductsPage /> },
+  { path: "/contact", element: <ContactPage /> },
+  { path: "/faqs", element: <FaqsPage /> },
+  { path: "/security-center", element: <SecurityPage /> },
+  { path: "/careers", element: <CareersPage /> },
+  { path: "/blog", element: <BlogPage /> },
   { path: "/ds", element: <App /> },
-  // Fallback: redirect unknown routes to homepage
   { path: "*", element: <HomePage /> },
 ]);
 
