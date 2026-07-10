@@ -1,0 +1,190 @@
+name: GitHub Sync Engine v1
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Synchronize current branch to configured target
+    runs-on: ubuntu-latest
+
+    # First loop-prevention gate: never run for pushes authored by GitHub Actions
+    # and allow humans/operators to opt out with a commit message marker.
+    if: >-
+      github.actor != 'github-actions[bot]' &&
+      !contains(github.event.head_commit.message || '', '[skip-sync]') &&
+      !contains(github.event.head_commit.message || '', '[sync skip]')
+
+    steps:
+      - name: Checkout source repository with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Load sync configuration
+        id: config
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          CONFIG_FILE=".github/sync-config.json"
+
+          if [[ ! -f "${CONFIG_FILE}" ]]; then
+            echo "Sync configuration file not found: ${CONFIG_FILE}" >&2
+            exit 1
+          fi
+
+          target_owner="$(jq -r '.targetOwner // empty' "${CONFIG_FILE}")"
+          target_repo="$(jq -r '.targetRepo // empty' "${CONFIG_FILE}")"
+          default_branch="$(jq -r '.defaultBranch // empty' "${CONFIG_FILE}")"
+
+          if [[ -z "${target_owner}" || -z "${target_repo}" || -z "${default_branch}" ]]; then
+            echo "sync-config.json must define targetOwner, targetRepo, and defaultBranch." >&2
+            exit 1
+          fi
+
+          echo "target-owner=${target_owner}" >> "${GITHUB_OUTPUT}"
+          echo "target-repo=${target_repo}" >> "${GITHUB_OUTPUT}"
+          echo "default-branch=${default_branch}" >> "${GITHUB_OUTPUT}"
+          echo "target-slug=${target_owner}/${target_repo}" >> "${GITHUB_OUTPUT}"
+
+      - name: Determine source branch and commit
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # github.ref_name is the safest branch source for push/workflow_dispatch.
+          # Fall back to the configured default branch if ref_name is unavailable.
+          branch="${GITHUB_REF_NAME:-${{ steps.config.outputs.default-branch }}}"
+          sha="$(git rev-parse HEAD)"
+
+          if [[ -z "${branch}" || -z "${sha}" ]]; then
+            echo "Unable to determine source branch or commit SHA." >&2
+            exit 1
+          fi
+
+          echo "branch=${branch}" >> "${GITHUB_OUTPUT}"
+          echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
+          echo "Repository : ${GITHUB_REPOSITORY}"
+          echo "Branch     : ${branch}"
+          echo "Current SHA: ${sha}"
+
+      - name: Clone target repository
+        id: target
+        shell: bash
+        env:
+          SYNC_PAT: ${{ secrets.SYNC_PAT }}
+          TARGET_SLUG: ${{ steps.config.outputs.target-slug }}
+          BRANCH: ${{ steps.source.outputs.branch }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${SYNC_PAT}" ]]; then
+            echo "SYNC_PAT secret is required for GitHub Sync Engine pushes." >&2
+            exit 1
+          fi
+
+          target_dir="$(mktemp -d)"
+          target_url="https://x-access-token:${SYNC_PAT}@github.com/${TARGET_SLUG}.git"
+
+          # Clone complete target history so SHA comparison and branch checks are reliable.
+          git clone --quiet --no-tags "${target_url}" "${target_dir}"
+
+          cd "${target_dir}"
+          git fetch --quiet origin "+refs/heads/*:refs/remotes/origin/*"
+
+          if git rev-parse --verify --quiet "origin/${BRANCH}" >/dev/null; then
+            target_sha="$(git rev-parse "origin/${BRANCH}")"
+            target_branch_exists="true"
+          else
+            target_sha=""
+            target_branch_exists="false"
+          fi
+
+          echo "target-dir=${target_dir}" >> "${GITHUB_OUTPUT}"
+          echo "target-sha=${target_sha}" >> "${GITHUB_OUTPUT}"
+          echo "target-branch-exists=${target_branch_exists}" >> "${GITHUB_OUTPUT}"
+          echo "Target repo : ${TARGET_SLUG}"
+          echo "Target SHA  : ${target_sha:-<branch does not exist>}"
+
+      - name: Decide whether synchronization is required
+        id: decision
+        shell: bash
+        env:
+          CURRENT_SHA: ${{ steps.source.outputs.sha }}
+          TARGET_SHA: ${{ steps.target.outputs.target-sha }}
+          TARGET_BRANCH_EXISTS: ${{ steps.target.outputs.target-branch-exists }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${TARGET_BRANCH_EXISTS}" == "true" && "${CURRENT_SHA}" == "${TARGET_SHA}" ]]; then
+            echo "should-sync=false" >> "${GITHUB_OUTPUT}"
+            echo "reason=Source and target already contain the same HEAD commit." >> "${GITHUB_OUTPUT}"
+            echo "Sync occurred: no"
+            echo "Reason       : Source and target already contain the same HEAD commit."
+          else
+            echo "should-sync=true" >> "${GITHUB_OUTPUT}"
+            if [[ "${TARGET_BRANCH_EXISTS}" == "true" ]]; then
+              echo "reason=Source and target branch HEAD commits differ." >> "${GITHUB_OUTPUT}"
+              echo "Reason       : Source and target branch HEAD commits differ."
+            else
+              echo "reason=Target branch does not exist and will be created." >> "${GITHUB_OUTPUT}"
+              echo "Reason       : Target branch does not exist and will be created."
+            fi
+            echo "Sync occurred: pending"
+          fi
+
+      - name: Push current branch to target repository
+        if: steps.decision.outputs.should-sync == 'true'
+        shell: bash
+        env:
+          SYNC_PAT: ${{ secrets.SYNC_PAT }}
+          BRANCH: ${{ steps.source.outputs.branch }}
+          CURRENT_SHA: ${{ steps.source.outputs.sha }}
+          TARGET_SLUG: ${{ steps.config.outputs.target-slug }}
+        run: |
+          set -euo pipefail
+
+          cd "${GITHUB_WORKSPACE}"
+          target_url="https://x-access-token:${SYNC_PAT}@github.com/${TARGET_SLUG}.git"
+
+          # Push only the current branch. Tags and other branches are intentionally excluded.
+          git push "${target_url}" "HEAD:refs/heads/${BRANCH}"
+
+          echo "Repository  : ${GITHUB_REPOSITORY}"
+          echo "Target repo : ${TARGET_SLUG}"
+          echo "Branch      : ${BRANCH}"
+          echo "Pushed SHA  : ${CURRENT_SHA}"
+          echo "Sync occurred: yes"
+
+      - name: Final sync summary
+        if: always()
+        shell: bash
+        env:
+          TARGET_SLUG: ${{ steps.config.outputs.target-slug }}
+          BRANCH: ${{ steps.source.outputs.branch }}
+          CURRENT_SHA: ${{ steps.source.outputs.sha }}
+          TARGET_SHA: ${{ steps.target.outputs.target-sha }}
+          SHOULD_SYNC: ${{ steps.decision.outputs.should-sync }}
+          SKIP_REASON: ${{ steps.decision.outputs.reason }}
+        run: |
+          set -euo pipefail
+
+          echo "Repository : ${GITHUB_REPOSITORY}"
+          echo "Target     : ${TARGET_SLUG:-unknown}"
+          echo "Branch     : ${BRANCH:-unknown}"
+          echo "Current SHA: ${CURRENT_SHA:-unknown}"
+          echo "Target SHA : ${TARGET_SHA:-<branch missing or unavailable>}"
+
+          if [[ "${SHOULD_SYNC:-false}" == "true" ]]; then
+            echo "Sync occurred: yes"
+          else
+            echo "Sync occurred: no"
+            echo "Reason       : ${SKIP_REASON:-Workflow skipped by guard, failed before decision, or no sync required.}"
+          fi
