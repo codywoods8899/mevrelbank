@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title |
 |---------|------------|----|-------|
+| [S-08](#s-08) | 2026-07-10 | — | Phase 1 close-out: waitlist, SEO, roadmap |
 | [S-07](#s-07) | 2026-07-10 | — | Create this session log |
 | [S-06](#s-06) | 2026-07-09 | [#6](https://github.com/codywoods8899/mevrelbank/pull/6) | Business model + next-steps homepage section |
 | [S-05](#s-05) | 2026-07-09 | [#5](https://github.com/codywoods8899/mevrelbank/pull/5) | Phase 1 inner pages (7 routes) |
@@ -17,6 +18,65 @@
 | [S-03](#s-03) | 2026-07-08 | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build |
 | [S-02](#s-02) | 2026-07-08 | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json |
 | [S-01](#s-01) | 2026-07-08 | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system |
+
+---
+
+<a id="s-08"></a>
+## S-08 · 2026-07-10 · Phase 1 close-out: waitlist page, SEO baseline, roadmap sync
+
+**Branch:** `copilot/fix-s8-phase1-closeout` (current session branch)  
+**PR:** (current)  
+**Trigger:** User request to close out Phase 1: update roadmap, replace mailto CTAs with a real waitlist page, and add per-route SEO metadata.
+
+### Objective
+Three deliverables:
+1. Sync `mevrelbank/roadmap.md` — mark all 7 Phase 1 inner pages as complete; add remaining Phase 1 work items.
+2. Waitlist / lead capture — replace all "Open Account" `mailto:` CTAs with a proper `/waitlist` route that collects name, email, and account type before opening the email client.
+3. SEO baseline — add a dependency-free `PageMeta` component that sets `document.title` and `<meta name="description">` per route on every page.
+
+### Files Changed
+| File | Status | +Lines | −Lines | Notes |
+|------|--------|--------|--------|-------|
+| `mevrelbank/roadmap.md` | modified | 3 | 7 | 7 inner pages checked off; 3 remaining Phase 1 items added |
+| `src/app/website/components/PageMeta.tsx` | added | 22 | 0 | `useEffect`-based title + meta description setter; zero new dependencies |
+| `src/app/website/pages/WaitlistPage.tsx` | added | ~170 | 0 | Personal/business radio selector, mailto form, submitted state, what-happens-next aside |
+| `src/app/website/pages/index.tsx` | modified | 1 | 0 | Export `WaitlistPage` |
+| `src/main.tsx` | modified | 2 | 1 | Import + `/waitlist` route added |
+| `src/app/website/components/Hero.tsx` | modified | 1 | 1 | "Open a Free Account" → `/waitlist` |
+| `src/app/website/components/CTA.tsx` | modified | 2 | 2 | "Open a Free Account" → `/waitlist`; "Explore Business Accounts" `#business` → `/products#business` |
+| `src/app/website/components/Navbar.tsx` | modified | 2 | 2 | "Open Account" → `/waitlist` (desktop + mobile) |
+| `src/app/website/pages/AboutPage.tsx` | modified | 7 | 1 | Import + `<PageMeta>` added; fragment wrapper |
+| `src/app/website/pages/BlogPage.tsx` | modified | 7 | 1 | Import + `<PageMeta>` added; fragment wrapper |
+| `src/app/website/pages/CareersPage.tsx` | modified | 7 | 1 | Import + `<PageMeta>` added; fragment wrapper |
+| `src/app/website/pages/ContactPage.tsx` | modified | 7 | 1 | Import + `<PageMeta>` added; fragment wrapper |
+| `src/app/website/pages/FaqsPage.tsx` | modified | 7 | 1 | Import + `<PageMeta>` added; fragment wrapper |
+| `src/app/website/pages/HomePage.tsx` | modified | 5 | 0 | Import + `<PageMeta>` added inline |
+| `src/app/website/pages/ProductsPage.tsx` | modified | 8 | 2 | Import + `<PageMeta>` added; primaryCta → `/waitlist`; fragment wrapper |
+| `src/app/website/pages/SecurityPage.tsx` | modified | 7 | 1 | Import + `<PageMeta>` added; fragment wrapper |
+| `dist/` | rebuilt | — | — | New bundle after source changes |
+
+**Total net new source lines:** ~+248
+
+### Per-route SEO data
+| Route | `<title>` | `<meta description>` (≤160 chars) |
+|-------|-----------|-----------------------------------|
+| `/` | MevrelBank — Smarter Banking for a Modern Life | MevrelBank brings clarity, speed, and intelligence to your finances. A modern digital banking platform built for the way you live. |
+| `/about` | About MevrelBank — Mission, Vision & Values | Learn about MevrelBank, the digital banking platform built around trust, speed, and clarity. Discover our mission, values, and team focus areas. |
+| `/products` | Products & Services — MevrelBank | Explore MevrelBank's core banking products: personal accounts, savings, business banking, payments, cards, and international transfers. |
+| `/contact` | Contact MevrelBank — Get in Touch | Reach out to the MevrelBank team for product enquiries, support, partnerships, or press contacts. Multiple contact channels available. |
+| `/faqs` | FAQs — MevrelBank | Answers to the most common questions about MevrelBank: account types, security, business banking, and how to register interest. |
+| `/security-center` | Security Center — MevrelBank | MevrelBank is designed with a security-first posture. Learn about our security practices and responsible disclosure process. |
+| `/careers` | Careers at MevrelBank — Join the Team | Explore career opportunities at MevrelBank. We value high ownership, thoughtful craft, and low-ego execution. |
+| `/blog` | MevrelBank Blog — Updates & Perspectives | Stay up to date with product updates, company news, and security communications from the MevrelBank team. |
+| `/waitlist` | Join the Waitlist — MevrelBank | Register your interest in MevrelBank personal or business banking. Be among the first to know when accounts are available. |
+
+### CTA audit post-session
+All "Open Account" and "Open a Free Account" buttons across the site now point to `/waitlist`. The security reporting `mailto:security@mevrelbank.com` CTA in `SecurityPage` and the contact form `mailto:` in `ContactPage` are intentionally preserved — these are appropriate direct email channels, not conversion CTAs.
+
+### Outcome
+Phase 1 is now structurally complete: 9 routed pages, all with unique titles and meta descriptions, all primary conversion CTAs routing through a dedicated waitlist page. The roadmap reflects this. Next logical step is Phase 2 (Authentication) or continued Phase 1 polish (Blog content, legal pages).
+
+---
 
 ---
 
