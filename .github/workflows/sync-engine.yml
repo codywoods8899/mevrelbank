@@ -1,0 +1,199 @@
+##############################################################################
+# GitHub Sync Engine v1
+#
+# Automatically synchronizes the current branch to the configured target
+# repository whenever new commits are pushed.
+#
+# Configuration : .github/sync-config.json
+# Required secret: SYNC_PAT  (Personal Access Token with repo scope on
+#                              the target repository)
+#
+# Loop prevention (two-layer):
+#   1. Job-level if: skip any push made by github-actions[bot].
+#      When the target repo runs its own sync back, its bot-triggered push
+#      arrives here as actor=github-actions[bot] and is silently dropped.
+#   2. SHA comparison: if source and target already share the same HEAD
+#      commit on this branch, the push step is skipped entirely.
+#
+# Manual bypass: include "[skip sync]" in any commit message.
+##############################################################################
+
+name: GitHub Sync Engine v1
+
+on:
+  push:
+  workflow_dispatch:
+
+# Minimum permissions required; write needed only to satisfy checkout
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Synchronize to target repository
+    runs-on: ubuntu-latest
+
+    # ── Loop prevention layer 1 ──────────────────────────────────────────────
+    # Drop any push that was made by the GitHub Actions bot itself.
+    # This prevents the target repo's sync-back from re-triggering us.
+    if: github.actor != 'github-actions[bot]'
+
+    steps:
+
+      # ── 1. Checkout ─────────────────────────────────────────────────────────
+      - name: Checkout source repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history needed for accurate pushes
+
+      # ── 2. Read configuration ────────────────────────────────────────────────
+      # All target values come from .github/sync-config.json — nothing is
+      # hard-coded in this workflow file.
+      - name: Read sync configuration
+        id: config
+        run: |
+          set -euo pipefail
+          CONFIG=".github/sync-config.json"
+          TARGET_OWNER=$(jq -r '.targetOwner'   "$CONFIG")
+          TARGET_REPO=$(jq -r  '.targetRepo'    "$CONFIG")
+          DEFAULT_BRANCH=$(jq -r '.defaultBranch' "$CONFIG")
+          echo "target_owner=${TARGET_OWNER}"               >> "$GITHUB_OUTPUT"
+          echo "target_repo=${TARGET_REPO}"                 >> "$GITHUB_OUTPUT"
+          echo "default_branch=${DEFAULT_BRANCH}"           >> "$GITHUB_OUTPUT"
+          echo "target_full=${TARGET_OWNER}/${TARGET_REPO}" >> "$GITHUB_OUTPUT"
+
+      # ── 3. Commit-message skip marker ────────────────────────────────────────
+      # Any commit whose message includes "[skip sync]" is honoured as a
+      # manual bypass without aborting the workflow.  workflow_dispatch runs
+      # never carry a commit message and therefore always proceed.
+      - name: Check for skip marker in commit message
+        id: skip_check
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          if [[ "${COMMIT_MSG:-}" == *"[skip sync]"* ]]; then
+            echo "skip=true"                                              >> "$GITHUB_OUTPUT"
+            echo "skip_reason=Commit message contains [skip sync] marker" >> "$GITHUB_OUTPUT"
+            echo "---  Skip Marker Detected  ---"
+            echo "  Reason : [skip sync] found in commit message"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── 4. Log source metadata ───────────────────────────────────────────────
+      - name: Capture source repository metadata
+        if: steps.skip_check.outputs.skip != 'true'
+        id: source
+        run: |
+          set -euo pipefail
+          BRANCH="${GITHUB_REF_NAME}"
+          SHA="${GITHUB_SHA}"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "sha=${SHA}"       >> "$GITHUB_OUTPUT"
+          echo "---  Source Repository  ---"
+          echo "  Repo   : ${GITHUB_REPOSITORY}"
+          echo "  Branch : ${BRANCH}"
+          echo "  SHA    : ${SHA}"
+          echo "  Actor  : ${GITHUB_ACTOR}"
+
+      # ── 5. Retrieve target SHA ───────────────────────────────────────────────
+      # Uses git ls-remote — avoids cloning the entire target repository just
+      # to read its HEAD SHA.
+      - name: Retrieve target repository HEAD SHA
+        if: steps.skip_check.outputs.skip != 'true'
+        id: target
+        env:
+          SYNC_PAT:    ${{ secrets.SYNC_PAT }}
+          TARGET_FULL: ${{ steps.config.outputs.target_full }}
+          BRANCH:      ${{ steps.source.outputs.branch }}
+        run: |
+          set -euo pipefail
+          TARGET_URL="https://x-access-token:${SYNC_PAT}@github.com/${TARGET_FULL}.git"
+
+          # ls-remote returns an empty string when the branch does not yet exist
+          TARGET_SHA=$(git ls-remote "${TARGET_URL}" "refs/heads/${BRANCH}" 2>/dev/null \
+                       | awk '{print $1}')
+
+          echo "---  Target Repository  ---"
+          echo "  Repo   : ${TARGET_FULL}"
+          echo "  Branch : ${BRANCH}"
+
+          if [[ -z "${TARGET_SHA}" ]]; then
+            echo "  SHA    : <branch does not exist — will be created>"
+            echo "target_sha="                >> "$GITHUB_OUTPUT"
+            echo "branch_exists=false"        >> "$GITHUB_OUTPUT"
+          else
+            echo "  SHA    : ${TARGET_SHA}"
+            echo "target_sha=${TARGET_SHA}"   >> "$GITHUB_OUTPUT"
+            echo "branch_exists=true"         >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── 6. SHA comparison ────────────────────────────────────────────────────
+      # Loop prevention layer 2: when both sides share the same commit the
+      # push step is skipped, so no redundant network traffic and no spurious
+      # trigger on the target side.
+      - name: Compare SHAs and determine sync action
+        if: steps.skip_check.outputs.skip != 'true'
+        id: decision
+        env:
+          SOURCE_SHA:    ${{ steps.source.outputs.sha }}
+          TARGET_SHA:    ${{ steps.target.outputs.target_sha }}
+          BRANCH_EXISTS: ${{ steps.target.outputs.branch_exists }}
+        run: |
+          set -euo pipefail
+          echo "---  SHA Comparison  ---"
+          echo "  Source SHA : ${SOURCE_SHA}"
+          echo "  Target SHA : ${TARGET_SHA:-<not present>}"
+
+          if [[ "${BRANCH_EXISTS}" == "true" && "${SOURCE_SHA}" == "${TARGET_SHA}" ]]; then
+            echo "sync_needed=false" >> "$GITHUB_OUTPUT"
+            echo "  Decision   : SKIP — already in sync"
+          else
+            echo "sync_needed=true"  >> "$GITHUB_OUTPUT"
+            echo "  Decision   : SYNC — push required"
+          fi
+
+      # ── 7. Log when sync is skipped ──────────────────────────────────────────
+      - name: Log sync skipped reason
+        if: >
+          steps.skip_check.outputs.skip != 'true' &&
+          steps.decision.outputs.sync_needed == 'false'
+        env:
+          SOURCE_SHA:  ${{ steps.source.outputs.sha }}
+          TARGET_FULL: ${{ steps.config.outputs.target_full }}
+          BRANCH:      ${{ steps.source.outputs.branch }}
+        run: |
+          echo "---  Sync Skipped  ---"
+          echo "  Reason : Source and target already share commit ${SOURCE_SHA}"
+          echo "  Target : ${TARGET_FULL}:${BRANCH}"
+
+      # ── 8. Push to target ────────────────────────────────────────────────────
+      # Only the current branch is pushed — no other refs are touched.
+      # --force is intentional: this (primary) repository is authoritative.
+      - name: Push branch to target repository
+        if: >
+          steps.skip_check.outputs.skip != 'true' &&
+          steps.decision.outputs.sync_needed == 'true'
+        env:
+          SYNC_PAT:    ${{ secrets.SYNC_PAT }}
+          TARGET_FULL: ${{ steps.config.outputs.target_full }}
+          BRANCH:      ${{ steps.source.outputs.branch }}
+          SOURCE_SHA:  ${{ steps.source.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          # Use the bot identity for git operations
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          TARGET_URL="https://x-access-token:${SYNC_PAT}@github.com/${TARGET_FULL}.git"
+          git remote add target "${TARGET_URL}"
+
+          # Push only the current branch; --force makes the target mirror the
+          # source exactly (primary repository wins on divergence).
+          git push target "HEAD:refs/heads/${BRANCH}" --force
+
+          echo "---  Sync Complete  ---"
+          echo "  Pushed : ${SOURCE_SHA}"
+          echo "  To     : ${TARGET_FULL}:${BRANCH}"
