@@ -1,0 +1,32 @@
+name: Sync to tkprodesign
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Push to fork
+        env:
+          TARGET_REPO: tkprodesign/mevrelbank
+          TARGET_TOKEN: ${{ secrets.SYNC_TOKEN }}
+        run: |
+          git remote add target https://x-access-token:${TARGET_TOKEN}@github.com/${TARGET_REPO}.git
+          git push target HEAD:main
