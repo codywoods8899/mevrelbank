@@ -11,28 +11,22 @@ const RESEND_COOLDOWN = 60;
 function useCountdown(initial: number) {
   const [seconds, setSeconds] = useState(0);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const start = () => {
     setSeconds(initial);
     if (timer.current) clearInterval(timer.current);
     timer.current = setInterval(() => {
       setSeconds((s) => {
-        if (s <= 1) {
-          clearInterval(timer.current!);
-          return 0;
-        }
+        if (s <= 1) { clearInterval(timer.current!); return 0; }
         return s - 1;
       });
     }, 1000);
   };
-
   useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
-
   return { seconds, start };
 }
 
 export default function VerifyEmailPage() {
-  const { verifyOTP } = useAuth();
+  const { verifyOTP, resendOTP, tempUser } = useAuth();
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -50,15 +44,11 @@ export default function VerifyEmailPage() {
     const next = [...otp];
     next[index] = digit;
     setOtp(next);
-    if (digit && index < OTP_LENGTH - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
+    if (digit && index < OTP_LENGTH - 1) inputRefs.current[index + 1]?.focus();
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
+    if (e.key === "Backspace" && !otp[index] && index > 0) inputRefs.current[index - 1]?.focus();
     if (e.key === "ArrowLeft" && index > 0) inputRefs.current[index - 1]?.focus();
     if (e.key === "ArrowRight" && index < OTP_LENGTH - 1) inputRefs.current[index + 1]?.focus();
   };
@@ -75,29 +65,22 @@ export default function VerifyEmailPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = otp.join("");
-    if (code.length < OTP_LENGTH) {
-      setError("Please enter the full 6-digit code.");
-      return;
-    }
+    if (code.length < OTP_LENGTH) { setError("Please enter the full 6-digit code."); return; }
     setError("");
     setLoading(true);
     const result = await verifyOTP(code);
     setLoading(false);
-
-    if (!result.success) {
-      setError(result.error ?? "Unable to verify code.");
-      return;
-    }
-
+    if (!result.success) { setError(result.error ?? "Unable to verify code."); return; }
     setVerified(true);
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (resendCooldown > 0) return;
     startResendTimer();
     setOtp(Array(OTP_LENGTH).fill(""));
     inputRefs.current[0]?.focus();
-    // TODO: trigger resend API
+    const result = await resendOTP();
+    if (!result.success) setError(result.error ?? "Failed to resend code.");
   };
 
   return (
@@ -136,8 +119,13 @@ export default function VerifyEmailPage() {
                   Verify your email
                 </h1>
                 <p className="text-[14px] text-[#5E6E8E] mt-1.5">
-                  We sent a 6-digit code to your email address. Enter it below to confirm your
-                  account.
+                  We sent a 6-digit code to{" "}
+                  {tempUser?.email ? (
+                    <span className="font-semibold text-[#0D1829]">{tempUser.email}</span>
+                  ) : (
+                    "your email address"
+                  )}
+                  . Enter it below to confirm your account.
                 </p>
               </div>
 
@@ -195,10 +183,7 @@ export default function VerifyEmailPage() {
                 </p>
                 <p className="text-[13px] text-[#5E6E8E]">
                   Wrong email?{" "}
-                  <a
-                    href="/register"
-                    className="font-semibold text-[#0B3270] hover:text-[#0E3E8C] transition-colors"
-                  >
+                  <a href="/register" className="font-semibold text-[#0B3270] hover:text-[#0E3E8C] transition-colors">
                     Go back
                   </a>
                 </p>

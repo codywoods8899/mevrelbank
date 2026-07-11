@@ -1,14 +1,10 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mock, client-side-only authentication.
-//
-// There is no backend yet (see roadmap.md — Phase 2 backend auth API is still
-// planned). Everything here is persisted to localStorage purely so the flow
-// feels real across page refreshes. Passwords are stored in plain text in
-// localStorage, which is fine for this UI-only preview but MUST be replaced
-// once the real auth API (JWT, hashing, etc.) lands.
+// Real backend auth — Phase 2.
+// Access token kept in memory only. Refresh token in localStorage.
+// Token refresh is automatic (silent) before expiry.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type AccountType = "personal" | "business";
@@ -18,16 +14,7 @@ export interface AuthUser {
   name: string;
   email: string;
   accountType: AccountType;
-}
-
-interface StoredUser extends AuthUser {
-  password: string;
-  verified: boolean;
-}
-
-interface PendingFlow {
-  userId: string;
-  stage: "verify-email" | "mfa";
+  totpEnabled: boolean;
 }
 
 interface AuthResult {
@@ -40,203 +27,341 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isMfaRequired: boolean;
   tempUser: AuthUser | null;
+  accessToken: string | null;
   login: (email: string, password: string) => Promise<AuthResult>;
-  register: (
-    name: string,
-    email: string,
-    password: string,
-    accountType: AccountType
-  ) => Promise<AuthResult>;
+  register: (name: string, email: string, password: string, accountType: AccountType) => Promise<AuthResult>;
   verifyOTP: (code: string) => Promise<AuthResult>;
+  resendOTP: () => Promise<AuthResult>;
   verifyMFA: (code: string) => Promise<AuthResult>;
-  logout: () => void;
+  sendMfaEmailCode: () => Promise<AuthResult>;
+  logout: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<AuthResult>;
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<AuthResult>;
+  setupTotp: () => Promise<{ secret: string; qrCode: string; otpauthUrl: string } | null>;
+  enableTotp: (secret: string, code: string) => Promise<AuthResult>;
+  disableTotp: (code: string) => Promise<AuthResult>;
+  refreshUser: () => Promise<void>;
+  authedFetch: (path: string, options?: RequestInit) => Promise<Response>;
 }
 
-const USERS_KEY = "mevrelbank.auth.users";
-const SESSION_KEY = "mevrelbank.auth.session";
-const PENDING_KEY = "mevrelbank.auth.pending";
+const REFRESH_KEY = "mb.refreshToken";
+const EMAIL_KEY   = "mb.pendingEmail";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function loadUsers(): StoredUser[] {
-  try {
-    const raw = localStorage.getItem(USERS_KEY);
-    return raw ? (JSON.parse(raw) as StoredUser[]) : [];
-  } catch {
-    return [];
-  }
+async function apiFetch(path: string, options: RequestInit = {}) {
+  const res = await fetch(`/api${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers ?? {}),
+    },
+  });
+  return res;
 }
 
-function saveUsers(users: StoredUser[]) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+async function apiJson(path: string, options: RequestInit = {}) {
+  const res = await apiFetch(path, options);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((body as any).error ?? `HTTP ${res.status}`);
+  return body;
 }
 
-function loadPending(): PendingFlow | null {
+function loadRefreshToken() {
+  return localStorage.getItem(REFRESH_KEY);
+}
+
+function saveRefreshToken(token: string | null) {
+  if (token) localStorage.setItem(REFRESH_KEY, token);
+  else localStorage.removeItem(REFRESH_KEY);
+}
+
+function loadPendingEmail() {
+  return sessionStorage.getItem(EMAIL_KEY);
+}
+
+function savePendingEmail(email: string | null) {
+  if (email) sessionStorage.setItem(EMAIL_KEY, email);
+  else sessionStorage.removeItem(EMAIL_KEY);
+}
+
+function parseAccessToken(token: string): { exp: number; sub: string } | null {
   try {
-    const raw = localStorage.getItem(PENDING_KEY);
-    return raw ? (JSON.parse(raw) as PendingFlow) : null;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload;
   } catch {
     return null;
   }
 }
 
-function savePending(pending: PendingFlow | null) {
-  if (pending) localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
-  else localStorage.removeItem(PENDING_KEY);
-}
-
-function loadSessionUserId(): string | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    return (JSON.parse(raw) as { userId: string }).userId ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function saveSessionUserId(userId: string | null) {
-  if (userId) localStorage.setItem(SESSION_KEY, JSON.stringify({ userId }));
-  else localStorage.removeItem(SESSION_KEY);
-}
-
-function toPublicUser(u: StoredUser): AuthUser {
-  return { id: u.id, name: u.name, email: u.email, accountType: u.accountType };
-}
-
-function newId() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `usr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+function isTokenExpired(token: string): boolean {
+  const payload = parseAccessToken(token);
+  if (!payload) return true;
+  return Date.now() >= payload.exp * 1000 - 30_000;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [tempUser, setTempUser] = useState<AuthUser | null>(null);
+  const [user, setUser]               = useState<AuthUser | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [tempUser, setTempUser]       = useState<AuthUser | null>(null);
+  const [mfaTempToken, setMfaTempToken] = useState<string | null>(null);
   const [isMfaRequired, setIsMfaRequired] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
-  // Hydrate from localStorage once on mount.
+  const accessTokenRef = useRef<string | null>(null);
+  accessTokenRef.current = accessToken;
+
+  async function silentRefresh(): Promise<string | null> {
+    const rt = loadRefreshToken();
+    if (!rt) return null;
+    try {
+      const data = await apiJson("/auth/refresh", {
+        method: "POST",
+        body: JSON.stringify({ refreshToken: rt }),
+      });
+      saveRefreshToken(data.refreshToken);
+      setAccessToken(data.accessToken);
+      return data.accessToken;
+    } catch {
+      saveRefreshToken(null);
+      setUser(null);
+      setAccessToken(null);
+      return null;
+    }
+  }
+
+  async function getValidAccessToken(): Promise<string | null> {
+    const current = accessTokenRef.current;
+    if (current && !isTokenExpired(current)) return current;
+    return silentRefresh();
+  }
+
+  async function authedFetch(path: string, options: RequestInit = {}): Promise<Response> {
+    const token = await getValidAccessToken();
+    return apiFetch(path, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers ?? {}),
+      },
+    });
+  }
+
+  async function authedJson(path: string, options: RequestInit = {}) {
+    const res = await authedFetch(path, options);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((body as any).error ?? `HTTP ${res.status}`);
+    return body;
+  }
+
   useEffect(() => {
-    const users = loadUsers();
-
-    const sessionUserId = loadSessionUserId();
-    if (sessionUserId) {
-      const found = users.find((u) => u.id === sessionUserId && u.verified);
-      if (found) setUser(toPublicUser(found));
-      else saveSessionUserId(null);
-    }
-
-    const pending = loadPending();
-    if (pending) {
-      const found = users.find((u) => u.id === pending.userId);
-      if (found) {
-        setTempUser(toPublicUser(found));
-        setIsMfaRequired(pending.stage === "mfa");
-      } else {
-        savePending(null);
+    const rt = loadRefreshToken();
+    if (!rt) return;
+    silentRefresh().then(async (token) => {
+      if (!token) return;
+      try {
+        const data = await apiFetch("/user/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const body = await data.json();
+        if (data.ok && body.user) {
+          setUser(body.user as AuthUser);
+        }
+      } catch {
+        /* silent */
       }
-    }
+    });
   }, []);
 
-  const login = async (email: string, password: string): Promise<AuthResult> => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const users = loadUsers();
-    const found = users.find((u) => u.email.toLowerCase() === normalizedEmail);
-
-    if (!found || found.password !== password) {
-      return { success: false, error: "Invalid email or password." };
-    }
-    if (!found.verified) {
-      return { success: false, error: "Please verify your email before signing in." };
-    }
-
-    const pending: PendingFlow = { userId: found.id, stage: "mfa" };
-    savePending(pending);
-    setTempUser(toPublicUser(found));
-    setIsMfaRequired(true);
-    return { success: true };
-  };
-
   const register = async (
-    name: string,
-    email: string,
-    password: string,
-    accountType: AccountType
+    name: string, email: string, password: string, accountType: AccountType
   ): Promise<AuthResult> => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const users = loadUsers();
-
-    if (users.some((u) => u.email.toLowerCase() === normalizedEmail)) {
-      return { success: false, error: "An account with this email already exists." };
+    try {
+      await apiJson("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password, accountType }),
+      });
+      savePendingEmail(email.trim().toLowerCase());
+      setPendingEmail(email.trim().toLowerCase());
+      setTempUser({ id: "", name, email: email.trim().toLowerCase(), accountType, totpEnabled: false });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
     }
-
-    const created: StoredUser = {
-      id: newId(),
-      name: name.trim(),
-      email: normalizedEmail,
-      password,
-      accountType,
-      verified: false,
-    };
-
-    saveUsers([...users, created]);
-
-    const pending: PendingFlow = { userId: created.id, stage: "verify-email" };
-    savePending(pending);
-    setTempUser(toPublicUser(created));
-    setIsMfaRequired(false);
-    return { success: true };
   };
 
   const verifyOTP = async (code: string): Promise<AuthResult> => {
-    const pending = loadPending();
-    if (!pending || pending.stage !== "verify-email") {
-      return { success: false, error: "No pending email verification found." };
+    const email = pendingEmail ?? loadPendingEmail();
+    if (!email) return { success: false, error: "Session expired. Please register again." };
+    try {
+      await apiJson("/auth/verify-email", {
+        method: "POST",
+        body: JSON.stringify({ email, code }),
+      });
+      savePendingEmail(null);
+      setPendingEmail(null);
+      setTempUser(null);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
     }
-    if (!/^\d{6}$/.test(code.trim())) {
-      return { success: false, error: "Please enter the full 6-digit code." };
-    }
+  };
 
-    const users = loadUsers();
-    const idx = users.findIndex((u) => u.id === pending.userId);
-    if (idx === -1) {
-      return { success: false, error: "Account not found." };
+  const resendOTP = async (): Promise<AuthResult> => {
+    const email = pendingEmail ?? loadPendingEmail();
+    if (!email) return { success: false, error: "No pending verification. Please register again." };
+    try {
+      await apiJson("/auth/resend-otp", {
+        method: "POST",
+        body: JSON.stringify({ email, type: "email_verification" }),
+      });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
     }
+  };
 
-    users[idx] = { ...users[idx], verified: true };
-    saveUsers(users);
-    savePending(null);
-    setTempUser(null);
-    setIsMfaRequired(false);
-    return { success: true };
+  const login = async (email: string, password: string): Promise<AuthResult> => {
+    try {
+      const data = await apiJson("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      if (data.mfaRequired) {
+        setMfaTempToken(data.tempToken);
+        setTempUser({ id: "", name: "", email: email.trim().toLowerCase(), accountType: "personal", totpEnabled: true });
+        setIsMfaRequired(true);
+      } else {
+        setAccessToken(data.accessToken);
+        saveRefreshToken(data.refreshToken);
+        setUser(data.user as AuthUser);
+        setIsMfaRequired(false);
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
   };
 
   const verifyMFA = async (code: string): Promise<AuthResult> => {
-    const pending = loadPending();
-    if (!pending || pending.stage !== "mfa") {
-      return { success: false, error: "No pending sign-in found." };
+    if (!mfaTempToken) return { success: false, error: "Session expired. Please sign in again." };
+    try {
+      const data = await apiJson("/mfa/verify", {
+        method: "POST",
+        body: JSON.stringify({ tempToken: mfaTempToken, code }),
+      });
+      setMfaTempToken(null);
+      setTempUser(null);
+      setIsMfaRequired(false);
+      setAccessToken(data.accessToken);
+      saveRefreshToken(data.refreshToken);
+      setUser(data.user as AuthUser);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
     }
-    if (!/^\d{6}$/.test(code.trim())) {
-      return { success: false, error: "Please enter the full 6-digit code." };
-    }
-
-    const users = loadUsers();
-    const found = users.find((u) => u.id === pending.userId);
-    if (!found) {
-      return { success: false, error: "Account not found." };
-    }
-
-    savePending(null);
-    saveSessionUserId(found.id);
-    setUser(toPublicUser(found));
-    setTempUser(null);
-    setIsMfaRequired(false);
-    return { success: true };
   };
 
-  const logout = () => {
-    saveSessionUserId(null);
+  const sendMfaEmailCode = async (): Promise<AuthResult> => {
+    if (!mfaTempToken) return { success: false, error: "Session expired. Please sign in again." };
+    try {
+      await apiJson("/mfa/send-email-code", {
+        method: "POST",
+        body: JSON.stringify({ tempToken: mfaTempToken }),
+      });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const logout = async () => {
+    const rt = loadRefreshToken();
+    const token = accessTokenRef.current;
+    try {
+      if (token) {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ refreshToken: rt }),
+        });
+      }
+    } catch { /* best effort */ }
+    saveRefreshToken(null);
+    savePendingEmail(null);
     setUser(null);
+    setAccessToken(null);
+    setTempUser(null);
+    setIsMfaRequired(false);
+    setMfaTempToken(null);
+  };
+
+  const forgotPassword = async (email: string): Promise<AuthResult> => {
+    try {
+      await apiJson("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const resetPassword = async (email: string, code: string, newPassword: string): Promise<AuthResult> => {
+    try {
+      await apiJson("/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ email, code, newPassword }),
+      });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const setupTotp = async () => {
+    try {
+      const data = await authedJson("/mfa/setup");
+      return data as { secret: string; qrCode: string; otpauthUrl: string };
+    } catch {
+      return null;
+    }
+  };
+
+  const enableTotp = async (secret: string, code: string): Promise<AuthResult> => {
+    try {
+      await authedJson("/mfa/enable", {
+        method: "POST",
+        body: JSON.stringify({ secret, code }),
+      });
+      if (user) setUser({ ...user, totpEnabled: true });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const disableTotp = async (code: string): Promise<AuthResult> => {
+    try {
+      await authedJson("/mfa/disable", {
+        method: "POST",
+        body: JSON.stringify({ code }),
+      });
+      if (user) setUser({ ...user, totpEnabled: false });
+      saveRefreshToken(null);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const refreshUser = async () => {
+    try {
+      const data = await authedJson("/user/me");
+      if (data.user) setUser(data.user as AuthUser);
+    } catch { /* silent */ }
   };
 
   const value: AuthContextValue = {
@@ -244,11 +369,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!user,
     isMfaRequired,
     tempUser,
+    accessToken,
     login,
     register,
     verifyOTP,
+    resendOTP,
     verifyMFA,
+    sendMfaEmailCode,
     logout,
+    forgotPassword,
+    resetPassword,
+    setupTotp,
+    enableTotp,
+    disableTotp,
+    refreshUser,
+    authedFetch,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -71,10 +71,10 @@ Build MevrelBank into a secure, modern, scalable digital banking ecosystem that 
 - [x] MFA page (`/mfa`) — TOTP input, SMS fallback toggle, resend countdown
 - [x] Client-side auth flow wired end-to-end (register → verify-email → login → MFA → session), backed by `localStorage` only — no backend yet
 - [x] Protected route wrapper (redirect unauthenticated users away from `/dashboard`; redirect authenticated users away from `/login`/`/register`)
-- [ ] Backend auth API (Railway / Node.js)
-- [ ] JWT strategy (short-lived access token + refresh token)
-- [ ] Email service integration (verification + reset emails)
-- [ ] MFA TOTP provisioning (QR code setup flow)
+- [x] Backend auth API (Railway / Node.js) — Node.js/Express on Replit dev (port 3001), deploys to Railway
+- [x] JWT strategy (short-lived access token + refresh token) — access 15min, refresh 7d, MFA temp 5min
+- [x] Email service integration (verification + reset emails) — Resend via noreply@mevrelbank.com
+- [x] MFA TOTP provisioning (QR code setup flow) — otplib + qrcode, setup in /dashboard/profile
 
 ---
 

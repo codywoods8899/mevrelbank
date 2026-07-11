@@ -23,6 +23,10 @@ args = "Start application"
 task = "workflow.run"
 args = "MevrelBank Dev (verify)"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "MevrelBank Backend"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -47,9 +51,25 @@ waitForPort = 5173
 [workflows.workflow.metadata]
 outputType = "console"
 
+[[workflows.workflow]]
+name = "MevrelBank Backend"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd mevrelbank/backend && node server.js"
+waitForPort = 3001
+
 [[ports]]
 localPort = 3000
 externalPort = 80
+
+[[ports]]
+localPort = 3001
+externalPort = 3001
 
 [[ports]]
 localPort = 5050
@@ -62,3 +82,13 @@ externalPort = 5173
 [deployment]
 deploymentTarget = "vm"
 run = ["node", "aicg/server.js"]
+
+[userenv]
+
+[userenv.shared]
+JWT_SECRET = "d89383ed378934dcb41328d11a59b6e19154e2eaaf027b503c673acbf5e829058a9c307eeab7c5f9ce610be6433c3f08cf7d265bde706b2b79cf288ce9aab783"
+JWT_REFRESH_SECRET = "0db8d6837eb695fb60b185e3a9b78969a7036b05d727656142110d0f1473197c8609bb35cd8a2ec0417af2bb838b43ead6798ed54f1b423661cf3ee28f40c045"
+JWT_MFA_SECRET = "adee267b8ee3cb3b0c9a2e3339ae64405367f1d20b3b18f11413055a7951b454"
+BACKEND_PORT = "3001"
+NOREPLY_EMAIL = "noreply@mevrelbank.com"
+CORS_ORIGIN = "http://localhost:5173,https://mevrelbank.com,https://www.mevrelbank.com"
