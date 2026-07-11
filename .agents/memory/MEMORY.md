@@ -1,0 +1,2 @@
+- [MevrelBank repo layout](mevrelbank-layout.md) — repo root has two independent apps (aicg/, mevrelbank/); the real MevrelBank frontend is nested deep under mevrelbank/design-systems/agents/figma/.
+- [Client-side mock auth pattern](mevrelbank-mock-auth.md) — how register/verify/login/MFA is faked with localStorage only, no backend yet.

@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { Smartphone, Shield } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { AuthShell, AuthCard, AuthError } from "../components/AuthShell";
 import { Btn } from "../shared/Btn";
+import { useAuth } from "../../context/AuthContext";
 
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 30;
@@ -28,6 +30,8 @@ function useCountdown(initial: number) {
 }
 
 export default function MFAPage() {
+  const { verifyMFA } = useAuth();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<"totp" | "sms">("totp");
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState("");
@@ -77,7 +81,7 @@ export default function MFAPage() {
     // TODO: trigger resend SMS API
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = otp.join("");
     if (code.length < OTP_LENGTH) {
@@ -86,11 +90,15 @@ export default function MFAPage() {
     }
     setError("");
     setLoading(true);
-    // TODO: wire to auth API
-    setTimeout(() => {
-      setLoading(false);
-      setError("Two-factor authentication is not yet active. This is a UI preview.");
-    }, 600);
+    const result = await verifyMFA(code);
+    setLoading(false);
+
+    if (!result.success) {
+      setError(result.error ?? "Unable to verify code.");
+      return;
+    }
+
+    navigate("/dashboard");
   };
 
   return (

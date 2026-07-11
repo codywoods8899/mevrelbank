@@ -1,27 +1,35 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { AuthShell, AuthCard, AuthField, AuthInput, AuthError } from "../components/AuthShell";
 import { Btn } from "../shared/Btn";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoginPage() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (!email.trim() || !password) return;
 
     setLoading(true);
-    // TODO: wire to auth API
-    setTimeout(() => {
-      setLoading(false);
-      setError("Sign in is not yet available. Accounts are not open to the public.");
-    }, 600);
+    const result = await login(email, password);
+    setLoading(false);
+
+    if (!result.success) {
+      setError(result.error ?? "Unable to sign in.");
+      return;
+    }
+
+    navigate("/mfa");
   };
 
   const canSubmit = email.trim().length > 0 && password.length > 0 && !loading;

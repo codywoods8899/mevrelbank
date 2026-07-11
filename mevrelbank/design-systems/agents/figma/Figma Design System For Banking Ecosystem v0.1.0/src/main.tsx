@@ -7,6 +7,7 @@ import {
   BlogPage,
   CareersPage,
   ContactPage,
+  DashboardPage,
   FaqsPage,
   ForgotPasswordPage,
   LoginPage,
@@ -18,6 +19,8 @@ import {
   VerifyEmailPage,
   WaitlistPage,
 } from "./app/website/pages";
+import { AuthProvider } from "./app/context/AuthContext";
+import { ProtectedRoute, PublicOnlyRoute } from "./app/website/components/ProtectedRoute";
 import "./styles/index.css";
 
 const router = createBrowserRouter([
@@ -31,18 +34,22 @@ const router = createBrowserRouter([
   { path: "/careers", element: <CareersPage /> },
   { path: "/blog", element: <BlogPage /> },
   { path: "/waitlist", element: <WaitlistPage /> },
-  // Auth flows
-  { path: "/login", element: <LoginPage /> },
-  { path: "/register", element: <RegisterPage /> },
+  // Auth flows — signed-in users are bounced straight to the dashboard
+  { path: "/login", element: <PublicOnlyRoute><LoginPage /></PublicOnlyRoute> },
+  { path: "/register", element: <PublicOnlyRoute><RegisterPage /></PublicOnlyRoute> },
   { path: "/verify-email", element: <VerifyEmailPage /> },
   { path: "/forgot-password", element: <ForgotPasswordPage /> },
   { path: "/reset-password", element: <ResetPasswordPage /> },
   { path: "/mfa", element: <MFAPage /> },
+  // Customer dashboard — requires an authenticated session
+  { path: "/dashboard", element: <ProtectedRoute><DashboardPage /></ProtectedRoute> },
   // Design system demo
   { path: "/ds", element: <App /> },
   { path: "*", element: <HomePage /> },
 ]);
 
 createRoot(document.getElementById("root")!).render(
-  <RouterProvider router={router} />
+  <AuthProvider>
+    <RouterProvider router={router} />
+  </AuthProvider>
 );

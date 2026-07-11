@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { AuthShell, AuthCard, AuthField, AuthInput, AuthError } from "../components/AuthShell";
 import { Btn } from "../shared/Btn";
+import { useAuth } from "../../context/AuthContext";
 
 type AccountType = "personal" | "business" | "";
 
@@ -52,6 +54,8 @@ function PasswordStrength({ value }: { value: string }) {
 }
 
 export default function RegisterPage() {
+  const { register } = useAuth();
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
@@ -73,7 +77,7 @@ export default function RegisterPage() {
     return errs;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     const errs = validate();
@@ -87,11 +91,15 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
-    // TODO: wire to auth API
-    setTimeout(() => {
-      setLoading(false);
-      setError("Registration is not yet open. Join the waitlist to be notified when accounts launch.");
-    }, 600);
+    const result = await register(fullName, email, pwd, accountType as "personal" | "business");
+    setLoading(false);
+
+    if (!result.success) {
+      setError(result.error ?? "Unable to create account.");
+      return;
+    }
+
+    navigate("/verify-email");
   };
 
   const canSubmit = fullName.trim() && email.trim() && pwd && confirmPassword && accountType && agreed && !loading;

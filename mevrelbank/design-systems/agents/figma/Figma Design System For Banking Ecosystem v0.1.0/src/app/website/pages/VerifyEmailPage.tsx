@@ -3,6 +3,7 @@ import { CheckCircle2 } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { AuthShell, AuthCard, AuthError } from "../components/AuthShell";
 import { Btn } from "../shared/Btn";
+import { useAuth } from "../../context/AuthContext";
 
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 60;
@@ -31,6 +32,7 @@ function useCountdown(initial: number) {
 }
 
 export default function VerifyEmailPage() {
+  const { verifyOTP } = useAuth();
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -70,7 +72,7 @@ export default function VerifyEmailPage() {
     inputRefs.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = otp.join("");
     if (code.length < OTP_LENGTH) {
@@ -79,11 +81,15 @@ export default function VerifyEmailPage() {
     }
     setError("");
     setLoading(true);
-    // TODO: wire to auth API
-    setTimeout(() => {
-      setLoading(false);
-      setVerified(true);
-    }, 600);
+    const result = await verifyOTP(code);
+    setLoading(false);
+
+    if (!result.success) {
+      setError(result.error ?? "Unable to verify code.");
+      return;
+    }
+
+    setVerified(true);
   };
 
   const handleResend = () => {
