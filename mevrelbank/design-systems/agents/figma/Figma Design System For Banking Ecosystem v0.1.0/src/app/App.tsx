@@ -12,7 +12,8 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar
 } from "recharts";
-import { BankingPortalView } from "./website/components/BankingPortalView";
+import { DashboardShell } from "./website/components/DashboardShell";
+import { DashboardOverview } from "./website/components/DashboardOverview";
 
 // ─── LOGO MARK ───────────────────────────────────────────────────────────────
 
@@ -1133,9 +1134,10 @@ function PublicWebsiteView() {
 
 // ─── SECTION: INTERNET BANKING ────────────────────────────────────────────────
 
-// BankingPortalView now lives in website/components/BankingPortalView.tsx so it
-// can be reused by both this design-system preview tab and the real /dashboard
-// route (see DashboardPage.tsx). Import it directly rather than redefining it.
+// The banking portal shell/content now live in website/components/DashboardShell.tsx
+// and DashboardOverview.tsx so they can be reused by both this design-system
+// preview tab and the real, routed /dashboard/* pages. Import them directly
+// rather than redefining the UI here.
 
 // ─── SECTION: AUTH FLOWS ─────────────────────────────────────────────────────
 
@@ -1363,7 +1365,9 @@ export default function App() {
       {activeTab === "banking" && (
         <div className="p-5">
           <div className="max-w-[1100px] mx-auto">
-            <BankingPortalView />
+            <DashboardShell>
+              <DashboardOverview />
+            </DashboardShell>
           </div>
         </div>
       )}

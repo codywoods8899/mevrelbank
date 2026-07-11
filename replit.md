@@ -53,9 +53,11 @@ A digital banking platform currently in **Phase 2 — Authentication** (frontend
 - ✅ Design system / color system / typography complete
 - ✅ Public website complete (9 routed pages, SEO, live at mevrelbank.com)
 - ✅ Auth page UI complete (login, register, verify-email, forgot/reset password, MFA)
+- ✅ Auth flow wired end-to-end (client-side only — `localStorage`-backed register/login/verify/MFA, no real backend yet)
+- ✅ Full customer banking frontend scaffold behind the mock auth session: `/dashboard`, `/dashboard/accounts`, `/dashboard/transactions`, `/dashboard/statements`, `/dashboard/beneficiaries`, `/dashboard/profile`, `/dashboard/notifications` — shared sidebar layout, all mock data, no money-moving actions are real yet
 - ✅ Waitlist form with Cloudflare D1 backend (via Pages Functions)
-- ⏳ Phase 2 backend: JWT auth, email service, TOTP provisioning — planned
-- ⬜ Phase 3+: customer dashboard, payments, cards — planned
+- ⏳ Phase 2 backend (planned): JWT auth, email service, TOTP provisioning — current auth is a frontend-only mock pending this
+- ⬜ Phase 3+ (planned): wire the customer banking pages above to real banking APIs; payments, cards
 
 ### Hosting
 - Frontend: Cloudflare Pages (live at mevrelbank.com)

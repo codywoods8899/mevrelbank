@@ -1,0 +1,61 @@
+import { useState } from "react";
+import { ArrowDownLeft, ArrowUpRight, Download } from "lucide-react";
+import { PageMeta } from "../components/PageMeta";
+import { Btn } from "../shared/Btn";
+import { StatusDot } from "../shared/StatusDot";
+import { transactions } from "../shared/mockBankingData";
+
+const FILTERS = ["All", "Current Account", "Savings Account"] as const;
+
+export default function TransactionsPage() {
+  const [filter, setFilter] = useState<typeof FILTERS[number]>("All");
+  const filtered = filter === "All" ? transactions : transactions.filter((t) => t.account === filter);
+
+  return (
+    <>
+      <PageMeta title="Transactions — MevrelBank" description="Search and review your MevrelBank transaction history." />
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-[20px] font-bold text-[#0D1829] mb-0.5" style={{ fontFamily: "Figtree, sans-serif" }}>Transaction History</h1>
+          <div className="text-[12px] text-[#8A9BBE]">{filtered.length} transactions</div>
+        </div>
+        <Btn variant="outline" size="sm" icon={<Download size={13} />}>Export CSV</Btn>
+      </div>
+
+      <div className="flex gap-1.5 mb-4">
+        {FILTERS.map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 rounded-[6px] text-[12px] font-semibold transition-colors ${
+              filter === f ? "bg-[#0B3270] text-white" : "bg-white text-[#5E6E8E] border border-[rgba(11,50,112,0.10)] hover:bg-[#EEF2F9]"
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] overflow-hidden">
+        {filtered.map((tx, i) => (
+          <div key={tx.id} className={`flex items-center gap-3.5 px-5 py-3 ${i < filtered.length - 1 ? "border-b border-[rgba(11,50,112,0.04)]" : ""} hover:bg-[#F8FAFD] transition-colors`}>
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${tx.amount > 0 ? "bg-[#D6F0E6]" : "bg-[#EEF2F9]"}`}>
+              {tx.amount > 0 ? <ArrowDownLeft size={12} className="text-[#0E7C4D]" /> : <ArrowUpRight size={12} className="text-[#7A8CAA]" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[12px] font-semibold text-[#0D1829] truncate">{tx.name}</div>
+              <div className="text-[10px] text-[#8A9BBE]">{tx.category} · {tx.account} · {tx.date}</div>
+            </div>
+            <StatusDot status={tx.status} />
+            <div className="text-[12px] font-medium w-24 text-right" style={{ fontFamily: "'DM Mono', monospace", color: tx.amount > 0 ? "#0E7C4D" : "#0D1829" }}>
+              {tx.amount > 0 ? "+" : ""}£{Math.abs(tx.amount).toFixed(2)}
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <div className="px-5 py-10 text-center text-[12px] text-[#8A9BBE]">No transactions for this account.</div>
+        )}
+      </div>
+    </>
+  );
+}

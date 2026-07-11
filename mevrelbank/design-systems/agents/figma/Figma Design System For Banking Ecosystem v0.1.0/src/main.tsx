@@ -4,6 +4,8 @@ import App from "./app/App";
 import HomePage from "./app/website/pages/HomePage";
 import {
   AboutPage,
+  AccountsPage,
+  BeneficiariesPage,
   BlogPage,
   CareersPage,
   ContactPage,
@@ -12,15 +14,20 @@ import {
   ForgotPasswordPage,
   LoginPage,
   MFAPage,
+  NotificationsPage,
   ProductsPage,
+  ProfilePage,
   RegisterPage,
   ResetPasswordPage,
   SecurityPage,
+  StatementsPage,
+  TransactionsPage,
   VerifyEmailPage,
   WaitlistPage,
 } from "./app/website/pages";
 import { AuthProvider } from "./app/context/AuthContext";
 import { ProtectedRoute, PublicOnlyRoute } from "./app/website/components/ProtectedRoute";
+import DashboardLayout from "./app/website/components/DashboardLayout";
 import "./styles/index.css";
 
 const router = createBrowserRouter([
@@ -42,7 +49,18 @@ const router = createBrowserRouter([
   { path: "/reset-password", element: <ResetPasswordPage /> },
   { path: "/mfa", element: <MFAPage /> },
   // Customer dashboard — requires an authenticated session
-  { path: "/dashboard", element: <ProtectedRoute><DashboardPage /></ProtectedRoute> },
+  {
+    element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
+    children: [
+      { path: "/dashboard", element: <DashboardPage /> },
+      { path: "/dashboard/accounts", element: <AccountsPage /> },
+      { path: "/dashboard/transactions", element: <TransactionsPage /> },
+      { path: "/dashboard/statements", element: <StatementsPage /> },
+      { path: "/dashboard/beneficiaries", element: <BeneficiariesPage /> },
+      { path: "/dashboard/profile", element: <ProfilePage /> },
+      { path: "/dashboard/notifications", element: <NotificationsPage /> },
+    ],
+  },
   // Design system demo
   { path: "/ds", element: <App /> },
   { path: "*", element: <HomePage /> },

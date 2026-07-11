@@ -10,6 +10,8 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-13](#s-13) | 2026-07-11T02:55Z | — | Phase 3 customer banking scaffold: accounts, transactions, statements, beneficiaries, profile, notifications | Replit Agent |
+| [S-12](#s-12) | 2026-07-11T02:33Z | — | Phase 2 auth wiring: AuthContext, protected routes, dashboard | Replit Agent |
 | [S-11](#s-11) | 2026-07-10T03:30Z | — | GitHub Sync Engine v1 | Copilot Coding Agent |
 | [S-10](#s-10) | 2026-07-10T01:52Z | — | Cloudflare D1 waitlist backend | Copilot Coding Agent |
 | [S-09](#s-09) | 2026-07-10T01:40Z | — | Phase 2 auth pages scaffold | Copilot Coding Agent |
@@ -21,6 +23,83 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-12"></a>
+## S-12 · 2026-07-11T02:33Z · Phase 2 auth wiring: AuthContext, protected routes, dashboard
+
+**Agent:** Replit Agent
+**Branch:** (current)
+**PR:** —
+**Trigger:** User request to wire the existing Phase 2 auth page UI to a real (client-side, localStorage-backed) auth flow and add a protected customer dashboard, per an uploaded implementation plan.
+
+### Objective
+Connect the previously scaffolded auth pages (S-09) to real state instead of mock `setTimeout` handlers, add route protection, and stand up a `/dashboard` route by extracting the existing design-system `BankingPortalView` into a shared, reusable component. No backend exists yet — this is a mock, localStorage-only auth layer intended to be swapped for the real backend API (Phase 2 backend items, still not started).
+
+### Files Changed
+| File | Status | +Lines | −Lines | Notes |
+|------|--------|--------|--------|-------|
+| `src/app/context/AuthContext.tsx` | added | ~250 | 0 | `AuthProvider`/`useAuth`: localStorage-backed `register/login/verifyOTP/verifyMFA/logout`; separate keys for users, session, and a single in-progress "pending" flow (`stage: verify-email \| mfa`) |
+| `src/app/website/components/ProtectedRoute.tsx` | added | ~20 | 0 | `ProtectedRoute` (redirect unauthenticated → `/login`) and `PublicOnlyRoute` (redirect authenticated → `/dashboard`) |
+| `src/app/website/components/BankingPortalView.tsx` | added | ~330 | 0 | Extracted dashboard UI (sidebar nav, balance cards, chart, transactions) out of `App.tsx`; now prop-driven (`userName`, `accountLabel`, `onLogout`) and shared between the `/ds` demo and the real dashboard |
+| `src/app/website/pages/DashboardPage.tsx` | added | ~35 | 0 | Real `/dashboard` page: renders `BankingPortalView` wired to `useAuth()`'s real user + logout |
+| `src/app/website/pages/index.tsx` | modified | 2 | 0 | Export `DashboardPage` |
+| `src/app/website/pages/LoginPage.tsx` | modified | ~15 | ~8 | Calls `login()`; navigates to `/mfa` on success |
+| `src/app/website/pages/RegisterPage.tsx` | modified | ~20 | ~12 | Calls `register()`; navigates to `/verify-email` on success |
+| `src/app/website/pages/VerifyEmailPage.tsx` | modified | ~15 | ~10 | Calls `verifyOTP()` instead of a mock timeout |
+| `src/app/website/pages/MFAPage.tsx` | modified | ~15 | ~10 | Calls `verifyMFA()`; navigates to `/dashboard` on success |
+| `src/main.tsx` | modified | ~10 | ~3 | Wrapped app in `AuthProvider`; added guarded `/dashboard` route; wrapped `/login` and `/register` in `PublicOnlyRoute` |
+| `src/app/App.tsx` | modified | ~10 | ~194 | Removed the inline `BankingPortalView` definition (now imported from the shared component); trimmed now-unused icon imports |
+
+### Verification
+- `npx vite build` — succeeds with no errors (note: this nested project has no `tsconfig.json`, so the build does not run a separate type-check pass).
+- Screenshots confirmed `/register` and `/login` render correctly, and `/dashboard` correctly redirects to `/login` when signed out.
+- The full auth state machine (register → block-login-until-verified → verify OTP → login → block-wrong-password → verify MFA → session persisted → duplicate-registration rejected) was exercised in an isolated logic simulation mirroring `AuthContext`'s exact code; all transitions behaved as expected.
+
+### Outcome
+Phase 2's "Protected route wrapper" item is functionally complete, backed by mock/localStorage auth rather than the real backend (JWT strategy, email service, MFA TOTP provisioning are still not implemented — see `mevrelbank/roadmap.md`). A real, routed `/dashboard` now exists with mock account data, ready to swap to live data once the backend lands.
+
+---
+
+<a id="s-13"></a>
+## S-13 · 2026-07-11T02:55Z · Phase 3 customer banking scaffold: accounts, transactions, statements, beneficiaries, profile, notifications
+
+**Agent:** Replit Agent
+**Branch:** (current)
+**PR:** —
+**Trigger:** Continuation of the S-12 auth work — user asked to proceed to the next major scope item revealed by `mevrelbank/roadmap.md`, which was the remainder of Phase 3 (Customer Banking) beyond the Dashboard.
+
+### Objective
+Build out the rest of the Phase 3 Customer Banking pages as protected, real-routed pages sharing one consistent layout with the existing dashboard, using mock data consistent with the existing mock-auth/no-backend pattern.
+
+### Files Changed
+| File | Status | Notes |
+|------|--------|-------|
+| `src/app/website/components/DashboardShell.tsx` | added | Sidebar + top bar shell, extracted from the old `BankingPortalView`; nav items are real `NavLink`s to `/dashboard/*` routes instead of local tab state |
+| `src/app/website/components/DashboardOverview.tsx` | added | Dashboard home content (balance cards, chart, quick actions, recent transactions), extracted from the old `BankingPortalView`; quick actions and "View all" now link to real routes |
+| `src/app/website/components/DashboardLayout.tsx` | added | React Router layout route: reads `useAuth()`, renders `DashboardShell` + `Outlet` for all `/dashboard/*` children |
+| `src/app/website/components/BankingPortalView.tsx` | removed | Superseded by `DashboardShell` + `DashboardOverview` |
+| `src/app/website/shared/mockBankingData.ts` | added | Shared mock data module: `balanceTrend`, `transactions` (now tagged per-account), `accounts`, `statements`, `beneficiaries`, `notifications` |
+| `src/app/website/shared/StatusDot.tsx` | added | Extracted small status-dot component, now shared instead of duplicated |
+| `src/app/website/pages/AccountsPage.tsx` | added | `/dashboard/accounts` — account cards + cross-account activity |
+| `src/app/website/pages/TransactionsPage.tsx` | added | `/dashboard/transactions` — filterable transaction history, CSV export button (UI only) |
+| `src/app/website/pages/StatementsPage.tsx` | added | `/dashboard/statements` — statement list with download action (UI only) |
+| `src/app/website/pages/BeneficiariesPage.tsx` | added | `/dashboard/beneficiaries` — saved payee list, pay/new payee actions (UI only) |
+| `src/app/website/pages/ProfilePage.tsx` | added | `/dashboard/profile` — personal details + security status (edit actions UI only) |
+| `src/app/website/pages/NotificationsPage.tsx` | added | `/dashboard/notifications` — security/payment/info alert feed |
+| `src/app/website/pages/DashboardPage.tsx` | modified | Simplified to render `DashboardOverview` inside the new `DashboardLayout` (shell no longer duplicated per-page) |
+| `src/app/website/pages/index.tsx` | modified | Exported the 6 new pages |
+| `src/main.tsx` | modified | `/dashboard` and its 6 new siblings are now nested children of one `ProtectedRoute > DashboardLayout` route |
+| `src/app/App.tsx` | modified | `/ds` demo's "Internet Banking" tab now composes `DashboardShell` + `DashboardOverview` directly instead of the removed `BankingPortalView` |
+
+### Verification
+- `npx vite build` — succeeds with no errors.
+- `MevrelBank Dev (verify)` workflow restarted; screenshots confirm `/ds` design-system demo still renders, and `/dashboard` correctly redirects unauthenticated visitors to `/login` (route protection still intact after the refactor).
+- All six new routes (`/dashboard/accounts`, `/transactions`, `/statements`, `/beneficiaries`, `/profile`, `/notifications`) return HTTP 200 from the dev server (SPA routing verified at the network level; full authenticated click-through was not performed — no browser automation tool is available in this environment).
+
+### Outcome
+Phase 3 (Customer Banking) is now fully scaffolded on the frontend: all 7 listed pages exist as real, protected routes sharing one layout. Every action that would move money, export a file, or edit account/profile state is intentionally UI-only — none of it is wired to a backend, because no backend exists yet (see Phase 2 backend items in `mevrelbank/roadmap.md`, still unchecked).
 
 ---
 

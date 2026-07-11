@@ -69,23 +69,26 @@ Build MevrelBank into a secure, modern, scalable digital banking ecosystem that 
 - [x] Forgot Password page (`/forgot-password`) — email input, success/inbox state
 - [x] Reset Password page (`/reset-password`) — new password form, strength indicator, success state
 - [x] MFA page (`/mfa`) — TOTP input, SMS fallback toggle, resend countdown
+- [x] Client-side auth flow wired end-to-end (register → verify-email → login → MFA → session), backed by `localStorage` only — no backend yet
+- [x] Protected route wrapper (redirect unauthenticated users away from `/dashboard`; redirect authenticated users away from `/login`/`/register`)
 - [ ] Backend auth API (Railway / Node.js)
 - [ ] JWT strategy (short-lived access token + refresh token)
 - [ ] Email service integration (verification + reset emails)
 - [ ] MFA TOTP provisioning (QR code setup flow)
-- [ ] Protected route wrapper (redirect unauthenticated users)
 
 ---
 
 ## Phase 3 — Customer Banking
 
-- Dashboard
-- Accounts
-- Transaction History
-- Statements
-- Beneficiaries
-- Profile
-- Notifications
+- [x] Dashboard (`/dashboard`) — sidebar nav, account summary cards, balance trend chart, recent transactions; mock data, gated behind the mock auth session; real data pending Phase 2 backend
+- [x] Accounts (`/dashboard/accounts`) — current + savings account cards, cross-account activity feed; mock data
+- [x] Transaction History (`/dashboard/transactions`) — filterable by account, CSV export button (not yet wired to a real export); mock data
+- [x] Statements (`/dashboard/statements`) — list of generated statement periods with download action (not yet wired to a real file); mock data
+- [x] Beneficiaries (`/dashboard/beneficiaries`) — saved payee list with "Pay" / "New Payee" actions (UI only, no real transfer execution); mock data
+- [x] Profile (`/dashboard/profile`) — personal details + security status summary (edit actions are UI only pending Phase 2 backend); mock data
+- [x] Notifications (`/dashboard/notifications`) — security/payment/info alert feed; mock data
+
+All Phase 3 pages above are frontend scaffolds sharing one `DashboardShell` layout (sidebar + top bar) with real routing; every action that would mutate real money or account state (pay, export, download, edit) is UI-only until the Phase 2 backend and corresponding banking APIs exist.
 
 ---
 
