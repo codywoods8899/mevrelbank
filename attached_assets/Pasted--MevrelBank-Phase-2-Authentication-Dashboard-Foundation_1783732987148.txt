@@ -1,0 +1,249 @@
+# MevrelBank — Phase 2 Authentication & Dashboard Foundation
+
+You are working on the MevrelBank project.
+
+Follow these engineering rules throughout the task:
+
+- Read the repository before making changes.
+- Understand the existing architecture first.
+- Reuse existing components, utilities, hooks, layouts, and services wherever possible.
+- Do not duplicate functionality.
+- Prefer extending existing code over creating new code.
+- Maintain modular, production-quality code.
+- Do not introduce new dependencies unless absolutely necessary.
+- Do not perform destructive Git operations.
+- Do not commit.
+- Do not push.
+- Do not create pull requests.
+- Continue implementing without asking for confirmation unless:
+  - architecture must change,
+  - new dependencies are required,
+  - destructive Git operations are needed,
+  - repository restructuring is required.
+
+The repository is already cloned and is currently clean.
+
+---
+
+## Goal
+
+Implement a fully functional client-side authentication system (Phase 2) and extract the Customer Banking Portal dashboard (Phase 3) into a routed page.
+
+The implementation must use mock authentication with localStorage only.
+
+No backend.
+
+No API.
+
+No database.
+
+---
+
+# Implementation Plan
+
+## Goal
+
+Implement a fully functional client-side authentication system (Phase 2) and extract the Customer Banking Portal dashboard (Phase 3) from the mock design system into a routed page at `/dashboard`.
+
+This allows visitors to:
+
+- Register
+- Verify email
+- Sign in
+- Complete MFA
+- Access the dashboard
+
+All state should be dynamically persisted via localStorage.
+
+---
+
+## Authentication Context & State
+
+### NEW — AuthContext.tsx
+
+Create an authentication context that manages:
+
+- user
+- isAuthenticated
+- isMfaRequired
+- tempUser
+
+Persist:
+
+- current session
+- registered users
+
+using localStorage.
+
+Provide mock implementations for:
+
+- login(email, password)
+- register(name, email, password, accountType)
+- verifyOTP(code)
+- verifyMFA(code)
+- logout()
+
+---
+
+### NEW — ProtectedRoute.tsx
+
+Create a protected route helper.
+
+Behaviour:
+
+- Redirect unauthenticated users attempting to access `/dashboard` to `/login`.
+- Redirect authenticated users attempting to access `/login` or `/register` back to `/dashboard`.
+
+---
+
+## Pages & Routing
+
+### NEW — DashboardPage.tsx
+
+If BankingPortalView already exists as a reusable component, reuse it.
+
+Only extract it from App.tsx if it is currently embedded there.
+
+Avoid duplicating dashboard logic.
+
+Create the `/dashboard` route.
+
+Use the authentication context to:
+
+- display logged-in user information
+- connect Logout button
+- preserve all existing charts and banking widgets
+
+---
+
+### MODIFY — pages/index.tsx
+
+Export DashboardPage.
+
+---
+
+### MODIFY — LoginPage.tsx
+
+Connect login form to:
+
+login(email, password)
+
+Redirect:
+
+- MFA page if required
+- otherwise dashboard
+
+---
+
+### MODIFY — RegisterPage.tsx
+
+Connect register form to:
+
+register(name, email, password, accountType)
+
+Redirect to:
+
+/verify-email
+
+---
+
+### MODIFY — VerifyEmailPage.tsx
+
+Connect:
+
+verifyOTP(code)
+
+After success:
+
+Redirect to:
+
+/login
+
+---
+
+### MODIFY — MFAPage.tsx
+
+Connect:
+
+verifyMFA(code)
+
+After success:
+
+Redirect to:
+
+/dashboard
+
+---
+
+### MODIFY — main.tsx
+
+Wrap application with AuthProvider.
+
+Create:
+
+ProtectedRoute
+
+Add:
+
+/dashboard
+
+Redirect unknown routes appropriately.
+
+---
+
+# Execution Requirements
+
+Before modifying code:
+
+1. Inspect the repository.
+2. Locate existing authentication components.
+3. Locate dashboard implementation.
+4. Locate routing.
+5. Reuse existing implementations where possible.
+
+Do not create duplicate components.
+
+After each major implementation:
+
+- build the project
+- resolve TypeScript errors
+- resolve lint errors
+- continue automatically
+
+Continue implementing until every item in this milestone is complete.
+
+If unrelated build issues exist, document them and continue where possible.
+
+---
+
+# Verification
+
+Run the appropriate production build.
+
+Verify:
+
+- Direct navigation to /dashboard redirects to /login.
+- Registration redirects to verify email.
+- OTP verification succeeds.
+- Login redirects to MFA.
+- MFA redirects to dashboard.
+- Dashboard displays the authenticated user's information.
+- Logout returns the user to the homepage.
+
+---
+
+# Deliverables
+
+When finished provide:
+
+1. Summary
+2. Files changed
+3. Architecture impact
+4. Documentation requiring updates
+5. Build/test status
+6. Remaining work
+7. Known issues
+
+Do not stop after creating a plan.
+
+Implement the complete milestone.
