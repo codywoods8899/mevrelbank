@@ -59,6 +59,14 @@ app.use((err, req, res, _next) => {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
-app.listen(PORT, '0.0.0.0', () => {
+const pool = require('./src/db/pool');
+
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`MevrelBank Backend running on port ${PORT}`);
+  try {
+    await pool.query('SELECT 1');
+    console.log('[DB] Connected to Neon successfully.');
+  } catch (err) {
+    console.error('[DB] Connection failed:', err?.message || String(err));
+  }
 });
