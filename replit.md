@@ -56,16 +56,24 @@ A digital banking platform currently in **Phase 2 — Authentication** (frontend
 - ✅ Auth flow wired end-to-end (client-side only — `localStorage`-backed register/login/verify/MFA, no real backend yet)
 - ✅ Full customer banking frontend scaffold behind the mock auth session: `/dashboard`, `/dashboard/accounts`, `/dashboard/transactions`, `/dashboard/statements`, `/dashboard/beneficiaries`, `/dashboard/profile`, `/dashboard/notifications` — shared sidebar layout, all mock data, no money-moving actions are real yet
 - ✅ Waitlist form with Cloudflare D1 backend (via Pages Functions)
-- ⏳ Phase 2 backend (planned): JWT auth, email service, TOTP provisioning — current auth is a frontend-only mock pending this
+- ✅ Phase 2 backend built and running in this Replit environment: JWT auth, Resend email, TOTP MFA, Neon PostgreSQL — frontend auth now talks to a real backend here (see `mevrelbank/backend/`)
 - ⬜ Phase 3+ (planned): wire the customer banking pages above to real banking APIs; payments, cards
 
 ### Hosting
-- Frontend: Cloudflare Pages (live at mevrelbank.com)
-- Backend: Railway (planned — not yet provisioned)
-- Database: Cloudflare D1 (active — waitlist_submissions)
+- Frontend: Cloudflare Pages (live at mevrelbank.com) — in this Replit workspace it runs via Vite dev server instead
+- Backend: Railway (planned for production) — in this Replit workspace it runs as the **MevrelBank Backend** workflow on port 3001
+- Database: Neon PostgreSQL (used by the Phase 2 backend here) + Cloudflare D1 (waitlist_submissions, production-only)
 - Storage: Cloudflare R2 (planned)
 
 See `mevrelbank/roadmap.md` for the full phased plan.
+
+### Run (this Replit project)
+Three independent workflows:
+- **Start application** → `cd aicg && node server.js` (AICG gateway, port 3000)
+- **MevrelBank Backend** → `cd mevrelbank/backend && node server.js` (port 3001; requires Neon `DATABASE_URL`, Resend key, JWT secret — already configured)
+- **MevrelBank Dev (verify)** → runs the frontend at `mevrelbank/design-systems/agents/figma/Figma Design System For Banking Ecosystem v0.1.0/` via `npx vite --port 5173 --host 0.0.0.0`; proxies `/api/*` to the backend on port 3001
+
+All three run independently — the AICG gateway is unrelated to the MevrelBank app. Dependencies (`node_modules`) for `aicg/`, `mevrelbank/backend/`, and the frontend were installed via `npm install` in each directory.
 
 ---
 
