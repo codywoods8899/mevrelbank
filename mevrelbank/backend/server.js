@@ -19,14 +19,20 @@ const allowedOrigins = (process.env.CORS_ORIGIN ?? '')
 app.set('trust proxy', 1);
 
 app.use(helmet());
-app.use(cors({
+
+const corsOptions = {
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return cb(null, true);
     cb(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
-}));
+};
+
+app.options('/{*splat}', cors(corsOptions));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '16kb' }));
+
+console.log('[cors] allowed origins:', allowedOrigins.length ? allowedOrigins : '(all — CORS_ORIGIN not set)');
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 
