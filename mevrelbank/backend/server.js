@@ -9,7 +9,7 @@ const mfaRoutes  = require('./src/routes/mfa');
 const userRoutes = require('./src/routes/user');
 
 const app  = express();
-const PORT = process.env.BACKEND_PORT ?? 4000;
+const PORT = process.env.PORT ?? process.env.BACKEND_PORT ?? 3001;
 
 const allowedOrigins = (process.env.CORS_ORIGIN ?? '')
   .split(',')

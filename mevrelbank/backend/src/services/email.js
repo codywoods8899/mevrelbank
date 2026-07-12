@@ -1,7 +1,11 @@
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.NOREPLY_EMAIL ?? 'noreply@mevrelbank.com';
+
+function getClient() {
+  if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY is not set');
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 function baseTemplate({ title, preheader, body }) {
   return `<!DOCTYPE html>
@@ -61,7 +65,7 @@ async function sendVerificationEmail({ to, name, code }) {
       Didn't create a MevrelBank account? You can safely ignore this email.
     </p>`;
 
-  return resend.emails.send({
+  return getClient().emails.send({
     from: `MevrelBank <${FROM}>`,
     to,
     subject: `${code} — verify your MevrelBank email`,
@@ -79,7 +83,7 @@ async function sendPasswordResetEmail({ to, name, code }) {
     ${otpBlock(code)}
     <p style="margin:0;font-size:13px;color:#9AAABF;">This code expires in 30 minutes. If you didn't request a reset, please contact <a href="mailto:security@mevrelbank.com" style="color:#0B3270;">security@mevrelbank.com</a>.</p>`;
 
-  return resend.emails.send({
+  return getClient().emails.send({
     from: `MevrelBank <${FROM}>`,
     to,
     subject: `${code} — reset your MevrelBank password`,
@@ -99,7 +103,7 @@ async function sendLoginAlertEmail({ to, name, ip, time }) {
       If this wasn't you, please <a href="mailto:security@mevrelbank.com" style="color:#0B3270;">contact security immediately</a> and change your password.
     </p>`;
 
-  return resend.emails.send({
+  return getClient().emails.send({
     from: `MevrelBank <${FROM}>`,
     to,
     subject: 'New sign-in to your MevrelBank account',
@@ -119,7 +123,7 @@ async function sendMfaEmailFallback({ to, name, code }) {
       If you didn't attempt to sign in, please contact <a href="mailto:security@mevrelbank.com" style="color:#0B3270;">security@mevrelbank.com</a>.
     </p>`;
 
-  return resend.emails.send({
+  return getClient().emails.send({
     from: `MevrelBank <${FROM}>`,
     to,
     subject: `${code} — your MevrelBank sign-in code`,
