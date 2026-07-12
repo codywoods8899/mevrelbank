@@ -23,6 +23,22 @@ async function storeOTP(userId, code, type, minutes) {
   );
 }
 
+async function seedNewCustomer(user) {
+  const sortCode = '40-47-84';
+  const rand4 = () => String(Math.floor(1000 + Math.random() * 9000));
+  await pool.query(
+    `INSERT INTO accounts (user_id, name, type, sort_code, account_number, balance, available)
+     VALUES ($1, 'Current Account', 'Current Account', $2, $3, 0, 0),
+            ($1, 'Instant Access Savings', 'Savings Account', $2, $4, 0, 0)`,
+    [user.id, sortCode, `•••• ${rand4()}`, `•••• ${rand4()}`]
+  );
+  await pool.query(
+    `INSERT INTO notifications (user_id, title, body, kind)
+     VALUES ($1, 'Welcome to MevrelBank', 'Your Current and Savings accounts are ready. Add a beneficiary to get started.', 'info')`,
+    [user.id]
+  );
+}
+
 async function storeRefreshToken(userId, token) {
   const hash = hashToken(token);
   const expiresAt = refreshExpiresAt();
@@ -124,6 +140,12 @@ router.post('/verify-email', authLimiter, async (req, res) => {
 
   await pool.query('UPDATE otp_codes SET used = true WHERE id = $1', [otps[0].id]);
   await pool.query('UPDATE users SET email_verified = true, updated_at = NOW() WHERE id = $1', [user.id]);
+
+  try {
+    await seedNewCustomer(user);
+  } catch (err) {
+    console.error('[seed] Failed to seed default accounts:', err.message);
+  }
 
   return res.json({ message: 'Email verified. You can now sign in.' });
 });

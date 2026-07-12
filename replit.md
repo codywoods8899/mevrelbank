@@ -54,10 +54,11 @@ A digital banking platform currently in **Phase 2 — Authentication** (frontend
 - ✅ Public website complete (9 routed pages, SEO, live at mevrelbank.com)
 - ✅ Auth page UI complete (login, register, verify-email, forgot/reset password, MFA)
 - ✅ Auth flow wired end-to-end (client-side only — `localStorage`-backed register/login/verify/MFA, no real backend yet)
-- ✅ Full customer banking frontend scaffold behind the mock auth session: `/dashboard`, `/dashboard/accounts`, `/dashboard/transactions`, `/dashboard/statements`, `/dashboard/beneficiaries`, `/dashboard/profile`, `/dashboard/notifications` — shared sidebar layout, all mock data, no money-moving actions are real yet
+- ✅ Full customer banking frontend scaffold: `/dashboard`, `/dashboard/accounts`, `/dashboard/transactions`, `/dashboard/statements`, `/dashboard/beneficiaries`, `/dashboard/profile`, `/dashboard/notifications` — shared sidebar layout
 - ✅ Waitlist form with Cloudflare D1 backend (via Pages Functions)
 - ✅ Phase 2 backend built and running in this Replit environment: JWT auth, Resend email, TOTP MFA, Neon PostgreSQL — frontend auth now talks to a real backend here (see `mevrelbank/backend/`)
-- ⬜ Phase 3+ (planned): wire the customer banking pages above to real banking APIs; payments, cards
+- ✅ Phase 3 banking data wired to Neon: `accounts`, `transactions`, `statements`, `beneficiaries`, `notifications` tables (see `mevrelbank/backend/src/db/schema.sql`) served via `/api/banking/*` routes and consumed by the dashboard pages (`src/app/website/shared/bankingApi.ts`) — mock data removed. New users get two zero-balance accounts (Current + Savings) seeded on email verification.
+- ⬜ Phase 3+ (planned): real money movement (transfers, bill pay, "Pay" on beneficiaries is intentionally disabled — no payment rails yet), statement PDF generation, cards
 
 ### Hosting
 - Frontend: Cloudflare Pages (live at mevrelbank.com) — in this Replit workspace it runs via Vite dev server instead

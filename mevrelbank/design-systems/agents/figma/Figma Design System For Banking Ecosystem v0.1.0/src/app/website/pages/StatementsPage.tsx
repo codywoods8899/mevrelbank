@@ -1,9 +1,24 @@
+import { useEffect, useState } from "react";
 import { FileText, Download } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { Btn } from "../shared/Btn";
-import { statements } from "../shared/mockBankingData";
+import { useAuth } from "../../context/AuthContext";
+import { bankingApi, type Statement } from "../shared/bankingApi";
 
 export default function StatementsPage() {
+  const { authedFetch } = useAuth();
+  const [statements, setStatements] = useState<Statement[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    bankingApi.getStatements(authedFetch)
+      .then((r) => active && setStatements(r.statements))
+      .catch(() => {})
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [authedFetch]);
+
   return (
     <>
       <PageMeta title="Statements — MevrelBank" description="Download your monthly and quarterly MevrelBank statements." />
@@ -20,11 +35,14 @@ export default function StatementsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[12px] font-semibold text-[#0D1829]">{s.period} — {s.account}</div>
-              <div className="text-[10px] text-[#8A9BBE]">Generated {s.generated} · PDF</div>
+              <div className="text-[10px] text-[#8A9BBE]">Generated {new Date(s.generated).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} · PDF</div>
             </div>
-            <Btn variant="ghost" size="sm" icon={<Download size={12} />}>Download</Btn>
+            <Btn variant="ghost" size="sm" icon={<Download size={12} />} disabled={!s.fileUrl} href={s.fileUrl ?? undefined}>Download</Btn>
           </div>
         ))}
+        {!loading && statements.length === 0 && (
+          <div className="px-5 py-10 text-center text-[12px] text-[#8A9BBE]">No statements have been generated yet.</div>
+        )}
       </div>
     </>
   );

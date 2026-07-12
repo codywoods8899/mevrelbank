@@ -1,15 +1,35 @@
+import { useEffect, useState } from "react";
 import { CreditCard, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { Btn } from "../shared/Btn";
-import { accounts, transactions } from "../shared/mockBankingData";
+import { useAuth } from "../../context/AuthContext";
+import { bankingApi, formatRelativeDate, type Account, type Transaction } from "../shared/bankingApi";
 
 export default function AccountsPage() {
+  const { authedFetch } = useAuth();
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([bankingApi.getAccounts(authedFetch), bankingApi.getTransactions(authedFetch, { limit: 20 })])
+      .then(([a, t]) => {
+        if (!active) return;
+        setAccounts(a.accounts);
+        setTransactions(t.transactions);
+      })
+      .catch(() => {})
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [authedFetch]);
+
   return (
     <>
       <PageMeta title="Accounts — MevrelBank" description="View your MevrelBank current and savings accounts." />
       <div className="mb-5">
         <h1 className="text-[20px] font-bold text-[#0D1829] mb-0.5" style={{ fontFamily: "Figtree, sans-serif" }}>Accounts</h1>
-        <div className="text-[12px] text-[#8A9BBE]">{accounts.length} accounts · mock data, pending Phase 2 backend</div>
+        <div className="text-[12px] text-[#8A9BBE]">{loading ? "Loading…" : `${accounts.length} accounts`}</div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-5">
@@ -45,13 +65,16 @@ export default function AccountsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[12px] font-semibold text-[#0D1829] truncate">{tx.name}</div>
-              <div className="text-[10px] text-[#8A9BBE]">{tx.account} · {tx.date}</div>
+              <div className="text-[10px] text-[#8A9BBE]">{tx.account} · {formatRelativeDate(tx.date)}</div>
             </div>
             <div className="text-[12px] font-medium w-24 text-right" style={{ fontFamily: "'DM Mono', monospace", color: tx.amount > 0 ? "#0E7C4D" : "#0D1829" }}>
               {tx.amount > 0 ? "+" : ""}£{Math.abs(tx.amount).toFixed(2)}
             </div>
           </div>
         ))}
+        {!loading && transactions.length === 0 && (
+          <div className="px-5 py-10 text-center text-[12px] text-[#8A9BBE]">No activity yet.</div>
+        )}
       </div>
     </>
   );

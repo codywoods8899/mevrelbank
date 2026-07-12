@@ -1,14 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, Download } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { Btn } from "../shared/Btn";
 import { StatusDot } from "../shared/StatusDot";
-import { transactions } from "../shared/mockBankingData";
+import { useAuth } from "../../context/AuthContext";
+import { bankingApi, formatRelativeDate, type Transaction } from "../shared/bankingApi";
 
 const FILTERS = ["All", "Current Account", "Savings Account"] as const;
 
 export default function TransactionsPage() {
+  const { authedFetch } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<typeof FILTERS[number]>("All");
+
+  useEffect(() => {
+    let active = true;
+    bankingApi.getTransactions(authedFetch, { limit: 100 })
+      .then((r) => active && setTransactions(r.transactions))
+      .catch(() => {})
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [authedFetch]);
+
   const filtered = filter === "All" ? transactions : transactions.filter((t) => t.account === filter);
 
   return (
@@ -17,7 +31,7 @@ export default function TransactionsPage() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-[20px] font-bold text-[#0D1829] mb-0.5" style={{ fontFamily: "Figtree, sans-serif" }}>Transaction History</h1>
-          <div className="text-[12px] text-[#8A9BBE]">{filtered.length} transactions</div>
+          <div className="text-[12px] text-[#8A9BBE]">{loading ? "Loading…" : `${filtered.length} transactions`}</div>
         </div>
         <Btn variant="outline" size="sm" icon={<Download size={13} />}>Export CSV</Btn>
       </div>
@@ -44,7 +58,7 @@ export default function TransactionsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[12px] font-semibold text-[#0D1829] truncate">{tx.name}</div>
-              <div className="text-[10px] text-[#8A9BBE]">{tx.category} · {tx.account} · {tx.date}</div>
+              <div className="text-[10px] text-[#8A9BBE]">{tx.category} · {tx.account} · {formatRelativeDate(tx.date)}</div>
             </div>
             <StatusDot status={tx.status} />
             <div className="text-[12px] font-medium w-24 text-right" style={{ fontFamily: "'DM Mono', monospace", color: tx.amount > 0 ? "#0E7C4D" : "#0D1829" }}>
@@ -52,7 +66,7 @@ export default function TransactionsPage() {
             </div>
           </div>
         ))}
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div className="px-5 py-10 text-center text-[12px] text-[#8A9BBE]">No transactions for this account.</div>
         )}
       </div>
