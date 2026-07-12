@@ -67,7 +67,7 @@ The product being actively built is MevrelBank. The AICG and sync system are ope
 
 ### Hosting (planned production)
 - **Frontend**: Cloudflare Pages → `https://mevrelbank.com`
-- **Backend**: Railway (Node.js)
+- **Backend**: Railway (Node.js) — `mevrelbank/backend/Dockerfile` is the production image; `railway.json` selects DOCKERFILE builder
 - **Database**: Neon PostgreSQL
 - **Email**: Resend via `noreply@mevrelbank.com`
 
@@ -78,10 +78,10 @@ The product being actively built is MevrelBank. The AICG and sync system are ope
 | Workflow | Command | Port |
 |---|---|---|
 | `MevrelBank Dev (verify)` | `cd mevrelbank/design-systems/.../v0.1.0 && npx vite --port 5173 --host 0.0.0.0` | 5173 |
-| `MevrelBank Backend` | `cd mevrelbank/backend && node server.js` | 4000 |
+| `MevrelBank Backend` | `cd mevrelbank/backend && node server.js` | 3001 |
 | `Start application` | `cd aicg && node server.js` | 3000 |
 
-The Vite dev server proxies `/api/*` → `http://localhost:4000` (see `vite.config.ts`). Frontend code should always use relative `/api/...` paths — never hardcode `localhost:4000`.
+The Vite dev server proxies `/api/*` → `http://localhost:3001` (see `vite.config.ts`). Frontend code should always use relative `/api/...` paths — never hardcode the port directly.
 
 ---
 
