@@ -80,15 +80,22 @@ Build MevrelBank into a secure, modern, scalable digital banking ecosystem that 
 
 ## Phase 3 — Customer Banking
 
-- [x] Dashboard (`/dashboard`) — sidebar nav, account summary cards, balance trend chart, recent transactions; mock data, gated behind the mock auth session; real data pending Phase 2 backend
-- [x] Accounts (`/dashboard/accounts`) — current + savings account cards, cross-account activity feed; mock data
-- [x] Transaction History (`/dashboard/transactions`) — filterable by account, CSV export button (not yet wired to a real export); mock data
-- [x] Statements (`/dashboard/statements`) — list of generated statement periods with download action (not yet wired to a real file); mock data
-- [x] Beneficiaries (`/dashboard/beneficiaries`) — saved payee list with "Pay" / "New Payee" actions (UI only, no real transfer execution); mock data
-- [x] Profile (`/dashboard/profile`) — personal details + security status summary (edit actions are UI only pending Phase 2 backend); mock data
-- [x] Notifications (`/dashboard/notifications`) — security/payment/info alert feed; mock data
+### In Progress
 
-All Phase 3 pages above are frontend scaffolds sharing one `DashboardShell` layout (sidebar + top bar) with real routing; every action that would mutate real money or account state (pay, export, download, edit) is UI-only until the Phase 2 backend and corresponding banking APIs exist.
+- [x] Neon banking schema (`accounts`, `transactions`, `statements`, `beneficiaries`, `notifications`) + `/api/banking/*` REST routes, auth-scoped per user
+- [x] New customers get two real zero-balance accounts (Current + Savings) auto-created on email verification, plus a welcome notification
+- [x] Dashboard (`/dashboard`) — account summary cards + recent transactions now read from the real backend (balance-trend chart removed — no historical data source yet)
+- [x] Accounts (`/dashboard/accounts`) — real account cards + cross-account activity feed from the database
+- [x] Transaction History (`/dashboard/transactions`) — real transactions, filterable by account; CSV export button still UI-only
+- [x] Statements (`/dashboard/statements`) — reads real `statements` rows; "Download" is disabled until PDF generation exists (table has no rows yet — nothing generates statements)
+- [x] Beneficiaries (`/dashboard/beneficiaries`) — add/list/delete real payees; "Pay" is intentionally disabled — no transfer/payment rails yet (that's Phase 4)
+- [x] Notifications (`/dashboard/notifications`) — real notifications, mark-as-read wired to the backend
+- [ ] Profile (`/dashboard/profile`) — still UI-only for edit actions beyond name (no phone/address fields, no avatar, no security-status data pulled from real MFA/session state)
+- [ ] Statement generation — a job that actually produces a PDF/period statement and writes a `statements` row + `file_url`
+- [ ] Transaction seeding / real transaction sources — accounts currently start empty; nothing creates transactions yet since there are no real money movements (Phase 4)
+- [ ] CSV export for Transaction History
+
+Every dashboard page shares one `DashboardShell` layout (sidebar + top bar) with real routing and now talks to the real backend; the only remaining UI-only actions are the ones that require Phase 4 payment rails or statement generation.
 
 ---
 
@@ -197,7 +204,7 @@ Backend
 
 Database
 - Cloudflare D1 (SQLite at the edge via Pages Functions — active, `waitlist_submissions`)
-- Neon PostgreSQL (planned for Phase 2+ backend — auth, customer data)
+- Neon PostgreSQL — active, backing both Phase 2 auth (`users`, `otp_codes`, `refresh_tokens`) and Phase 3 banking data (`accounts`, `transactions`, `statements`, `beneficiaries`, `notifications`)
 
 Storage
 - Cloudflare R2
