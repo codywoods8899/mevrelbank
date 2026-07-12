@@ -95,7 +95,7 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (!result.success) {
-      setError(result.error ?? "Unable to create account.");
+      setError(result.error || "Unable to create account.");
       return;
     }
 

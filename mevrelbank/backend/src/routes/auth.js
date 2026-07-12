@@ -85,8 +85,9 @@ router.post('/register', authLimiter, async (req, res) => {
 
     return res.status(201).json({ message: 'Account created. Check your email for the verification code.' });
   } catch (err) {
-    console.error('[register] Error:', err.message);
-    return res.status(500).json({ error: err.message });
+    const msg = err?.message || err?.detail || String(err) || 'Registration failed';
+    console.error('[register] Error:', msg);
+    return res.status(500).json({ error: msg });
   }
 });
 

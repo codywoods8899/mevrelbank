@@ -253,6 +253,8 @@ Railway injects `PORT` automatically — do not add it.
 
 **Use the pooled connection string** — in Neon dashboard, enable "Connection pooling" toggle before copying the URL. The pooler endpoint contains `-pooler` in the hostname.
 
+**Strip `channel_binding=require` from the URL** — Neon now appends `&channel_binding=require` to connection strings but node-postgres (`pg`) does not support this parameter and silently fails with an empty error message. `pool.js` strips it automatically via regex before passing the URL to `new Pool()`.
+
 **Run migration after first deploy** — from Railway Console tab or from Replit dev environment (which shares the same `DATABASE_URL`): `cd mevrelbank/backend && node src/db/migrate.js`
 
 ### Cloudflare Pages (Frontend)
