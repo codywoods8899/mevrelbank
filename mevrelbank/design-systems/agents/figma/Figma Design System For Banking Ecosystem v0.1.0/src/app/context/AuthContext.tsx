@@ -46,11 +46,12 @@ interface AuthContextValue {
 
 const REFRESH_KEY = "mb.refreshToken";
 const EMAIL_KEY   = "mb.pendingEmail";
+const BASE_URL    = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 async function apiFetch(path: string, options: RequestInit = {}) {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${BASE_URL}/api${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -281,7 +282,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = accessTokenRef.current;
     try {
       if (token) {
-        await fetch("/api/auth/logout", {
+        await fetch(`${BASE_URL}/api/auth/logout`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ refreshToken: rt }),
