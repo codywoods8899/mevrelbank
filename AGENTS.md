@@ -208,9 +208,65 @@ Three tables in Neon PostgreSQL. Run `node src/db/migrate.js` from `mevrelbank/b
 |---|---|
 | 0 — Foundation | ✅ Complete |
 | 1 — Public Website | ✅ Complete (9 pages, SEO, routing) |
-| 2 — Auth Backend | 🔄 In progress (backend built, wiring live) |
+| 2 — Auth Backend | ✅ Complete — backend live on Railway, wired to Cloudflare Pages |
 | 3 — Customer Banking | 🟡 Frontend scaffolded with mock data, awaiting real APIs |
 | 4–11 | ⬜ Planned — see roadmap.md |
+
+---
+
+## Production Deployment Log
+
+A record of hard-won lessons from the first production deployment. Read this before touching anything deployment-related.
+
+### Railway (Backend)
+
+**Root directory must be `mevrelbank/backend/`** — set this in Railway service Settings → Source. Without it Railway reads the wrong `package.json`.
+
+**Port binding** — Railway injects its own `PORT` env var and expects the server to bind to it. The server reads `process.env.PORT ?? process.env.BACKEND_PORT ?? 3001`. Never hardcode a port. Do not set `PORT` manually in Railway Variables — Railway controls it.
+
+**`package-lock.json` must not be committed** — Replit generates lockfiles using an internal proxy (`package-firewall.replit.local`). Railway cannot reach that URL so `npm ci` silently fails and `node_modules` is empty. The lockfile is gitignored. Railway runs `npm install` fresh on each build using `.npmrc` (which pins `registry=https://registry.npmjs.org`).
+
+**Dockerfile is the build method** — `railway.json` sets `"builder": "DOCKERFILE"`. Railway builds from `mevrelbank/backend/Dockerfile`. The image runs as a non-root user (`mevrel`) on Alpine Node 20.
+
+**Express 5 wildcard syntax** — Express 5 breaks the old `app.options('*', ...)` pattern. Use `app.options('/{*splat}', cors(corsOptions))` for CORS preflight handling.
+
+**Resend must be initialised lazily** — `new Resend(key)` throws immediately at import time if `RESEND_API_KEY` is missing, crashing the server before it binds. The email service uses `getClient()` which instantiates on first use.
+
+**DB errors need their own try/catch** — Express 5 catches unhandled async errors but the generic handler swallows the message. Wrap DB operations in explicit try/catch and return `res.status(500).json({ error: err.message })` so the real error is visible during debugging.
+
+### Railway Environment Variables (all required)
+
+| Variable | Notes |
+|---|---|
+| `DATABASE_URL` | Full Neon pooled connection string — click "Show password" in Neon before copying |
+| `JWT_SECRET` | Generate with `openssl rand -hex 64` — do NOT reuse the Replit value |
+| `JWT_REFRESH_SECRET` | Same — fresh value for production |
+| `JWT_MFA_SECRET` | Same — fresh value for production |
+| `RESEND_API_KEY` | From resend.com → API Keys |
+| `CORS_ORIGIN` | `https://mevrelbank.com` |
+| `NOREPLY_EMAIL` | `noreply@mevrelbank.com` |
+| `NODE_ENV` | `production` |
+
+Railway injects `PORT` automatically — do not add it.
+
+### Neon (Database)
+
+**Use the pooled connection string** — in Neon dashboard, enable "Connection pooling" toggle before copying the URL. The pooler endpoint contains `-pooler` in the hostname.
+
+**Run migration after first deploy** — from Railway Console tab or from Replit dev environment (which shares the same `DATABASE_URL`): `cd mevrelbank/backend && node src/db/migrate.js`
+
+### Cloudflare Pages (Frontend)
+
+**`VITE_API_BASE_URL` must include `https://`** — setting it to `mevrelbank-production.up.railway.app` (no protocol) makes the browser treat it as a relative path. Must be `https://mevrelbank-production.up.railway.app`.
+
+**Add as Text variable, not Secret** — it's baked into the JS bundle at build time and is publicly visible in the source. Secrets are for server-side Pages Functions only.
+
+**A redeploy is required after adding env vars** — Cloudflare Pages does not hot-apply env vars. Trigger a fresh build via Deployments → Retry deployment, or push a new commit.
+
+**Build settings:**
+- Root directory: `/`
+- Build command: `npm --prefix "mevrelbank/design-systems/agents/figma/Figma Design System For Banking Ecosystem v0.1.0" install && npm --prefix "mevrelbank/design-systems/agents/figma/Figma Design System For Banking Ecosystem v0.1.0" run build`
+- Output directory: `mevrelbank/design-systems/agents/figma/Figma Design System For Banking Ecosystem v0.1.0/dist`
 
 ---
 
