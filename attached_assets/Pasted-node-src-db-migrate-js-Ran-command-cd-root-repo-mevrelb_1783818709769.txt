@@ -1,0 +1,63 @@
+node src/db/migrate.js
+Ran command: cd /root/repo/mevrelbank/backend && node src/db/migrate.js
+bash: line 1: cd: /root/repo/mevrelbank/backend: No such file or directory
+
+Let me check what happened to the repo:
+Ran command: ls -la /root/repo 2>&1 | head -20
+ls: cannot access '/root/repo': No such file or directory
+
+The sandbox was reset. Let me clone the repo again:
+Cloned repository: d79cda54
+codywoods8899/mevrelbank
+sandbox/23e1dfe2-a72a-48f0-aa74--k07x
+Ran command: cd /root/repo/mevrelbank/backend && node src/db/migrate.js 2>&1
+
+Need to install dependencies first:
+Ran command: cd /root/repo/mevrelbank/backend && npm ci 2>&1
+
+The lockfile format is incompatible with the Node version. Try npm install instead:
+Ran command: cd /root/repo/mevrelbank/backend && npm install 2>&1 | tail -50
+
+Good. Now run the migration:
+Ran command: cd /root/repo/mevrelbank/backend && node src/db/migrate.js 2>&1
+
+Migration failed — no error message. Let me check the migrate.js file to see what it's trying to do:
+Ran command: cat /root/repo/mevrelbank/backend/src/db/migrate.js
+require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+const pool = require('./pool');
+
+async function migrate() {
+  const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+  console.log('[migrate] Running schema migration...');
+  try {
+    await pool.query(sql);
+    console.log('[migrate] Done.');
+  } catch (err) {
+    console.error('[migrate] Failed:', err.message);
+    process.exit(1);
+  } finally {
+    await pool.end();
+  }
+}
+
+migrate();
+
+It's trying to connect to a database. Check the pool config:
+Ran command: cat /root/repo/mevrelbank/backend/src/db/pool.js
+const { Pool } = require('pg');
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
+
+pool.on('error', (err) => {
+  console.error('[DB] Unexpected pool error:', err.message);
+});
+
+module.exports = pool;
