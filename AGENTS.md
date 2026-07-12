@@ -255,7 +255,7 @@ Railway injects `PORT` automatically — do not add it.
 
 **Strip `channel_binding=require` from the URL** — Neon now appends `&channel_binding=require` to connection strings but node-postgres (`pg`) does not support this parameter and silently fails with an empty error message. `pool.js` strips it automatically via regex before passing the URL to `new Pool()`.
 
-**Run migration after first deploy** — from Railway Console tab or from Replit dev environment (which shares the same `DATABASE_URL`): `cd mevrelbank/backend && node src/db/migrate.js`
+**Run migration after first deploy, against the correct database** — Railway and Replit may be connected to *different* Neon projects. Confirm they share the same `DATABASE_URL` before running the migration. To migrate against Railway's database: update `DATABASE_URL` in Replit Secrets to Railway's Neon connection string, run `cd mevrelbank/backend && node src/db/migrate.js` from Replit, then verify tables appear in Neon. Signs they are different databases: migration says "Done" but Railway returns `relation "users" does not exist`.
 
 ### Cloudflare Pages (Frontend)
 
