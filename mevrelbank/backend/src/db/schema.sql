@@ -39,3 +39,68 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_otp_codes_user_type ON otp_codes(user_id, type);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
+
+-- MevrelBank Phase 3 — Banking Schema
+-- Mirrors the shapes currently mocked in the dashboard frontend
+-- (mockBankingData.ts) so real data can later replace the mock arrays.
+
+CREATE TABLE IF NOT EXISTS accounts (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name           VARCHAR(100) NOT NULL,
+  type           VARCHAR(30) NOT NULL CHECK (type IN ('Current Account', 'Savings Account')),
+  sort_code      VARCHAR(8) NOT NULL,
+  account_number VARCHAR(20) NOT NULL,
+  balance        NUMERIC(14,2) NOT NULL DEFAULT 0,
+  available      NUMERIC(14,2) NOT NULL DEFAULT 0,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS transactions (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id  UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  name        VARCHAR(255) NOT NULL,
+  category    VARCHAR(50) NOT NULL,
+  amount      NUMERIC(14,2) NOT NULL,
+  status      VARCHAR(20) NOT NULL DEFAULT 'completed' CHECK (status IN ('completed', 'pending', 'failed')),
+  occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS statements (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id   UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  period       VARCHAR(30) NOT NULL,
+  file_url     TEXT,
+  generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS beneficiaries (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name           VARCHAR(255) NOT NULL,
+  nickname       VARCHAR(100),
+  sort_code      VARCHAR(8) NOT NULL,
+  account_number VARCHAR(20) NOT NULL,
+  last_paid_at   TIMESTAMPTZ,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title      VARCHAR(255) NOT NULL,
+  body       TEXT NOT NULL,
+  kind       VARCHAR(20) NOT NULL DEFAULT 'info' CHECK (kind IN ('security', 'payment', 'info')),
+  read       BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_accounts_user ON accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_occurred ON transactions(occurred_at);
+CREATE INDEX IF NOT EXISTS idx_statements_account ON statements(account_id);
+CREATE INDEX IF NOT EXISTS idx_beneficiaries_user ON beneficiaries(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
