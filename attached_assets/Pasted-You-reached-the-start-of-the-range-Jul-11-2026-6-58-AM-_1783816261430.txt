@@ -1,0 +1,98 @@
+You reached the start of the range
+Jul 11, 2026, 6:58 AM
+node:internal/modules/cjs/loader:1210
+Error: Cannot find module 'dotenv'
+  requireStack: [ '/app/server.js' ]
+Require stack:
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+  throw err;
+}
+npm warn config production Use `--omit=dev` instead.
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  ^
+  code: 'MODULE_NOT_FOUND',
+- /app/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+> mevrelbank-backend@1.0.0 start
+    at require (node:internal/modules/helpers:182:18)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+> node server.js
+    at Object.<anonymous> (/app/server.js:1:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+Node.js v20.20.2
+Starting Container
+npm warn config production Use `--omit=dev` instead.
+> mevrelbank-backend@1.0.0 start
+> node server.js
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/app/server.js' ]
+}
+node:internal/modules/cjs/loader:1210
+  throw err;
+Node.js v20.20.2
+  ^
+Error: Cannot find module 'dotenv'
+Require stack:
+- /app/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/app/server.js:1:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+npm warn config production Use `--omit=dev` instead.
+> mevrelbank-backend@1.0.0 start
+> node server.js
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+node:internal/modules/cjs/loader:1210
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/app/server.js' ]
+  throw err;
+}
+  ^
+Node.js v20.20.2
+Error: Cannot find module 'dotenv'
+Require stack:
+- /app/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/app/server.js:1:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+npm warn config production Use `--omit=dev` instead.
+> mevrelbank-backend@1.0.0 start
+> node server.js
+node:internal/modules/cjs/loader:1210
+}
+  throw err;
+  ^
+Node.js v20.20.2
+Error: Cannot find module 'dotenv'
+Require stack:
+- /app/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/app/server.js:1:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/app/server.js' ]
+npm warn config production Use `--omit=dev` instead.
+> mevrelbank-backend@1.0.0 start
+> node server.js
