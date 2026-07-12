@@ -60,29 +60,34 @@ router.post('/register', authLimiter, async (req, res) => {
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  const existing = await pool.query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
-  if (existing.rows.length > 0) {
-    return res.status(409).json({ error: 'An account with this email already exists.' });
-  }
-
-  const passwordHash = await bcrypt.hash(password, 12);
-  const { rows } = await pool.query(
-    `INSERT INTO users (name, email, password_hash, account_type)
-     VALUES ($1, $2, $3, $4) RETURNING *`,
-    [name.trim(), normalizedEmail, passwordHash, accountType]
-  );
-  const user = rows[0];
-
-  const code = generateOTP();
-  await storeOTP(user.id, code, 'email_verification', 10);
-
   try {
-    await sendVerificationEmail({ to: normalizedEmail, name: user.name, code });
-  } catch (err) {
-    console.error('[email] Failed to send verification email:', err.message);
-  }
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: 'An account with this email already exists.' });
+    }
 
-  return res.status(201).json({ message: 'Account created. Check your email for the verification code.' });
+    const passwordHash = await bcrypt.hash(password, 12);
+    const { rows } = await pool.query(
+      `INSERT INTO users (name, email, password_hash, account_type)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [name.trim(), normalizedEmail, passwordHash, accountType]
+    );
+    const user = rows[0];
+
+    const code = generateOTP();
+    await storeOTP(user.id, code, 'email_verification', 10);
+
+    try {
+      await sendVerificationEmail({ to: normalizedEmail, name: user.name, code });
+    } catch (emailErr) {
+      console.error('[email] Failed to send verification email:', emailErr.message);
+    }
+
+    return res.status(201).json({ message: 'Account created. Check your email for the verification code.' });
+  } catch (err) {
+    console.error('[register] Error:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // ─── POST /api/auth/verify-email ─────────────────────────────────────────────
