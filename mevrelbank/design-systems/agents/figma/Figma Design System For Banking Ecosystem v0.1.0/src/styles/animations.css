@@ -1,5 +1,11 @@
 /* ─── MevrelBank site animations ─────────────────────────────────── */
 
+/* Mobile drawer slide-in from left */
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
 html {
   scroll-behavior: smooth;
 }

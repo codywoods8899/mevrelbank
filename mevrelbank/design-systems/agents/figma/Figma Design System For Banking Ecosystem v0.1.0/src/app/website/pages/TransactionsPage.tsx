@@ -60,7 +60,7 @@ export default function TransactionsPage() {
         <Btn variant="outline" size="sm" icon={<Download size={13} />} disabled={filtered.length === 0} onClick={handleExport}>Export CSV</Btn>
       </div>
 
-      <div className="flex gap-1.5 mb-4">
+      <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1 -mx-1 px-1">
         {FILTERS.map((f) => (
           <button
             key={f}
@@ -82,7 +82,7 @@ export default function TransactionsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[12px] font-semibold text-[#0D1829] truncate">{tx.name}</div>
-              <div className="text-[10px] text-[#8A9BBE]">{tx.category} · {tx.account} · {formatRelativeDate(tx.date)}</div>
+              <div className="text-[10px] text-[#8A9BBE] truncate">{tx.category} · {tx.account} · {formatRelativeDate(tx.date)}</div>
             </div>
             <StatusDot status={tx.status} />
             <div className="text-[12px] font-medium w-24 text-right" style={{ fontFamily: "'DM Mono', monospace", color: tx.amount > 0 ? "#0E7C4D" : "#0D1829" }}>

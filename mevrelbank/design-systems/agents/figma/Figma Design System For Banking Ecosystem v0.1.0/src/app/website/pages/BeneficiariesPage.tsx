@@ -134,7 +134,7 @@ export default function BeneficiariesPage() {
 
       {showForm && (
         <form onSubmit={handleAdd} className="mb-4 p-4 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)]">
-          <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <input required placeholder="Full name" value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               className="px-3 py-2 rounded-[6px] border border-[rgba(11,50,112,0.15)] text-[12px] outline-none focus:border-[#0B3270]" />
@@ -153,7 +153,7 @@ export default function BeneficiariesPage() {
         </form>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {beneficiaries.map((b) => (
           <div key={b.id} className="p-4 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#EBF0FA] flex items-center justify-center text-[#0B3270] flex-shrink-0">
@@ -173,7 +173,7 @@ export default function BeneficiariesPage() {
           </div>
         ))}
         {!loading && beneficiaries.length === 0 && (
-          <div className="col-span-2 px-5 py-10 text-center text-[12px] text-[#8A9BBE] bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)]">
+          <div className="col-span-1 sm:col-span-2 px-5 py-10 text-center text-[12px] text-[#8A9BBE] bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)]">
             No saved payees yet. Add one to get started.
           </div>
         )}
