@@ -17,7 +17,7 @@ interface CustomerRow {
 }
 
 const currency = (n: number) =>
-  n.toLocaleString("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 });
+  n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 export default function AdminCustomersPage() {
   const { authedJson } = useAdminAuth();

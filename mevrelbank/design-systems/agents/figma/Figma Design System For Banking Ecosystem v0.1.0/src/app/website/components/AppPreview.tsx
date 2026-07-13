@@ -17,9 +17,9 @@ const NAV_ITEMS = [
 ];
 
 const ACCOUNTS = [
-  { label: "Current Account", amount: "38,240.00", sub: "Available balance", change: "+£1,240 this month", positive: true  },
-  { label: "Savings Account", amount: "12,500.00", sub: "Instant Access",    change: "+£500 this month",  positive: true  },
-  { label: "Monthly Budget",  amount: "5,200.00",  sub: "of £7,000 spent",   change: "£1,800 remaining",  positive: null  },
+  { label: "Current Account", amount: "38,240.00", sub: "Available balance", change: "+$1,240 this month", positive: true  },
+  { label: "Savings Account", amount: "12,500.00", sub: "Instant Access",    change: "+$500 this month",  positive: true  },
+  { label: "Monthly Budget",  amount: "5,200.00",  sub: "of $7,000 spent",   change: "$1,800 remaining",  positive: null  },
 ];
 
 const TRANSACTIONS = [
@@ -184,7 +184,7 @@ export function AppPreview() {
                         className="text-[17px] font-bold text-[#0D1829] leading-none mb-0.5"
                         style={{ fontFamily: "'DM Mono', monospace" }}
                       >
-                        £{c.amount}
+                        ${c.amount}
                       </div>
                       <div className="text-[9px] text-[#8A9BBE] mb-2">{c.sub}</div>
                       {c.positive !== null ? (
@@ -247,7 +247,7 @@ export function AppPreview() {
                           color: tx.amount > 0 ? "#0E7C4D" : "#0D1829",
                         }}
                       >
-                        {tx.amount > 0 ? "+" : ""}£
+                        {tx.amount > 0 ? "+" : ""}$
                         {Math.abs(tx.amount).toFixed(2)}
                       </div>
                     </div>

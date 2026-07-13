@@ -239,7 +239,7 @@ router.post('/transfer', async (req, res) => {
     await client.query(
       `INSERT INTO notifications (user_id, title, body, kind)
        VALUES ($1, 'Transfer completed', $2, 'payment')`,
-      [req.user.sub, `£${value.toFixed(2)} moved from ${from.name} to ${to.name}.`]
+      [req.user.sub, `${value.toFixed(2)} moved from ${from.name} to ${to.name}.`]
     );
 
     await client.query('COMMIT');
@@ -311,7 +311,7 @@ router.post('/pay', async (req, res) => {
     await client.query(
       `INSERT INTO notifications (user_id, title, body, kind)
        VALUES ($1, 'Payment sent', $2, 'payment')`,
-      [req.user.sub, `You sent £${value.toFixed(2)} to ${beneficiary.nickname || beneficiary.name}.`]
+      [req.user.sub, `You sent ${value.toFixed(2)} to ${beneficiary.nickname || beneficiary.name}.`]
     );
 
     await client.query('COMMIT');

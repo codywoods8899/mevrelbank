@@ -38,7 +38,7 @@ interface Detail {
 }
 
 const currency = (n: number) =>
-  n.toLocaleString("en-GB", { style: "currency", currency: "GBP" });
+  n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 export default function AdminCustomerDetailPage() {
   const { id } = useParams();

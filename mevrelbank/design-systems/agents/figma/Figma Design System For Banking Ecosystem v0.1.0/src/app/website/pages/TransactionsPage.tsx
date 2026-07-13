@@ -86,7 +86,7 @@ export default function TransactionsPage() {
             </div>
             <StatusDot status={tx.status} />
             <div className="text-[12px] font-medium w-24 text-right" style={{ fontFamily: "'DM Mono', monospace", color: tx.amount > 0 ? "#0E7C4D" : "#0D1829" }}>
-              {tx.amount > 0 ? "+" : ""}£{Math.abs(tx.amount).toFixed(2)}
+              {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
             </div>
           </div>
         ))}

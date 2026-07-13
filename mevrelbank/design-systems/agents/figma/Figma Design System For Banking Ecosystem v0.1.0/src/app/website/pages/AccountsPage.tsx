@@ -40,7 +40,7 @@ function TransferModal({ accounts, onClose, onDone }: { accounts: Account[]; onC
         {done ? (
           <div className="text-center py-4">
             <div className="text-[15px] font-bold text-[#0D1829] mb-1">Transfer complete</div>
-            <div className="text-[12px] text-[#5E6E8E] mb-4">£{parseFloat(amount).toFixed(2)} moved between your accounts.</div>
+            <div className="text-[12px] text-[#5E6E8E] mb-4">${parseFloat(amount).toFixed(2)} moved between your accounts.</div>
             <Btn size="md" className="w-full justify-center" onClick={onClose}>Done</Btn>
           </div>
         ) : (
@@ -48,13 +48,13 @@ function TransferModal({ accounts, onClose, onDone }: { accounts: Account[]; onC
             <div className="text-[15px] font-bold text-[#0D1829] mb-4">Move money between your accounts</div>
             <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">From</label>
             <select value={fromId} onChange={(e) => setFromId(e.target.value)} className="w-full mb-3 px-3 py-2 rounded-[6px] border border-[rgba(11,50,112,0.15)] text-[12px] outline-none focus:border-[#0B3270]">
-              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} — £{a.available.toFixed(2)} available</option>)}
+              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} — ${a.available.toFixed(2)} available</option>)}
             </select>
             <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">To</label>
             <select value={toId} onChange={(e) => setToId(e.target.value)} className="w-full mb-3 px-3 py-2 rounded-[6px] border border-[rgba(11,50,112,0.15)] text-[12px] outline-none focus:border-[#0B3270]">
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
-            <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Amount (£)</label>
+            <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Amount ($)</label>
             <input type="number" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
               className="w-full mb-3 px-3 py-2 rounded-[6px] border border-[rgba(11,50,112,0.15)] text-[12px] outline-none focus:border-[#0B3270]" />
             <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Reference (optional)</label>
@@ -120,9 +120,9 @@ export default function AccountsPage() {
             </div>
             <div className="text-[9px] font-semibold tracking-[0.16em] uppercase text-[#8A9BBE] mb-2">{acc.type}</div>
             <div className="text-[24px] font-bold text-[#0D1829] leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>
-              £{acc.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ${acc.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
-            <div className="text-[11px] text-[#8A9BBE] mb-4">Available: £{acc.available.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            <div className="text-[11px] text-[#8A9BBE] mb-4">Available: ${acc.available.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
             <div className="flex items-center gap-4 text-[11px] text-[#5E6E8E] pt-3 border-t border-[rgba(11,50,112,0.06)]" style={{ fontFamily: "'DM Mono', monospace" }}>
               <span>Sort code {acc.sortCode}</span>
               <span>Acc {acc.accountNumber}</span>
@@ -145,7 +145,7 @@ export default function AccountsPage() {
               <div className="text-[10px] text-[#8A9BBE]">{tx.account} · {formatRelativeDate(tx.date)}</div>
             </div>
             <div className="text-[12px] font-medium w-24 text-right" style={{ fontFamily: "'DM Mono', monospace", color: tx.amount > 0 ? "#0E7C4D" : "#0D1829" }}>
-              {tx.amount > 0 ? "+" : ""}£{Math.abs(tx.amount).toFixed(2)}
+              {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
             </div>
           </div>
         ))}

@@ -37,7 +37,7 @@ function PayModal({ beneficiary, accounts, onClose }: { beneficiary: Beneficiary
         {done ? (
           <div className="text-center py-4">
             <div className="text-[15px] font-bold text-[#0D1829] mb-1">Payment sent</div>
-            <div className="text-[12px] text-[#5E6E8E] mb-4">£{parseFloat(amount).toFixed(2)} sent to {beneficiary.nickname ?? beneficiary.name}.</div>
+            <div className="text-[12px] text-[#5E6E8E] mb-4">${parseFloat(amount).toFixed(2)} sent to {beneficiary.nickname ?? beneficiary.name}.</div>
             <Btn size="md" className="w-full justify-center" onClick={onClose}>Done</Btn>
           </div>
         ) : (
@@ -46,9 +46,9 @@ function PayModal({ beneficiary, accounts, onClose }: { beneficiary: Beneficiary
             <div className="text-[11px] text-[#8A9BBE] mb-4 font-mono">{beneficiary.sortCode} · {beneficiary.accountNumber}</div>
             <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">From</label>
             <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="w-full mb-3 px-3 py-2 rounded-[6px] border border-[rgba(11,50,112,0.15)] text-[12px] outline-none focus:border-[#0B3270]">
-              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} — £{a.available.toFixed(2)} available</option>)}
+              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} — ${a.available.toFixed(2)} available</option>)}
             </select>
-            <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Amount (£)</label>
+            <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Amount ($)</label>
             <input type="number" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
               className="w-full mb-3 px-3 py-2 rounded-[6px] border border-[rgba(11,50,112,0.15)] text-[12px] outline-none focus:border-[#0B3270]" />
             <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Reference (optional)</label>

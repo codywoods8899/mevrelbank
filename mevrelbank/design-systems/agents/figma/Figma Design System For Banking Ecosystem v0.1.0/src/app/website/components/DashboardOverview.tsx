@@ -55,7 +55,7 @@ export function DashboardOverview({ userName = "James Chen" }: { userName?: stri
           <div key={c.label} className="p-4 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] shadow-[0_1px_4px_rgba(11,50,112,0.04)] hover:shadow-[0_3px_10px_rgba(11,50,112,0.07)] transition-shadow">
             <div className="text-[9px] font-semibold tracking-[0.16em] uppercase text-[#8A9BBE] mb-3">{c.label}</div>
             <div className="text-[22px] font-bold text-[#0D1829] leading-none mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>
-              £{c.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ${c.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <div className="text-[11px] text-[#8A9BBE]">{c.sub}</div>
           </div>
@@ -102,7 +102,7 @@ export function DashboardOverview({ userName = "James Chen" }: { userName?: stri
             </div>
             <StatusDot status={tx.status} />
             <div className="text-[12px] font-medium w-20 text-right" style={{ fontFamily: "'DM Mono', monospace", color: tx.amount > 0 ? "#0E7C4D" : "#0D1829" }}>
-              {tx.amount > 0 ? "+" : ""}£{Math.abs(tx.amount).toFixed(2)}
+              {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
             </div>
           </div>
         ))}

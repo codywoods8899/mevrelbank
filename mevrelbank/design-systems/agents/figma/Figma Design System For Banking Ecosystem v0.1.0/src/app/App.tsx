@@ -331,7 +331,7 @@ function DesignSystemView() {
             {[
               { name: "Figtree", role: "Display / UI / Headings", sample: "Banking, built for life", size: "26px", weight: 700, family: "Figtree, sans-serif", note: "Geometric sans — confident, modern, premium. Used for all headings, wordmark, hero copy, and primary UI labels." },
               { name: "Inter",   role: "Body / Forms / Prose",    sample: "Manage your finances with clarity.", size: "17px", weight: 400, family: "Inter, sans-serif", note: "Universally readable sans. Body copy, form labels, help text, navigation, and all secondary UI text." },
-              { name: "DM Mono", role: "Data / Numbers / Code",   sample: "£38,240.00", size: "22px", weight: 500, family: "'DM Mono', monospace", note: "Structured mono for account numbers, sort codes, amounts, IBAN, timestamps, and data tables." },
+              { name: "DM Mono", role: "Data / Numbers / Code",   sample: "$38,240.00", size: "22px", weight: 500, family: "'DM Mono', monospace", note: "Structured mono for account numbers, sort codes, amounts, IBAN, timestamps, and data tables." },
             ].map((f) => (
               <div key={f.name} className="p-5 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)]">
                 <div className="text-[9px] font-semibold tracking-[0.18em] uppercase text-[#8A9BBE] mb-3">{f.name} — {f.role}</div>
@@ -359,7 +359,7 @@ function DesignSystemView() {
               { name: "Body S",      px: "13px", lh: "1.55", wt: 400,  family: "Inter",   sample: "Last updated 08 Jul 2026 at 14:32" },
               { name: "Caption",     px: "11px", lh: "1.50", wt: 400,  family: "Inter",   sample: "Fields marked with an asterisk (*) are required" },
               { name: "Label",       px: "10px", lh: "1.40", wt: 600,  family: "Inter",   sample: "ACCOUNT NUMBER · SORT CODE · BIC/SWIFT" },
-              { name: "Mono L",      px: "20px", lh: "1.30", wt: 500,  family: "DM Mono", sample: "£38,240.00" },
+              { name: "Mono L",      px: "20px", lh: "1.30", wt: 500,  family: "DM Mono", sample: "$38,240.00" },
               { name: "Mono",        px: "14px", lh: "1.40", wt: 400,  family: "DM Mono", sample: "40-12-34 · 12345678" },
               { name: "Mono S",      px: "11px", lh: "1.40", wt: 400,  family: "DM Mono", sample: "GB29NWBK60161331926819" },
             ].map((t, i, arr) => (
@@ -592,7 +592,7 @@ function DesignSystemView() {
                       <span className="text-[13px] text-[#3A4A62]">{item.label}</span>
                     </label>
                   ))}
-                  {["Standard transfer (free)", "Priority transfer (£0.50)"].map((label, i) => (
+                  {["Standard transfer (free)", "Priority transfer ($0.50)"].map((label, i) => (
                     <label key={label} className="flex items-center gap-3 cursor-pointer group" onClick={() => setRadioVal(i === 0 ? "standard" : "priority")}>
                       <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
                         radioVal === (i === 0 ? "standard" : "priority") ? "border-[#0B3270]" : "border-[#B8C5DD] group-hover:border-[#0B3270]"
@@ -645,7 +645,7 @@ function DesignSystemView() {
                 <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-[#8A9BBE]">Current Account</div>
                 <CreditCard size={14} className="text-[#8A9BBE]" />
               </div>
-              <div className="text-[28px] font-bold text-[#0D1829] leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>£38,240</div>
+              <div className="text-[28px] font-bold text-[#0D1829] leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>$38,240</div>
               <div className="text-[12px] text-[#8A9BBE] mb-4">.00 available balance</div>
               <div className="flex items-center gap-1.5">
                 <TrendingUp size={11} className="text-[#0E7C4D]" />
@@ -657,12 +657,12 @@ function DesignSystemView() {
             {/* Dark accent card */}
             <div className="p-5 bg-[#0B3270] rounded-[12px] shadow-[0_4px_20px_rgba(11,50,112,0.30)]">
               <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-[rgba(255,255,255,0.45)] mb-4">Monthly Budget</div>
-              <div className="text-[28px] font-bold text-white leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>£5,200</div>
-              <div className="text-[12px] text-[rgba(255,255,255,0.45)] mb-5">of £7,000 spent</div>
+              <div className="text-[28px] font-bold text-white leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>$5,200</div>
+              <div className="text-[12px] text-[rgba(255,255,255,0.45)] mb-5">of $7,000 spent</div>
               <div className="h-1.5 bg-[rgba(255,255,255,0.12)] rounded-full">
                 <div className="h-1.5 bg-white rounded-full" style={{ width: "74%" }} />
               </div>
-              <div className="text-[11px] text-[rgba(255,255,255,0.4)] mt-2">74% · £1,800 remaining</div>
+              <div className="text-[11px] text-[rgba(255,255,255,0.4)] mt-2">74% · $1,800 remaining</div>
             </div>
 
             {/* Goal card */}
@@ -671,8 +671,8 @@ function DesignSystemView() {
                 <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-[#8A9BBE]">Savings Pot</div>
                 <Star size={14} className="text-[#B46A0A]" />
               </div>
-              <div className="text-[28px] font-bold text-[#0D1829] leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>£12,500</div>
-              <div className="text-[12px] text-[#8A9BBE] mb-4">Emergency fund — Goal: £15,000</div>
+              <div className="text-[28px] font-bold text-[#0D1829] leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>$12,500</div>
+              <div className="text-[12px] text-[#8A9BBE] mb-4">Emergency fund — Goal: $15,000</div>
               <div className="h-1.5 bg-[#EBF0FA] rounded-full">
                 <div className="h-1.5 bg-[#1764C0] rounded-full" style={{ width: "83%" }} />
               </div>
@@ -703,7 +703,7 @@ function DesignSystemView() {
           <SubTitle label="Alert / Inline Notification" />
           <div className="space-y-3 mb-10">
             {[
-              { icon: <CheckCircle size={15} />, color: "#0E7C4D", bg: "#D6F0E6", border: "#A4D4BB", title: "Transfer successful", msg: "£500.00 has been sent to James Chen. Reference: HOLIDAY2026. Estimated arrival: instantly." },
+              { icon: <CheckCircle size={15} />, color: "#0E7C4D", bg: "#D6F0E6", border: "#A4D4BB", title: "Transfer successful", msg: "$500.00 has been sent to James Chen. Reference: HOLIDAY2026. Estimated arrival: instantly." },
               { icon: <AlertTriangle size={15} />, color: "#B46A0A", bg: "#FDF0D6", border: "#EAC97A", title: "Action required", msg: "Your ID verification expires in 14 days. Update your documents to maintain full account access." },
               { icon: <XCircle size={15} />, color: "#C52B2B", bg: "#FDE8E8", border: "#F0ADAD", title: "Payment declined", msg: "Insufficient funds to complete this transaction. Please top up your account and try again." },
               { icon: <Info size={15} />, color: "#1155A6", bg: "#D8E7F8", border: "#9BBFE8", title: "Scheduled maintenance", msg: "Platform maintenance is scheduled for Sunday 13 Jul between 02:00–04:00 BST. Some features may be unavailable." },
@@ -764,7 +764,7 @@ function DesignSystemView() {
                       </td>
                       <td className="px-5 py-3.5 text-[12px] text-[#7A8CAA]">{tx.date}</td>
                       <td className="px-5 py-3.5 text-right text-[13px] font-medium" style={{ fontFamily: "'DM Mono', monospace", color: tx.amount > 0 ? "#0E7C4D" : "#0D1829" }}>
-                        {tx.amount > 0 ? "+" : ""}£{Math.abs(tx.amount).toFixed(2)}
+                        {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
                       </td>
                       <td className="px-5 py-3.5">
                         <span className="flex items-center gap-2">
@@ -924,10 +924,10 @@ function DesignSystemView() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(11,50,112,0.05)" />
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} tickFormatter={(v) => `£${(v / 1000).toFixed(0)}k`} width={36} />
+                  <YAxis tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={36} />
                   <Tooltip
                     contentStyle={{ borderRadius: 6, border: "1px solid rgba(11,50,112,0.10)", fontSize: 12, boxShadow: "0 4px 12px rgba(11,50,112,0.08)" }}
-                    formatter={(v: number) => [`£${v.toLocaleString()}`, "Balance"]}
+                    formatter={(v: number) => [`${v.toLocaleString()}`, "Balance"]}
                   />
                   <Area type="monotone" dataKey="balance" stroke="#1764C0" strokeWidth={2} fill="url(#balGrad)" dot={false} activeDot={{ r: 4, fill: "#1764C0" }} />
                 </AreaChart>
@@ -940,10 +940,10 @@ function DesignSystemView() {
                 <BarChart data={spendingData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barGap={3}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(11,50,112,0.05)" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} tickFormatter={(v) => `£${(v / 1000).toFixed(0)}k`} width={32} />
+                  <YAxis tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={32} />
                   <Tooltip
                     contentStyle={{ borderRadius: 6, border: "1px solid rgba(11,50,112,0.10)", fontSize: 12 }}
-                    formatter={(v: number) => [`£${v.toLocaleString()}`]}
+                    formatter={(v: number) => [`${v.toLocaleString()}`]}
                   />
                   <Bar dataKey="income" fill="#D8E7F8" radius={[3, 3, 0, 0]} name="Income" />
                   <Bar dataKey="expenses" fill="#0B3270" radius={[3, 3, 0, 0]} name="Expenses" />
@@ -1001,7 +1001,7 @@ function PublicWebsiteView() {
           <div className="max-w-[620px]">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[rgba(74,162,216,0.3)] bg-[rgba(74,162,216,0.08)] mb-8">
               <div className="w-1.5 h-1.5 rounded-full bg-[#4AA2D8]" />
-              <span className="text-[11px] font-semibold text-[#4AA2D8] tracking-[0.08em]">FCA Authorised · FSCS Protected up to £85,000</span>
+              <span className="text-[11px] font-semibold text-[#4AA2D8] tracking-[0.08em]">FDIC Insured · Protected up to $250,000</span>
             </div>
             <h1 className="text-[54px] font-extrabold text-white leading-[1.03] mb-7 tracking-tight" style={{ fontFamily: "Figtree, sans-serif" }}>
               Banking built for the way you live.
@@ -1018,7 +1018,7 @@ function PublicWebsiteView() {
             <div className="mt-12 flex items-stretch gap-8 flex-wrap">
               {[
                 { val: "2.4M+", label: "Active customers" },
-                { val: "£18B+", label: "Assets managed" },
+                { val: "$18B+", label: "Assets managed" },
                 { val: "99.99%", label: "Platform uptime" },
                 { val: "4.9★", label: "App Store rating" },
               ].map((s) => (
@@ -1102,7 +1102,7 @@ function PublicWebsiteView() {
             <div className="max-w-[280px]">
               <MevrelLogo inverted className="mb-5" />
               <p className="text-[12px] text-[rgba(255,255,255,0.35)] leading-relaxed">
-                MevrelBank Ltd is authorised by the Financial Conduct Authority under the Electronic Money Regulations 2011 (Ref: 901234). Deposits protected by FSCS up to £85,000.
+                MevrelBank is a financial technology company, not a bank. Banking services provided by partner institutions. Deposits protected by FDIC up to $250,000.
               </p>
             </div>
             <div className="flex flex-wrap gap-10">

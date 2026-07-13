@@ -24,8 +24,8 @@ function renderStatementPdf({ id, account, period, openingBalance, closingBalanc
   doc.text(`Statement period: ${period}`);
   doc.moveDown(1);
 
-  doc.fontSize(11).fillColor('#0D1829').text(`Opening balance: £${Number(openingBalance).toFixed(2)}`);
-  doc.text(`Closing balance: £${Number(closingBalance).toFixed(2)}`);
+  doc.fontSize(11).fillColor('#0D1829').text(`Opening balance: ${Number(openingBalance).toFixed(2)}`);
+  doc.text(`Closing balance: ${Number(closingBalance).toFixed(2)}`);
   doc.moveDown(1);
 
   doc.fontSize(12).fillColor('#0B3270').text('Transactions', { underline: true });
@@ -38,7 +38,7 @@ function renderStatementPdf({ id, account, period, openingBalance, closingBalanc
     doc.fontSize(9).fillColor('#8A9BBE');
     doc.text('Date', 50, startY, { width: 90 });
     doc.text('Description', 140, startY, { width: 230 });
-    doc.text('Amount (£)', 380, startY, { width: 100, align: 'right' });
+    doc.text('Amount ($)', 380, startY, { width: 100, align: 'right' });
     doc.moveDown(0.5);
     doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#E5E9F0').stroke();
     doc.moveDown(0.3);
