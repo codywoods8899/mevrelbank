@@ -1,11 +1,13 @@
 import { NavLink, Outlet, useNavigate } from "react-router";
-import { LayoutDashboard, Users, LogOut, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, ShieldCheck, Clock, Landmark } from "lucide-react";
 import { Logo } from "../website/shared/Logo";
 import { useAdminAuth } from "../context/AdminAuthContext";
 
 const navItems = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/admin/customers", label: "Customers", icon: Users, end: false },
+  { to: "/admin/transactions", label: "Transactions", icon: Clock, end: false },
+  { to: "/admin/accounts", label: "Accounts", icon: Landmark, end: false },
 ];
 
 export default function AdminLayout() {

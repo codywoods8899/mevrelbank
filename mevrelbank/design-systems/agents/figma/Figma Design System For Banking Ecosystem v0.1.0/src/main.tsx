@@ -36,6 +36,8 @@ import AdminMFAPage from "./app/admin/AdminMFAPage";
 import AdminOverviewPage from "./app/admin/AdminOverviewPage";
 import AdminCustomersPage from "./app/admin/AdminCustomersPage";
 import AdminCustomerDetailPage from "./app/admin/AdminCustomerDetailPage";
+import AdminTransactionsPage from "./app/admin/AdminTransactionsPage";
+import AdminAccountsPage from "./app/admin/AdminAccountsPage";
 import "./styles/index.css";
 
 const router = createBrowserRouter([
@@ -78,6 +80,8 @@ const router = createBrowserRouter([
       { path: "/admin", element: <AdminOverviewPage /> },
       { path: "/admin/customers", element: <AdminCustomersPage /> },
       { path: "/admin/customers/:id", element: <AdminCustomerDetailPage /> },
+      { path: "/admin/transactions", element: <AdminTransactionsPage /> },
+      { path: "/admin/accounts", element: <AdminAccountsPage /> },
     ],
   },
   // Design system demo

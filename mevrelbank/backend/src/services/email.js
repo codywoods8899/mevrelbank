@@ -53,6 +53,23 @@ function otpBlock(code) {
   </div>`;
 }
 
+function txDetailRow(label, value) {
+  return `<tr>
+    <td style="padding:10px 0;border-bottom:1px solid rgba(11,50,112,0.06);font-size:13px;color:#5E6E8E;">${label}</td>
+    <td style="padding:10px 0;border-bottom:1px solid rgba(11,50,112,0.06);font-size:13px;color:#0D1829;font-weight:600;text-align:right;">${value}</td>
+  </tr>`;
+}
+
+function amountBadge(amount, color) {
+  return `<div style="text-align:center;margin:24px 0;">
+    <div style="display:inline-block;background:${color === 'green' ? '#D6F0E6' : '#EBF0FA'};border-radius:12px;padding:16px 36px;">
+      <span style="font-size:32px;font-weight:700;letter-spacing:-0.5px;color:${color === 'green' ? '#0E7C4D' : '#0B3270'};">${amount}</span>
+    </div>
+  </div>`;
+}
+
+// ─── Auth emails ──────────────────────────────────────────────────────────────
+
 async function sendVerificationEmail({ to, name, code }) {
   const body = `
     <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#0D1829;">Verify your email</h2>
@@ -131,4 +148,128 @@ async function sendMfaEmailFallback({ to, name, code }) {
   });
 }
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendLoginAlertEmail, sendMfaEmailFallback };
+// ─── Transaction emails ───────────────────────────────────────────────────────
+
+/**
+ * Sent to the user when they submit a transfer or payment (it enters pending state).
+ */
+async function sendTransactionSubmittedEmail({ to, name, type, amount, description, accountName }) {
+  const fmt = `$${Number(amount).toFixed(2)}`;
+  const body = `
+    <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#0D1829;">Transaction received</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#5E6E8E;">Hi ${name}, your ${type.toLowerCase()} request has been received and is being processed.</p>
+    ${amountBadge(fmt, 'blue')}
+    <table style="width:100%;border-collapse:collapse;">
+      ${txDetailRow('Type', type)}
+      ${txDetailRow('Amount', fmt)}
+      ${txDetailRow('Description', description)}
+      ${txDetailRow('From account', accountName)}
+      ${txDetailRow('Status', 'Processing')}
+    </table>
+    <p style="margin:24px 0 0;font-size:13px;color:#9AAABF;">
+      We'll send you another email once your transaction has been completed. If you have questions, contact <a href="mailto:support@mevrelbank.com" style="color:#0B3270;">support@mevrelbank.com</a>.
+    </p>`;
+
+  return getClient().emails.send({
+    from: `MevrelBank <${FROM}>`,
+    to,
+    subject: `Transaction received — ${fmt}`,
+    html: baseTemplate({ title: 'Transaction received', preheader: `Your ${type.toLowerCase()} of ${fmt} is being processed`, body }),
+  });
+}
+
+/**
+ * Sent to the user when admin confirms their pending transaction.
+ */
+async function sendTransactionConfirmedEmail({ to, name, type, amount, description, accountName }) {
+  const fmt = `$${Number(amount).toFixed(2)}`;
+  const body = `
+    <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#0D1829;">Transaction completed</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#5E6E8E;">Hi ${name}, your ${type.toLowerCase()} has been successfully processed.</p>
+    ${amountBadge(fmt, 'green')}
+    <table style="width:100%;border-collapse:collapse;">
+      ${txDetailRow('Type', type)}
+      ${txDetailRow('Amount', fmt)}
+      ${txDetailRow('Description', description)}
+      ${txDetailRow('Account', accountName)}
+      ${txDetailRow('Status', '<span style="color:#0E7C4D;font-weight:700;">Completed</span>')}
+    </table>
+    <p style="margin:24px 0 0;font-size:13px;color:#9AAABF;">
+      If you didn't authorise this transaction, contact <a href="mailto:security@mevrelbank.com" style="color:#0B3270;">security@mevrelbank.com</a> immediately.
+    </p>`;
+
+  return getClient().emails.send({
+    from: `MevrelBank <${FROM}>`,
+    to,
+    subject: `Transaction completed — ${fmt}`,
+    html: baseTemplate({ title: 'Transaction completed', preheader: `Your ${type.toLowerCase()} of ${fmt} has been completed`, body }),
+  });
+}
+
+/**
+ * Sent to the user when admin rejects their pending transaction.
+ */
+async function sendTransactionRejectedEmail({ to, name, type, amount, description, reason }) {
+  const fmt = `$${Number(amount).toFixed(2)}`;
+  const body = `
+    <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#0D1829;">Transaction unsuccessful</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#5E6E8E;">Hi ${name}, we were unable to complete your ${type.toLowerCase()} request.</p>
+    <table style="width:100%;border-collapse:collapse;">
+      ${txDetailRow('Type', type)}
+      ${txDetailRow('Amount', fmt)}
+      ${txDetailRow('Description', description)}
+      ${reason ? txDetailRow('Reason', reason) : ''}
+      ${txDetailRow('Status', '<span style="color:#C52B2B;font-weight:700;">Unsuccessful</span>')}
+    </table>
+    <p style="margin:24px 0 0;font-size:13px;color:#5E6E8E;">Any held funds have been returned to your available balance.</p>
+    <p style="margin:12px 0 0;font-size:13px;color:#9AAABF;">
+      For questions, contact <a href="mailto:support@mevrelbank.com" style="color:#0B3270;">support@mevrelbank.com</a>.
+    </p>`;
+
+  return getClient().emails.send({
+    from: `MevrelBank <${FROM}>`,
+    to,
+    subject: `Transaction unsuccessful — ${fmt}`,
+    html: baseTemplate({ title: 'Transaction unsuccessful', preheader: `Your ${type.toLowerCase()} of ${fmt} could not be completed`, body }),
+  });
+}
+
+/**
+ * Sent to the user when an admin posts a credit or debit directly to their account.
+ */
+async function sendAdminTransactionEmail({ to, name, type, amount, description, accountName }) {
+  const fmt = `$${Number(Math.abs(amount)).toFixed(2)}`;
+  const isCredit = Number(amount) > 0;
+  const body = `
+    <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#0D1829;">Account ${isCredit ? 'credit' : 'debit'} posted</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#5E6E8E;">Hi ${name}, the following transaction has been posted to your account.</p>
+    ${amountBadge((isCredit ? '+' : '-') + fmt, isCredit ? 'green' : 'blue')}
+    <table style="width:100%;border-collapse:collapse;">
+      ${txDetailRow('Type', type)}
+      ${txDetailRow('Amount', (isCredit ? '+' : '-') + fmt)}
+      ${txDetailRow('Description', description)}
+      ${txDetailRow('Account', accountName)}
+      ${txDetailRow('Status', '<span style="color:#0E7C4D;font-weight:700;">Completed</span>')}
+    </table>
+    <p style="margin:24px 0 0;font-size:13px;color:#9AAABF;">
+      If you have questions about this transaction, contact <a href="mailto:support@mevrelbank.com" style="color:#0B3270;">support@mevrelbank.com</a>.
+    </p>`;
+
+  return getClient().emails.send({
+    from: `MevrelBank <${FROM}>`,
+    to,
+    subject: `Account ${isCredit ? 'credit' : 'debit'} posted — ${(isCredit ? '+' : '-') + fmt}`,
+    html: baseTemplate({ title: `Account ${isCredit ? 'credit' : 'debit'} posted`, preheader: `A ${type.toLowerCase()} of ${fmt} has been posted to your account`, body }),
+  });
+}
+
+module.exports = {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendLoginAlertEmail,
+  sendMfaEmailFallback,
+  sendTransactionSubmittedEmail,
+  sendTransactionConfirmedEmail,
+  sendTransactionRejectedEmail,
+  sendAdminTransactionEmail,
+};

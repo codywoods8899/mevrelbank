@@ -5,6 +5,9 @@ const pool = require('../db/pool');
 const requireAuth = require('../middleware/requireAuth');
 const { ensureStatementsForUser } = require('../lib/generateStatements');
 const { STORAGE_DIR } = require('../lib/statementPdf');
+const {
+  sendTransactionSubmittedEmail,
+} = require('../services/email');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -185,9 +188,8 @@ router.delete('/beneficiaries/:id', async (req, res) => {
 });
 
 // ─── POST /api/banking/transfer ──────────────────────────────────────────────
-// Moves money between two of the caller's own accounts. This is a real,
-// internal ledger transfer (balances actually change) — there is no external
-// payment rail behind it since MevrelBank isn't yet connected to one.
+// Submits an internal transfer request. Funds are held (available reduced) and
+// a pending transaction is created. Admin confirms or rejects on their panel.
 
 router.post('/transfer', async (req, res) => {
   const { fromAccountId, toAccountId, amount, note } = req.body ?? {};
@@ -216,39 +218,52 @@ router.post('/transfer', async (req, res) => {
       return res.status(400).json({ error: 'Insufficient available balance.' });
     }
 
+    // Hold the funds — reduce available but not balance
     await client.query(
-      'UPDATE accounts SET balance = balance - $1, available = available - $1, updated_at = NOW() WHERE id = $2',
+      'UPDATE accounts SET available = available - $1, updated_at = NOW() WHERE id = $2',
       [value, from.id]
     );
-    await client.query(
-      'UPDATE accounts SET balance = balance + $1, available = available + $1, updated_at = NOW() WHERE id = $2',
-      [value, to.id]
+
+    const label = note?.trim() || `Transfer to ${to.name}`;
+    const metadata = { type: 'transfer', toAccountId: to.id, toAccountName: to.name, fromAccountName: from.name, note: label };
+
+    const { rows: txRows } = await client.query(
+      `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, metadata, occurred_at)
+       VALUES ($1, $2, 'Transfer', $3, 'pending', 'user', $4, NOW()) RETURNING *`,
+      [from.id, label, -value, JSON.stringify(metadata)]
     );
 
-    const label = note?.trim() ? note.trim() : null;
-    await client.query(
-      `INSERT INTO transactions (account_id, name, category, amount, status, occurred_at)
-       VALUES ($1, $2, 'Transfer', $3, 'completed', NOW())`,
-      [from.id, label ?? `Transfer to ${to.name}`, -value]
-    );
-    await client.query(
-      `INSERT INTO transactions (account_id, name, category, amount, status, occurred_at)
-       VALUES ($1, $2, 'Transfer', $3, 'completed', NOW())`,
-      [to.id, label ?? `Transfer from ${from.name}`, value]
-    );
     await client.query(
       `INSERT INTO notifications (user_id, title, body, kind)
-       VALUES ($1, 'Transfer completed', $2, 'payment')`,
-      [req.user.sub, `${value.toFixed(2)} moved from ${from.name} to ${to.name}.`]
+       VALUES ($1, 'Transfer submitted', $2, 'payment')`,
+      [req.user.sub, `Your transfer of $${value.toFixed(2)} to ${to.name} is being processed.`]
     );
 
     await client.query('COMMIT');
 
-    const { rows: updated } = await client.query(
+    // Send submitted email (best-effort)
+    const { rows: userRows } = await pool.query('SELECT name, email FROM users WHERE id = $1', [req.user.sub]);
+    if (userRows.length > 0) {
+      sendTransactionSubmittedEmail({
+        to: userRows[0].email,
+        name: userRows[0].name,
+        type: 'Transfer',
+        amount: value,
+        description: label,
+        accountName: from.name,
+      }).catch((e) => console.error('[email] transfer submitted:', e.message));
+    }
+
+    const { rows: updated } = await pool.query(
       'SELECT * FROM accounts WHERE id = ANY($1::uuid[])',
       [[fromAccountId, toAccountId]]
     );
-    return res.json({ accounts: updated.map(publicAccount) });
+    return res.json({
+      accounts: updated.map(publicAccount),
+      transaction: publicTransaction({ ...txRows[0], account_name: from.name }),
+      status: 'pending',
+      message: 'Transfer submitted and is being processed.',
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('[transfer] failed:', err.message);
@@ -259,9 +274,8 @@ router.post('/transfer', async (req, res) => {
 });
 
 // ─── POST /api/banking/pay ────────────────────────────────────────────────────
-// Sends money from one of the caller's accounts to a saved beneficiary. Debits
-// the account for real within our own ledger; there is no external settlement
-// rail yet, so this does not move money to another bank.
+// Submits a payment to a beneficiary. Funds are held and a pending transaction
+// is created. Admin confirms or rejects on their panel.
 
 router.post('/pay', async (req, res) => {
   const { accountId, beneficiaryId, amount, reference } = req.body ?? {};
@@ -298,26 +312,57 @@ router.post('/pay', async (req, res) => {
     }
     const beneficiary = benRows[0];
 
+    // Hold the funds — reduce available but not balance
     await client.query(
-      'UPDATE accounts SET balance = balance - $1, available = available - $1, updated_at = NOW() WHERE id = $2',
+      'UPDATE accounts SET available = available - $1, updated_at = NOW() WHERE id = $2',
       [value, account.id]
     );
-    await client.query(
-      `INSERT INTO transactions (account_id, name, category, amount, status, occurred_at)
-       VALUES ($1, $2, 'Payment', $3, 'completed', NOW())`,
-      [account.id, reference?.trim() ? reference.trim() : (beneficiary.nickname || beneficiary.name), -value]
+
+    const label = reference?.trim() || beneficiary.nickname || beneficiary.name;
+    const metadata = {
+      type: 'pay',
+      beneficiaryId: beneficiary.id,
+      beneficiaryName: beneficiary.nickname || beneficiary.name,
+      reference: label,
+      sortCode: beneficiary.sort_code,
+      accountNumber: beneficiary.account_number,
+    };
+
+    const { rows: txRows } = await client.query(
+      `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, metadata, occurred_at)
+       VALUES ($1, $2, 'Payment', $3, 'pending', 'user', $4, NOW()) RETURNING *`,
+      [account.id, label, -value, JSON.stringify(metadata)]
     );
+
     await client.query('UPDATE beneficiaries SET last_paid_at = NOW() WHERE id = $1', [beneficiary.id]);
     await client.query(
       `INSERT INTO notifications (user_id, title, body, kind)
-       VALUES ($1, 'Payment sent', $2, 'payment')`,
-      [req.user.sub, `You sent ${value.toFixed(2)} to ${beneficiary.nickname || beneficiary.name}.`]
+       VALUES ($1, 'Payment submitted', $2, 'payment')`,
+      [req.user.sub, `Your payment of $${value.toFixed(2)} to ${beneficiary.nickname || beneficiary.name} is being processed.`]
     );
 
     await client.query('COMMIT');
 
-    const { rows: updated } = await client.query('SELECT * FROM accounts WHERE id = $1', [account.id]);
-    return res.json({ account: publicAccount(updated[0]) });
+    // Send submitted email (best-effort)
+    const { rows: userRows } = await pool.query('SELECT name, email FROM users WHERE id = $1', [req.user.sub]);
+    if (userRows.length > 0) {
+      sendTransactionSubmittedEmail({
+        to: userRows[0].email,
+        name: userRows[0].name,
+        type: 'Payment',
+        amount: value,
+        description: label,
+        accountName: account.name,
+      }).catch((e) => console.error('[email] pay submitted:', e.message));
+    }
+
+    const { rows: updated } = await pool.query('SELECT * FROM accounts WHERE id = $1', [account.id]);
+    return res.json({
+      account: publicAccount(updated[0]),
+      transaction: publicTransaction({ ...txRows[0], account_name: account.name }),
+      status: 'pending',
+      message: 'Payment submitted and is being processed.',
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('[pay] failed:', err.message);

@@ -119,3 +119,12 @@ ALTER TABLE statements ADD COLUMN IF NOT EXISTS closing_balance NUMERIC(14,2);
 
 -- Unique guard so the statement generator never double-generates a period
 CREATE UNIQUE INDEX IF NOT EXISTS idx_statements_account_period ON statements(account_id, period);
+
+-- Phase 4 — Pending transaction workflow
+-- initiated_by: 'user' (pending until admin confirms) | 'admin' (posted immediately)
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS initiated_by VARCHAR(10) NOT NULL DEFAULT 'user' CHECK (initiated_by IN ('user', 'admin'));
+-- metadata: JSONB bag used for pending flows (toAccountId, toAccountName, beneficiaryId, etc.)
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS metadata JSONB;
+
+CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
+CREATE INDEX IF NOT EXISTS idx_transactions_initiated_by ON transactions(initiated_by);
