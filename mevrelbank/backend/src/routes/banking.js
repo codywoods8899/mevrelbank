@@ -82,6 +82,54 @@ router.get('/accounts', async (req, res) => {
   return res.json({ accounts: rows.map(publicAccount) });
 });
 
+// ─── POST /api/banking/accounts — open a new account ─────────────────────────
+// Customers can open additional Current or Savings accounts from the dashboard.
+// Each account gets a fresh sort code + masked account number.
+
+router.post('/accounts', async (req, res) => {
+  const { type, name } = req.body ?? {};
+
+  const VALID_TYPES = ['Current Account', 'Savings Account'];
+  if (!type || !VALID_TYPES.includes(type)) {
+    return res.status(400).json({ error: 'Account type must be "Current Account" or "Savings Account".' });
+  }
+
+  // Enforce a sensible cap so one customer can't create hundreds of accounts
+  const { rows: existing } = await pool.query(
+    'SELECT COUNT(*)::int AS count FROM accounts WHERE user_id = $1',
+    [req.user.sub]
+  );
+  if (existing[0].count >= 10) {
+    return res.status(400).json({ error: 'You can hold a maximum of 10 accounts.' });
+  }
+
+  const sortCode = '40-47-84';
+  const rand4 = () => String(Math.floor(1000 + Math.random() * 9000));
+  const accountNumber = `•••• ${rand4()}`;
+
+  // Default names: first account of type = base name, extras get a number suffix
+  const { rows: sameType } = await pool.query(
+    'SELECT COUNT(*)::int AS count FROM accounts WHERE user_id = $1 AND type = $2',
+    [req.user.sub, type]
+  );
+  const defaultName = name?.trim() ||
+    (sameType[0].count === 0 ? type : `${type} ${sameType[0].count + 1}`);
+
+  const { rows } = await pool.query(
+    `INSERT INTO accounts (user_id, name, type, sort_code, account_number, balance, available)
+     VALUES ($1, $2, $3, $4, $5, 0, 0) RETURNING *`,
+    [req.user.sub, defaultName, type, sortCode, accountNumber]
+  );
+
+  await pool.query(
+    `INSERT INTO notifications (user_id, title, body, kind)
+     VALUES ($1, 'New account opened', $2, 'info')`,
+    [req.user.sub, `Your new ${defaultName} is ready to use.`]
+  );
+
+  return res.status(201).json({ account: publicAccount(rows[0]) });
+});
+
 // ─── GET /api/banking/transactions ───────────────────────────────────────────
 
 router.get('/transactions', async (req, res) => {

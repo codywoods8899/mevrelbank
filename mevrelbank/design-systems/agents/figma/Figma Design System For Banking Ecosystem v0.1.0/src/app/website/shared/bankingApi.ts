@@ -104,6 +104,12 @@ export const bankingApi = {
       body: JSON.stringify(data),
     }),
 
+  openAccount: (authedFetch: AuthedFetch, data: { type: "Current Account" | "Savings Account"; name?: string }) =>
+    json<{ account: Account }>(authedFetch, "/banking/accounts", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
   /** Downloads a statement PDF as a blob (the file route requires the bearer token, so it can't be a plain <a href>). */
   async downloadStatement(authedFetch: AuthedFetch, id: string, filename: string) {
     const res = await authedFetch(`/banking/statements/${id}/file`);

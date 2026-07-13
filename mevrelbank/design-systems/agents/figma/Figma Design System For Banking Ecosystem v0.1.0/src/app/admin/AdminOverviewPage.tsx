@@ -8,7 +8,8 @@ interface Overview {
   verifiedUsers: number;
   totalAccounts: number;
   totalBalance: number;
-  transactions30d: number;
+  transactionsTotal: number;
+  pendingTransactions: number;
 }
 
 const currency = (n: number) =>
@@ -59,11 +60,12 @@ export default function AdminOverviewPage() {
       {!data && !error ? (
         <p className="text-[14px] text-[#5E6E8E]">Loading…</p>
       ) : data ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <KpiCard icon={Users} label="Total customers" value={data.totalUsers.toLocaleString()} sub={`${data.verifiedUsers} verified`} />
           <KpiCard icon={CheckCircle2} label="Accounts" value={data.totalAccounts.toLocaleString()} />
           <KpiCard icon={Wallet} label="Total balance held" value={currency(data.totalBalance)} />
-          <KpiCard icon={Activity} label="Transactions (30d)" value={data.transactions30d.toLocaleString()} />
+          <KpiCard icon={Activity} label="All transactions" value={data.transactionsTotal.toLocaleString()} />
+          <KpiCard icon={Activity} label="Pending transactions" value={data.pendingTransactions.toLocaleString()} sub="Awaiting review" />
         </div>
       ) : null}
     </>

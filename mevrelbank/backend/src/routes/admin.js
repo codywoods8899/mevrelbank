@@ -146,7 +146,7 @@ router.get('/overview', async (req, res) => {
   const [users, accounts, txns, verified, pending] = await Promise.all([
     pool.query(`SELECT COUNT(*)::int AS count FROM users WHERE role = 'customer'`),
     pool.query(`SELECT COUNT(*)::int AS count, COALESCE(SUM(balance), 0)::numeric AS total_balance FROM accounts`),
-    pool.query(`SELECT COUNT(*)::int AS count FROM transactions WHERE occurred_at > NOW() - INTERVAL '30 days'`),
+    pool.query(`SELECT COUNT(*)::int AS count FROM transactions`),
     pool.query(`SELECT COUNT(*)::int AS count FROM users WHERE role = 'customer' AND email_verified = true`),
     pool.query(`SELECT COUNT(*)::int AS count FROM transactions WHERE status = 'pending'`),
   ]);
@@ -156,7 +156,7 @@ router.get('/overview', async (req, res) => {
     verifiedUsers: verified.rows[0].count,
     totalAccounts: accounts.rows[0].count,
     totalBalance: Number(accounts.rows[0].total_balance),
-    transactions30d: txns.rows[0].count,
+    transactionsTotal: txns.rows[0].count,
     pendingTransactions: pending.rows[0].count,
   });
 });
