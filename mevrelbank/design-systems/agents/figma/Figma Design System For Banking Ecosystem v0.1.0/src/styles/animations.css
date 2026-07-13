@@ -1,0 +1,125 @@
+/* ─── MevrelBank site animations ─────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Infinite horizontal marquee */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 28s linear infinite;
+  will-change: transform;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Scroll-reveal fade + lift */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal {
+  opacity: 0;
+}
+.reveal.visible {
+  animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.reveal-delay-1.visible { animation-delay: 0.08s; }
+.reveal-delay-2.visible { animation-delay: 0.16s; }
+.reveal-delay-3.visible { animation-delay: 0.24s; }
+.reveal-delay-4.visible { animation-delay: 0.32s; }
+.reveal-delay-5.visible { animation-delay: 0.40s; }
+.reveal-delay-6.visible { animation-delay: 0.48s; }
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.slide-in-right {
+  opacity: 0;
+}
+.slide-in-right.visible {
+  animation: slideInRight 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.2s;
+}
+
+/* Gentle float */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0.5deg); }
+  50%       { transform: translateY(-10px) rotate(-0.5deg); }
+}
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+/* Button shimmer sweep */
+@keyframes shimmer-sweep {
+  0%   { background-position: -300% center; }
+  100% { background-position: 300% center; }
+}
+.shimmer-btn {
+  background-size: 200% auto;
+  background-image: linear-gradient(
+    105deg,
+    #FFFFFF00 0%,
+    rgba(255,255,255,0.18) 40%,
+    rgba(255,255,255,0.22) 50%,
+    rgba(255,255,255,0.18) 60%,
+    #FFFFFF00 100%
+  );
+  animation: shimmer-sweep 3s linear infinite;
+}
+
+/* Moving background glow */
+@keyframes glow-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(40px, -25px) scale(1.05); }
+  66%       { transform: translate(-25px, 20px) scale(0.97); }
+}
+.animate-glow-drift {
+  animation: glow-drift 12s ease-in-out infinite;
+}
+
+/* Slow pulse for "live" indicator */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52, 199, 122, 0.4); }
+  50%       { opacity: 0.7; box-shadow: 0 0 0 6px rgba(52, 199, 122, 0); }
+}
+.pulse-live {
+  animation: pulse-slow 2.4s ease-in-out infinite;
+}
+
+/* Number count-up (visual only — runs once on load) */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.count-in {
+  animation: countUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.count-in-1 { animation-delay: 0.1s; }
+.count-in-2 { animation-delay: 0.2s; }
+.count-in-3 { animation-delay: 0.3s; }
+
+/* Hero text entrance */
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero-badge  { animation: heroIn 0.5s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 0.05s; }
+.hero-h1     { animation: heroIn 0.6s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 0.15s; }
+.hero-body   { animation: heroIn 0.6s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 0.25s; }
+.hero-cta    { animation: heroIn 0.6s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 0.35s; }
+.hero-stats  { animation: heroIn 0.6s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 0.45s; }
+.hero-card   { animation: slideInRight 0.8s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 0.55s; }
+
+/* Subtle dot-grid texture for hero */
+.hero-grid {
+  background-image: radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
