@@ -2,9 +2,13 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Real backend auth — Phase 2.
-// Access token kept in memory only. Refresh token in localStorage.
-// Token refresh is automatic (silent) before expiry.
+// Real backend auth — Phase 2, cookie sessions (Phase 5).
+// Access token kept in memory only. The refresh token lives in an httpOnly,
+// server-set session cookie — never touched by client JS — so a page reload
+// silently restores the session via POST /auth/refresh instead of forcing a
+// re-login. "Stay signed in" controls how long that cookie/session lasts
+// (30 days) vs. the default (cleared when the browser fully closes, capped
+// at 1 day server-side either way).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type AccountType = "personal" | "business";
@@ -15,6 +19,8 @@ export interface AuthUser {
   email: string;
   accountType: AccountType;
   totpEnabled: boolean;
+  phone?: string | null;
+  address?: string | null;
 }
 
 interface AuthResult {
@@ -28,7 +34,8 @@ interface AuthContextValue {
   isMfaRequired: boolean;
   tempUser: AuthUser | null;
   accessToken: string | null;
-  login: (email: string, password: string) => Promise<AuthResult>;
+  isRestoringSession: boolean;
+  login: (email: string, password: string, remember?: boolean) => Promise<AuthResult>;
   register: (name: string, email: string, password: string, accountType: AccountType) => Promise<AuthResult>;
   verifyOTP: (code: string) => Promise<AuthResult>;
   resendOTP: () => Promise<AuthResult>;
@@ -41,18 +48,25 @@ interface AuthContextValue {
   enableTotp: (secret: string, code: string) => Promise<AuthResult>;
   disableTotp: (code: string) => Promise<AuthResult>;
   refreshUser: () => Promise<void>;
+  updateProfile: (fields: { name: string; phone?: string; address?: string }) => Promise<AuthResult>;
   authedFetch: (path: string, options?: RequestInit) => Promise<Response>;
 }
 
-const REFRESH_KEY = "mb.refreshToken";
-const EMAIL_KEY   = "mb.pendingEmail";
-const BASE_URL    = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+const EMAIL_KEY = "mb.pendingEmail";
+// In dev, always go through the Vite proxy (relative /api → localhost:3001) so the
+// preview talks to this workspace's own backend rather than the production Railway
+// deployment. VITE_API_BASE_URL is only used in production builds (Cloudflare Pages),
+// where the frontend and backend are not same-origin.
+const BASE_URL = import.meta.env.DEV
+  ? ""
+  : (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 async function apiFetch(path: string, options: RequestInit = {}) {
   const res = await fetch(`${BASE_URL}/api${path}`, {
     ...options,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers ?? {}),
@@ -66,15 +80,6 @@ async function apiJson(path: string, options: RequestInit = {}) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((body as any).error ?? `HTTP ${res.status}`);
   return body;
-}
-
-function loadRefreshToken() {
-  return localStorage.getItem(REFRESH_KEY);
-}
-
-function saveRefreshToken(token: string | null) {
-  if (token) localStorage.setItem(REFRESH_KEY, token);
-  else localStorage.removeItem(REFRESH_KEY);
 }
 
 function loadPendingEmail() {
@@ -108,23 +113,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [mfaTempToken, setMfaTempToken] = useState<string | null>(null);
   const [isMfaRequired, setIsMfaRequired] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
 
   const accessTokenRef = useRef<string | null>(null);
   accessTokenRef.current = accessToken;
 
   async function silentRefresh(): Promise<string | null> {
-    const rt = loadRefreshToken();
-    if (!rt) return null;
     try {
-      const data = await apiJson("/auth/refresh", {
-        method: "POST",
-        body: JSON.stringify({ refreshToken: rt }),
-      });
-      saveRefreshToken(data.refreshToken);
+      const data = await apiJson("/auth/refresh", { method: "POST" });
       setAccessToken(data.accessToken);
+      if (data.user) setUser(data.user as AuthUser);
       return data.accessToken;
     } catch {
-      saveRefreshToken(null);
       setUser(null);
       setAccessToken(null);
       return null;
@@ -156,23 +156,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return body;
   }
 
+  // On first load, try to restore the session from the httpOnly cookie —
+  // this is what makes refreshing the dashboard NOT require signing in again.
   useEffect(() => {
-    const rt = loadRefreshToken();
-    if (!rt) return;
-    silentRefresh().then(async (token) => {
-      if (!token) return;
-      try {
-        const data = await apiFetch("/user/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const body = await data.json();
-        if (data.ok && body.user) {
-          setUser(body.user as AuthUser);
-        }
-      } catch {
-        /* silent */
-      }
-    });
+    silentRefresh().finally(() => setIsRestoringSession(false));
   }, []);
 
   const register = async (
@@ -223,11 +210,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string): Promise<AuthResult> => {
+  const login = async (email: string, password: string, remember = false): Promise<AuthResult> => {
     try {
       const data = await apiJson("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, remember }),
       });
       if (data.mfaRequired) {
         setMfaTempToken(data.tempToken);
@@ -235,7 +222,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsMfaRequired(true);
       } else {
         setAccessToken(data.accessToken);
-        saveRefreshToken(data.refreshToken);
         setUser(data.user as AuthUser);
         setIsMfaRequired(false);
       }
@@ -256,7 +242,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setTempUser(null);
       setIsMfaRequired(false);
       setAccessToken(data.accessToken);
-      saveRefreshToken(data.refreshToken);
       setUser(data.user as AuthUser);
       return { success: true };
     } catch (err: any) {
@@ -278,18 +263,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    const rt = loadRefreshToken();
-    const token = accessTokenRef.current;
     try {
-      if (token) {
-        await fetch(`${BASE_URL}/api/auth/logout`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ refreshToken: rt }),
-        });
-      }
+      await apiFetch("/auth/logout", { method: "POST" });
     } catch { /* best effort */ }
-    saveRefreshToken(null);
     savePendingEmail(null);
     setUser(null);
     setAccessToken(null);
@@ -351,7 +327,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ code }),
       });
       if (user) setUser({ ...user, totpEnabled: false });
-      saveRefreshToken(null);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -365,12 +340,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { /* silent */ }
   };
 
+  const updateProfile = async (fields: { name: string; phone?: string; address?: string }): Promise<AuthResult> => {
+    try {
+      const data = await authedJson("/user/me", {
+        method: "PATCH",
+        body: JSON.stringify(fields),
+      });
+      if (data.user) setUser(data.user as AuthUser);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
   const value: AuthContextValue = {
     user,
     isAuthenticated: !!user,
     isMfaRequired,
     tempUser,
     accessToken,
+    isRestoringSession,
     login,
     register,
     verifyOTP,
@@ -384,6 +373,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     enableTotp,
     disableTotp,
     refreshUser,
+    updateProfile,
     authedFetch,
   };
 

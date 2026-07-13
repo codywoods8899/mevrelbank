@@ -214,12 +214,64 @@ function TotpDisableModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── Edit Details Modal ─────────────────────────────────────────────────────
+
+function EditDetailsModal({ onClose }: { onClose: () => void }) {
+  const { user, updateProfile } = useAuth();
+  const [name, setName] = useState(user?.name ?? "");
+  const [phone, setPhone] = useState(user?.phone ?? "");
+  const [address, setAddress] = useState(user?.address ?? "");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) { setError("Name is required."); return; }
+    setError("");
+    setSaving(true);
+    const result = await updateProfile({ name: name.trim(), phone: phone.trim(), address: address.trim() });
+    setSaving(false);
+    if (!result.success) { setError(result.error ?? "Could not save changes."); return; }
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="bg-white rounded-[20px] w-full max-w-md p-8 shadow-2xl border border-[rgba(11,50,112,0.08)] relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-[#9AAABF] hover:text-[#5E6E8E] text-[20px] leading-none" aria-label="Close">×</button>
+        <h2 className="text-[20px] font-bold text-[#0D1829] mb-5" style={{ fontFamily: "Figtree, sans-serif" }}>Edit personal details</h2>
+        <form onSubmit={handleSubmit}>
+          <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Full name</label>
+          <input value={name} onChange={(e) => setName(e.target.value)}
+            className="w-full mb-3 px-3 py-2.5 rounded-[8px] border border-[rgba(11,50,112,0.15)] text-[13px] outline-none focus:border-[#0B3270]" />
+          <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Phone number</label>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+44 7700 900000"
+            className="w-full mb-3 px-3 py-2.5 rounded-[8px] border border-[rgba(11,50,112,0.15)] text-[13px] outline-none focus:border-[#0B3270]" />
+          <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Address</label>
+          <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={3} placeholder="123 High Street, London, SW1A 1AA"
+            className="w-full mb-4 px-3 py-2.5 rounded-[8px] border border-[rgba(11,50,112,0.15)] text-[13px] outline-none focus:border-[#0B3270] resize-none" />
+          {error && (
+            <div className="flex items-center gap-2 mb-4 text-[13px] text-[#C52B2B] bg-[#FEF2F2] rounded-[8px] px-3 py-2.5">
+              <AlertCircle size={14} />{error}
+            </div>
+          )}
+          <div className="flex gap-3">
+            <Btn variant="outline" size="md" className="flex-1 justify-center" onClick={onClose}>Cancel</Btn>
+            <Btn size="md" className="flex-1 justify-center" disabled={saving} type="submit">{saving ? "Saving…" : "Save changes"}</Btn>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Profile Page ─────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const [showSetup, setShowSetup] = useState(false);
   const [showDisable, setShowDisable] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
   return (
     <>
@@ -227,6 +279,7 @@ export default function ProfilePage() {
 
       {showSetup && <TotpSetupModal onClose={() => setShowSetup(false)} />}
       {showDisable && <TotpDisableModal onClose={() => setShowDisable(false)} />}
+      {showEdit && <EditDetailsModal onClose={() => setShowEdit(false)} />}
 
       <div className="mb-5">
         <h1 className="text-[20px] font-bold text-[#0D1829] mb-0.5" style={{ fontFamily: "Figtree, sans-serif" }}>Profile</h1>
@@ -247,13 +300,23 @@ export default function ProfilePage() {
             </div>
             <div className="flex items-center gap-2.5">
               <Phone size={12} className="text-[#8A9BBE]" />
-              <span className="text-[#9AAABF] italic">Not provided</span>
+              {user?.phone ? (
+                <span className="text-[#0D1829]">{user.phone}</span>
+              ) : (
+                <span className="text-[#9AAABF] italic">Not provided</span>
+              )}
             </div>
+            {user?.address && (
+              <div className="flex items-start gap-2.5">
+                <span className="text-[11px] font-semibold text-[#8A9BBE] w-16 flex-shrink-0">Address</span>
+                <span className="text-[#0D1829] whitespace-pre-line">{user.address}</span>
+              </div>
+            )}
             <div className="pt-2 text-[11px] text-[#8A9BBE]">
               {user ? accountLabel[user.accountType] ?? "Personal" : "Personal"} account
             </div>
           </div>
-          <Btn variant="outline" size="sm" className="mt-4">Edit details</Btn>
+          <Btn variant="outline" size="sm" className="mt-4" onClick={() => setShowEdit(true)}>Edit details</Btn>
         </div>
 
         <div className="p-5 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)]">

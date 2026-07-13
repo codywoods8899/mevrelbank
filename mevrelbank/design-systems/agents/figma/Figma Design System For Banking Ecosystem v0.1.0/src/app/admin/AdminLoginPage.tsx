@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Eye, EyeOff } from "lucide-react";
-import { PageMeta } from "../components/PageMeta";
-import { AuthShell, AuthCard, AuthField, AuthInput, AuthError } from "../components/AuthShell";
-import { Btn } from "../shared/Btn";
-import { useAuth } from "../../context/AuthContext";
+import { Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { PageMeta } from "../website/components/PageMeta";
+import { AuthShell, AuthCard, AuthField, AuthInput, AuthError } from "../website/components/AuthShell";
+import { Btn } from "../website/shared/Btn";
+import { useAdminAuth } from "../context/AdminAuthContext";
 
-export default function LoginPage() {
-  const { login } = useAuth();
+export default function AdminLoginPage() {
+  const { login } = useAdminAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +30,7 @@ export default function LoginPage() {
       return;
     }
 
-    navigate("/mfa");
+    navigate("/admin/mfa");
   };
 
   const canSubmit = email.trim().length > 0 && password.length > 0 && !loading;
@@ -38,33 +38,36 @@ export default function LoginPage() {
   return (
     <>
       <PageMeta
-        title="Sign In — MevrelBank"
-        description="Sign in to your MevrelBank personal or business account."
+        title="Admin Sign In — MevrelBank"
+        description="Restricted access for MevrelBank support staff."
       />
       <AuthShell>
         <AuthCard>
           <div className="mb-8">
+            <div className="w-10 h-10 rounded-[10px] bg-[#EBF0FA] flex items-center justify-center mb-4">
+              <ShieldCheck size={18} className="text-[#0B3270]" aria-hidden="true" />
+            </div>
             <h1
               className="text-[26px] font-bold text-[#0D1829] tracking-tight"
               style={{ fontFamily: "Figtree, sans-serif" }}
             >
-              Sign in
+              Admin sign in
             </h1>
             <p className="text-[14px] text-[#5E6E8E] mt-1.5">
-              Welcome back. Enter your credentials to continue.
+              Restricted to MevrelBank support staff only.
             </p>
           </div>
 
           {error && <AuthError message={error} />}
 
           <form onSubmit={handleSubmit} className="space-y-5 mt-5" noValidate>
-            <AuthField label="Email address" required>
+            <AuthField label="Support email address" required>
               <AuthInput
                 type="email"
-                autoComplete="email"
+                autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder="support@mevrelbank.com"
                 required
               />
             </AuthField>
@@ -118,18 +121,6 @@ export default function LoginPage() {
               {loading ? "Signing in…" : "Sign in"}
             </Btn>
           </form>
-
-          <div className="mt-6 pt-5 border-t border-[rgba(11,50,112,0.07)] text-center">
-            <p className="text-[13px] text-[#5E6E8E]">
-              Don't have an account?{" "}
-              <a
-                href="/register"
-                className="font-semibold text-[#0B3270] hover:text-[#0E3E8C] transition-colors"
-              >
-                Create one
-              </a>
-            </p>
-          </div>
         </AuthCard>
       </AuthShell>
     </>

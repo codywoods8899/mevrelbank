@@ -28,6 +28,14 @@ import {
 import { AuthProvider } from "./app/context/AuthContext";
 import { ProtectedRoute, PublicOnlyRoute } from "./app/website/components/ProtectedRoute";
 import DashboardLayout from "./app/website/components/DashboardLayout";
+import { AdminAuthProvider } from "./app/context/AdminAuthContext";
+import { AdminProtectedRoute, AdminPublicOnlyRoute } from "./app/admin/AdminProtectedRoute";
+import AdminLayout from "./app/admin/AdminLayout";
+import AdminLoginPage from "./app/admin/AdminLoginPage";
+import AdminMFAPage from "./app/admin/AdminMFAPage";
+import AdminOverviewPage from "./app/admin/AdminOverviewPage";
+import AdminCustomersPage from "./app/admin/AdminCustomersPage";
+import AdminCustomerDetailPage from "./app/admin/AdminCustomerDetailPage";
 import "./styles/index.css";
 
 const router = createBrowserRouter([
@@ -61,6 +69,17 @@ const router = createBrowserRouter([
       { path: "/dashboard/notifications", element: <NotificationsPage /> },
     ],
   },
+  // Admin panel — restricted to the MevrelBank support account only
+  { path: "/admin/login", element: <AdminPublicOnlyRoute><AdminLoginPage /></AdminPublicOnlyRoute> },
+  { path: "/admin/mfa", element: <AdminMFAPage /> },
+  {
+    element: <AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>,
+    children: [
+      { path: "/admin", element: <AdminOverviewPage /> },
+      { path: "/admin/customers", element: <AdminCustomersPage /> },
+      { path: "/admin/customers/:id", element: <AdminCustomerDetailPage /> },
+    ],
+  },
   // Design system demo
   { path: "/ds", element: <App /> },
   { path: "*", element: <HomePage /> },
@@ -68,6 +87,8 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <AuthProvider>
-    <RouterProvider router={router} />
+    <AdminAuthProvider>
+      <RouterProvider router={router} />
+    </AdminAuthProvider>
   </AuthProvider>
 );

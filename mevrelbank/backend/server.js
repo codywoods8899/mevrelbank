@@ -3,11 +3,13 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 
 const authRoutes    = require('./src/routes/auth');
 const mfaRoutes     = require('./src/routes/mfa');
 const userRoutes    = require('./src/routes/user');
 const bankingRoutes = require('./src/routes/banking');
+const adminRoutes   = require('./src/routes/admin');
 
 const app  = express();
 const PORT = process.env.PORT ?? process.env.BACKEND_PORT ?? 3001;
@@ -32,6 +34,7 @@ const corsOptions = {
 app.options('/{*splat}', cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '16kb' }));
+app.use(cookieParser());
 
 console.log('[cors] allowed origins:', allowedOrigins.length ? allowedOrigins : '(all — CORS_ORIGIN not set)');
 
@@ -47,6 +50,7 @@ app.use('/api/auth',    authRoutes);
 app.use('/api/mfa',     mfaRoutes);
 app.use('/api/user',    userRoutes);
 app.use('/api/banking', bankingRoutes);
+app.use('/api/admin',   adminRoutes);
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 

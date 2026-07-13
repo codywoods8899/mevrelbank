@@ -91,4 +91,4 @@ JWT_REFRESH_SECRET = "0db8d6837eb695fb60b185e3a9b78969a7036b05d727656142110d0f14
 JWT_MFA_SECRET = "adee267b8ee3cb3b0c9a2e3339ae64405367f1d20b3b18f11413055a7951b454"
 BACKEND_PORT = "3001"
 NOREPLY_EMAIL = "noreply@mevrelbank.com"
-CORS_ORIGIN = "http://localhost:5173,https://mevrelbank.com,https://www.mevrelbank.com"
+CORS_ORIGIN = "http://localhost:5173,http://127.0.0.1:5173,https://mevrelbank.com,https://www.mevrelbank.com"

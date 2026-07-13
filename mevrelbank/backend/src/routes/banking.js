@@ -1,6 +1,10 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const pool = require('../db/pool');
 const requireAuth = require('../middleware/requireAuth');
+const { ensureStatementsForUser } = require('../lib/generateStatements');
+const { STORAGE_DIR } = require('../lib/statementPdf');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -104,6 +108,12 @@ router.get('/transactions', async (req, res) => {
 // ─── GET /api/banking/statements ─────────────────────────────────────────────
 
 router.get('/statements', async (req, res) => {
+  try {
+    await ensureStatementsForUser(req.user.sub);
+  } catch (err) {
+    console.error('[statements] generation failed:', err.message);
+  }
+
   const { rows } = await pool.query(
     `SELECT s.*, a.name AS account_name
      FROM statements s
@@ -113,6 +123,25 @@ router.get('/statements', async (req, res) => {
     [req.user.sub]
   );
   return res.json({ statements: rows.map(publicStatement) });
+});
+
+// ─── GET /api/banking/statements/:id/file ────────────────────────────────────
+
+router.get('/statements/:id/file', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT s.id FROM statements s
+     JOIN accounts a ON a.id = s.account_id
+     WHERE s.id = $1 AND a.user_id = $2`,
+    [req.params.id, req.user.sub]
+  );
+  if (rows.length === 0) return res.status(404).json({ error: 'Statement not found.' });
+
+  const filePath = path.join(STORAGE_DIR, `${rows[0].id}.pdf`);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Statement file not available.' });
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="statement-${rows[0].id}.pdf"`);
+  fs.createReadStream(filePath).pipe(res);
 });
 
 // ─── GET /api/banking/beneficiaries ──────────────────────────────────────────
@@ -153,6 +182,149 @@ router.delete('/beneficiaries/:id', async (req, res) => {
   );
   if (rows.length === 0) return res.status(404).json({ error: 'Beneficiary not found.' });
   return res.json({ message: 'Beneficiary removed.' });
+});
+
+// ─── POST /api/banking/transfer ──────────────────────────────────────────────
+// Moves money between two of the caller's own accounts. This is a real,
+// internal ledger transfer (balances actually change) — there is no external
+// payment rail behind it since MevrelBank isn't yet connected to one.
+
+router.post('/transfer', async (req, res) => {
+  const { fromAccountId, toAccountId, amount, note } = req.body ?? {};
+  const value = Number(amount);
+
+  if (!fromAccountId || !toAccountId) return res.status(400).json({ error: 'Both accounts are required.' });
+  if (fromAccountId === toAccountId) return res.status(400).json({ error: 'Choose two different accounts.' });
+  if (!Number.isFinite(value) || value <= 0) return res.status(400).json({ error: 'Enter a valid amount.' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows: accts } = await client.query(
+      'SELECT * FROM accounts WHERE id = ANY($1::uuid[]) AND user_id = $2 FOR UPDATE',
+      [[fromAccountId, toAccountId], req.user.sub]
+    );
+    const from = accts.find((a) => a.id === fromAccountId);
+    const to = accts.find((a) => a.id === toAccountId);
+    if (!from || !to) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Account not found.' });
+    }
+    if (Number(from.available) < value) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Insufficient available balance.' });
+    }
+
+    await client.query(
+      'UPDATE accounts SET balance = balance - $1, available = available - $1, updated_at = NOW() WHERE id = $2',
+      [value, from.id]
+    );
+    await client.query(
+      'UPDATE accounts SET balance = balance + $1, available = available + $1, updated_at = NOW() WHERE id = $2',
+      [value, to.id]
+    );
+
+    const label = note?.trim() ? note.trim() : null;
+    await client.query(
+      `INSERT INTO transactions (account_id, name, category, amount, status, occurred_at)
+       VALUES ($1, $2, 'Transfer', $3, 'completed', NOW())`,
+      [from.id, label ?? `Transfer to ${to.name}`, -value]
+    );
+    await client.query(
+      `INSERT INTO transactions (account_id, name, category, amount, status, occurred_at)
+       VALUES ($1, $2, 'Transfer', $3, 'completed', NOW())`,
+      [to.id, label ?? `Transfer from ${from.name}`, value]
+    );
+    await client.query(
+      `INSERT INTO notifications (user_id, title, body, kind)
+       VALUES ($1, 'Transfer completed', $2, 'payment')`,
+      [req.user.sub, `£${value.toFixed(2)} moved from ${from.name} to ${to.name}.`]
+    );
+
+    await client.query('COMMIT');
+
+    const { rows: updated } = await client.query(
+      'SELECT * FROM accounts WHERE id = ANY($1::uuid[])',
+      [[fromAccountId, toAccountId]]
+    );
+    return res.json({ accounts: updated.map(publicAccount) });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[transfer] failed:', err.message);
+    return res.status(500).json({ error: 'Transfer failed. Please try again.' });
+  } finally {
+    client.release();
+  }
+});
+
+// ─── POST /api/banking/pay ────────────────────────────────────────────────────
+// Sends money from one of the caller's accounts to a saved beneficiary. Debits
+// the account for real within our own ledger; there is no external settlement
+// rail yet, so this does not move money to another bank.
+
+router.post('/pay', async (req, res) => {
+  const { accountId, beneficiaryId, amount, reference } = req.body ?? {};
+  const value = Number(amount);
+
+  if (!accountId || !beneficiaryId) return res.status(400).json({ error: 'Account and payee are required.' });
+  if (!Number.isFinite(value) || value <= 0) return res.status(400).json({ error: 'Enter a valid amount.' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows: acctRows } = await client.query(
+      'SELECT * FROM accounts WHERE id = $1 AND user_id = $2 FOR UPDATE',
+      [accountId, req.user.sub]
+    );
+    if (acctRows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Account not found.' });
+    }
+    const account = acctRows[0];
+    if (Number(account.available) < value) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Insufficient available balance.' });
+    }
+
+    const { rows: benRows } = await client.query(
+      'SELECT * FROM beneficiaries WHERE id = $1 AND user_id = $2',
+      [beneficiaryId, req.user.sub]
+    );
+    if (benRows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Payee not found.' });
+    }
+    const beneficiary = benRows[0];
+
+    await client.query(
+      'UPDATE accounts SET balance = balance - $1, available = available - $1, updated_at = NOW() WHERE id = $2',
+      [value, account.id]
+    );
+    await client.query(
+      `INSERT INTO transactions (account_id, name, category, amount, status, occurred_at)
+       VALUES ($1, $2, 'Payment', $3, 'completed', NOW())`,
+      [account.id, reference?.trim() ? reference.trim() : (beneficiary.nickname || beneficiary.name), -value]
+    );
+    await client.query('UPDATE beneficiaries SET last_paid_at = NOW() WHERE id = $1', [beneficiary.id]);
+    await client.query(
+      `INSERT INTO notifications (user_id, title, body, kind)
+       VALUES ($1, 'Payment sent', $2, 'payment')`,
+      [req.user.sub, `You sent £${value.toFixed(2)} to ${beneficiary.nickname || beneficiary.name}.`]
+    );
+
+    await client.query('COMMIT');
+
+    const { rows: updated } = await client.query('SELECT * FROM accounts WHERE id = $1', [account.id]);
+    return res.json({ account: publicAccount(updated[0]) });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[pay] failed:', err.message);
+    return res.status(500).json({ error: 'Payment failed. Please try again.' });
+  } finally {
+    client.release();
+  }
 });
 
 // ─── GET /api/banking/notifications ──────────────────────────────────────────

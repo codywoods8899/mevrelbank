@@ -14,4 +14,13 @@ function requireAuth(req, res, next) {
   }
 }
 
+/** Chain after requireAuth. Rejects unless the access token's role claim is 'admin'. */
+function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required.' });
+  }
+  next();
+}
+
 module.exports = requireAuth;
+module.exports.requireAdmin = requireAdmin;

@@ -25,6 +25,30 @@ export default function TransactionsPage() {
 
   const filtered = filter === "All" ? transactions : transactions.filter((t) => t.account === filter);
 
+  function handleExport() {
+    const header = ["Date", "Description", "Category", "Account", "Status", "Amount (GBP)"];
+    const rows = filtered.map((t) => [
+      new Date(t.date).toISOString(),
+      t.name,
+      t.category,
+      t.account,
+      t.status,
+      t.amount.toFixed(2),
+    ]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mevrelbank-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <>
       <PageMeta title="Transactions — MevrelBank" description="Search and review your MevrelBank transaction history." />
@@ -33,7 +57,7 @@ export default function TransactionsPage() {
           <h1 className="text-[20px] font-bold text-[#0D1829] mb-0.5" style={{ fontFamily: "Figtree, sans-serif" }}>Transaction History</h1>
           <div className="text-[12px] text-[#8A9BBE]">{loading ? "Loading…" : `${filtered.length} transactions`}</div>
         </div>
-        <Btn variant="outline" size="sm" icon={<Download size={13} />}>Export CSV</Btn>
+        <Btn variant="outline" size="sm" icon={<Download size={13} />} disabled={filtered.length === 0} onClick={handleExport}>Export CSV</Btn>
       </div>
 
       <div className="flex gap-1.5 mb-4">

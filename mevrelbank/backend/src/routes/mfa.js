@@ -1,23 +1,24 @@
 const express = require('express');
 const pool = require('../db/pool');
-const { verifyMfa, signAccess, signRefresh, refreshExpiresAt } = require('../utils/jwt');
+const { verifyMfa, signAccess, refreshExpiresAt } = require('../utils/jwt');
 const { generateOTP, hashToken, otpExpiresAt } = require('../utils/otp');
 const { generateSecret, generateOtpauthUrl, generateQRCode, verifyToken } = require('../services/totp');
 const { sendLoginAlertEmail, sendMfaEmailFallback } = require('../services/email');
 const requireAuth = require('../middleware/requireAuth');
 const { v4: uuidv4 } = require('uuid');
+const { CUSTOMER_COOKIE, ADMIN_COOKIE, ttlMs, cookieOptions } = require('../utils/cookies');
 
 const router = express.Router();
 
 function publicUser(u) {
-  return { id: u.id, name: u.name, email: u.email, accountType: u.account_type, totpEnabled: u.totp_enabled };
+  return { id: u.id, name: u.name, email: u.email, accountType: u.account_type, totpEnabled: u.totp_enabled, role: u.role };
 }
 
-async function storeRefreshToken(userId, token) {
+async function storeRefreshToken(userId, token, remember) {
   const hash = hashToken(token);
   await pool.query(
-    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
-    [userId, hash, refreshExpiresAt()]
+    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, remember) VALUES ($1, $2, $3, $4)`,
+    [userId, hash, refreshExpiresAt(ttlMs(remember)), !!remember]
   );
 }
 
@@ -65,9 +66,13 @@ router.post('/verify', async (req, res) => {
     return res.status(401).json({ error: 'Incorrect or expired code.' });
   }
 
-  const accessToken = signAccess({ sub: user.id, email: user.email, accountType: user.account_type });
+  const remember = !!payload.remember;
+  const accessToken = signAccess({ sub: user.id, email: user.email, accountType: user.account_type, role: user.role });
   const refreshToken = uuidv4();
-  await storeRefreshToken(user.id, refreshToken);
+  await storeRefreshToken(user.id, refreshToken, remember);
+
+  const cookieName = user.role === 'admin' ? ADMIN_COOKIE : CUSTOMER_COOKIE;
+  res.cookie(cookieName, refreshToken, cookieOptions(remember));
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0] ?? req.socket?.remoteAddress;
   try {
@@ -76,7 +81,7 @@ router.post('/verify', async (req, res) => {
     console.error('[email] Failed to send login alert:', err.message);
   }
 
-  return res.json({ accessToken, refreshToken, user: publicUser(user) });
+  return res.json({ accessToken, user: publicUser(user) });
 });
 
 // ─── POST /api/mfa/send-email-code — send OTP to email as MFA fallback ──────

@@ -2,11 +2,11 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
-const { signAccess, signRefresh, signMfa, verifyRefresh, verifyMfa, refreshExpiresAt } = require('../utils/jwt');
+const { signAccess, signMfa, refreshExpiresAt } = require('../utils/jwt');
 const { generateOTP, hashToken, otpExpiresAt } = require('../utils/otp');
 const { sendVerificationEmail, sendPasswordResetEmail, sendLoginAlertEmail } = require('../services/email');
 const { authLimiter, otpLimiter } = require('../middleware/rateLimiter');
-const requireAuth = require('../middleware/requireAuth');
+const { CUSTOMER_COOKIE, ttlMs, cookieOptions, clearCookieOptions } = require('../utils/cookies');
 
 const router = express.Router();
 
@@ -39,24 +39,32 @@ async function seedNewCustomer(user) {
   );
 }
 
-async function storeRefreshToken(userId, token) {
+async function storeRefreshToken(userId, token, remember) {
   const hash = hashToken(token);
-  const expiresAt = refreshExpiresAt();
+  const expiresAt = refreshExpiresAt(ttlMs(remember));
   await pool.query(
-    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
-    [userId, hash, expiresAt]
+    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, remember) VALUES ($1, $2, $3, $4)`,
+    [userId, hash, expiresAt, !!remember]
   );
 }
 
 function issueTokens(user) {
-  const payload = { sub: user.id, email: user.email, accountType: user.account_type };
+  const payload = { sub: user.id, email: user.email, accountType: user.account_type, role: user.role };
   const accessToken = signAccess(payload);
   const refreshToken = uuidv4();
   return { accessToken, refreshToken, payload };
 }
 
+/** Sets the httpOnly session cookie and stores the hashed refresh token, keyed by remember-me duration. */
+async function startSession(res, user, remember) {
+  const { accessToken, refreshToken } = issueTokens(user);
+  await storeRefreshToken(user.id, refreshToken, remember);
+  res.cookie(CUSTOMER_COOKIE, refreshToken, cookieOptions(remember));
+  return accessToken;
+}
+
 function publicUser(u) {
-  return { id: u.id, name: u.name, email: u.email, accountType: u.account_type, totpEnabled: u.totp_enabled };
+  return { id: u.id, name: u.name, email: u.email, accountType: u.account_type, totpEnabled: u.totp_enabled, role: u.role };
 }
 
 // ─── POST /api/auth/register ─────────────────────────────────────────────────
@@ -186,13 +194,13 @@ router.post('/resend-otp', otpLimiter, async (req, res) => {
 // ─── POST /api/auth/login ─────────────────────────────────────────────────────
 
 router.post('/login', authLimiter, async (req, res) => {
-  const { email, password } = req.body ?? {};
+  const { email, password, remember } = req.body ?? {};
   if (!email?.trim() || !password) {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
 
   const normalizedEmail = email.trim().toLowerCase();
-  const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
+  const { rows } = await pool.query(`SELECT * FROM users WHERE email = $1 AND role = 'customer'`, [normalizedEmail]);
 
   const INVALID = 'Invalid email or password.';
   if (rows.length === 0) {
@@ -204,17 +212,20 @@ router.post('/login', authLimiter, async (req, res) => {
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) return res.status(401).json({ error: INVALID });
 
+  if (!user.is_active) {
+    return res.status(403).json({ error: 'This account has been disabled. Contact support.' });
+  }
+
   if (!user.email_verified) {
     return res.status(403).json({ error: 'Please verify your email before signing in.', code: 'EMAIL_UNVERIFIED' });
   }
 
   if (user.totp_enabled) {
-    const tempToken = signMfa({ sub: user.id, step: 'mfa' });
+    const tempToken = signMfa({ sub: user.id, step: 'mfa', remember: !!remember });
     return res.json({ mfaRequired: true, tempToken });
   }
 
-  const { accessToken, refreshToken } = issueTokens(user);
-  await storeRefreshToken(user.id, refreshToken);
+  const accessToken = await startSession(res, user, !!remember);
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0] ?? req.socket?.remoteAddress;
   try {
@@ -231,23 +242,15 @@ router.post('/login', authLimiter, async (req, res) => {
   return res.json({
     mfaRequired: false,
     accessToken,
-    refreshToken,
     user: publicUser(user),
   });
 });
 
-// ─── POST /api/auth/refresh ───────────────────────────────────────────────────
+// ─── POST /api/auth/refresh — reads the httpOnly session cookie, not the body ─
 
 router.post('/refresh', async (req, res) => {
-  const { refreshToken } = req.body ?? {};
-  if (!refreshToken) return res.status(401).json({ error: 'Refresh token required.' });
-
-  let payload;
-  try {
-    payload = verifyRefresh(refreshToken);
-  } catch {
-    return res.status(401).json({ error: 'Invalid or expired refresh token.' });
-  }
+  const refreshToken = req.cookies?.[CUSTOMER_COOKIE];
+  if (!refreshToken) return res.status(401).json({ error: 'No session cookie.' });
 
   const hash = hashToken(refreshToken);
   const { rows } = await pool.query(
@@ -255,27 +258,33 @@ router.post('/refresh', async (req, res) => {
     [hash]
   );
 
-  if (rows.length === 0) return res.status(401).json({ error: 'Refresh token not found or revoked.' });
+  if (rows.length === 0) {
+    res.clearCookie(CUSTOMER_COOKIE, clearCookieOptions());
+    return res.status(401).json({ error: 'Session expired. Please sign in again.' });
+  }
+  const tokenRow = rows[0];
 
-  const { rows: users } = await pool.query('SELECT * FROM users WHERE id = $1', [payload.sub]);
-  if (users.length === 0) return res.status(401).json({ error: 'User not found.' });
+  const { rows: users } = await pool.query(`SELECT * FROM users WHERE id = $1 AND role = 'customer'`, [tokenRow.user_id]);
+  if (users.length === 0 || !users[0].is_active) {
+    res.clearCookie(CUSTOMER_COOKIE, clearCookieOptions());
+    return res.status(401).json({ error: 'Session expired. Please sign in again.' });
+  }
 
   await pool.query('UPDATE refresh_tokens SET revoked = true WHERE token_hash = $1', [hash]);
+  const accessToken = await startSession(res, users[0], tokenRow.remember);
 
-  const { accessToken, refreshToken: newRefresh } = issueTokens(users[0]);
-  await storeRefreshToken(users[0].id, newRefresh);
-
-  return res.json({ accessToken, refreshToken: newRefresh });
+  return res.json({ accessToken, user: publicUser(users[0]) });
 });
 
 // ─── POST /api/auth/logout ────────────────────────────────────────────────────
 
-router.post('/logout', requireAuth, async (req, res) => {
-  const { refreshToken } = req.body ?? {};
+router.post('/logout', async (req, res) => {
+  const refreshToken = req.cookies?.[CUSTOMER_COOKIE];
   if (refreshToken) {
     const hash = hashToken(refreshToken);
     await pool.query('UPDATE refresh_tokens SET revoked = true WHERE token_hash = $1', [hash]).catch(() => {});
   }
+  res.clearCookie(CUSTOMER_COOKIE, clearCookieOptions());
   return res.json({ message: 'Signed out.' });
 });
 

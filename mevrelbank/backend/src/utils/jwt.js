@@ -28,8 +28,8 @@ function verifyMfa(token) {
   return jwt.verify(token, process.env.JWT_MFA_SECRET);
 }
 
-function refreshExpiresAt() {
-  return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+function refreshExpiresAt(ttlMs = 7 * 24 * 60 * 60 * 1000) {
+  return new Date(Date.now() + ttlMs);
 }
 
 module.exports = { signAccess, signRefresh, signMfa, verifyAccess, verifyRefresh, verifyMfa, refreshExpiresAt };

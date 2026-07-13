@@ -104,3 +104,18 @@ CREATE INDEX IF NOT EXISTS idx_transactions_occurred ON transactions(occurred_at
 CREATE INDEX IF NOT EXISTS idx_statements_account ON statements(account_id);
 CREATE INDEX IF NOT EXISTS idx_beneficiaries_user ON beneficiaries(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+
+-- Phase 3.5 — Profile details + internal ledger transfers
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(30);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT;
+
+-- Admin panel + session/remember-me support
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'admin'));
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS remember BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE statements ADD COLUMN IF NOT EXISTS opening_balance NUMERIC(14,2);
+ALTER TABLE statements ADD COLUMN IF NOT EXISTS closing_balance NUMERIC(14,2);
+
+-- Unique guard so the statement generator never double-generates a period
+CREATE UNIQUE INDEX IF NOT EXISTS idx_statements_account_period ON statements(account_id, period);

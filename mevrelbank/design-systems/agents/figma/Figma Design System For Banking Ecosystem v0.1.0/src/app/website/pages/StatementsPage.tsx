@@ -9,6 +9,7 @@ export default function StatementsPage() {
   const { authedFetch } = useAuth();
   const [statements, setStatements] = useState<Statement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -18,6 +19,17 @@ export default function StatementsPage() {
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [authedFetch]);
+
+  async function handleDownload(s: Statement) {
+    setDownloadingId(s.id);
+    try {
+      await bankingApi.downloadStatement(authedFetch, s.id, `mevrelbank-${s.account.replace(/\s+/g, "-").toLowerCase()}-${s.period.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+    } catch {
+      /* best effort */
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   return (
     <>
@@ -37,7 +49,9 @@ export default function StatementsPage() {
               <div className="text-[12px] font-semibold text-[#0D1829]">{s.period} — {s.account}</div>
               <div className="text-[10px] text-[#8A9BBE]">Generated {new Date(s.generated).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} · PDF</div>
             </div>
-            <Btn variant="ghost" size="sm" icon={<Download size={12} />} disabled={!s.fileUrl} href={s.fileUrl ?? undefined}>Download</Btn>
+            <Btn variant="ghost" size="sm" icon={<Download size={12} />} disabled={!s.fileUrl || downloadingId === s.id} onClick={() => handleDownload(s)}>
+              {downloadingId === s.id ? "Downloading…" : "Download"}
+            </Btn>
           </div>
         ))}
         {!loading && statements.length === 0 && (

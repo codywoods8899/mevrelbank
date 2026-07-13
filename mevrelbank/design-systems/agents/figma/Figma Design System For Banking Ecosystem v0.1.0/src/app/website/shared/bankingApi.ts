@@ -91,6 +91,33 @@ export const bankingApi = {
 
   markNotificationRead: (authedFetch: AuthedFetch, id: string) =>
     json<{ notification: Notification }>(authedFetch, `/banking/notifications/${id}/read`, { method: "PATCH" }),
+
+  transfer: (authedFetch: AuthedFetch, data: { fromAccountId: string; toAccountId: string; amount: number; note?: string }) =>
+    json<{ accounts: Account[] }>(authedFetch, "/banking/transfer", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  pay: (authedFetch: AuthedFetch, data: { accountId: string; beneficiaryId: string; amount: number; reference?: string }) =>
+    json<{ account: Account }>(authedFetch, "/banking/pay", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /** Downloads a statement PDF as a blob (the file route requires the bearer token, so it can't be a plain <a href>). */
+  async downloadStatement(authedFetch: AuthedFetch, id: string, filename: string) {
+    const res = await authedFetch(`/banking/statements/${id}/file`);
+    if (!res.ok) throw new Error("Could not download statement.");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 };
 
 /** Formats an ISO timestamp the way the mock data did ("Today, 14:32", "Mon 7 Jul"). */
