@@ -9,23 +9,25 @@ export default function StatementsPage() {
   const { authedFetch } = useAuth();
   const [statements, setStatements] = useState<Statement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     bankingApi.getStatements(authedFetch)
       .then((r) => active && setStatements(r.statements))
-      .catch(() => {})
+      .catch(() => active && setError("Couldn't load your statements. Please try again."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [authedFetch]);
 
   async function handleDownload(s: Statement) {
     setDownloadingId(s.id);
+    setError(null);
     try {
       await bankingApi.downloadStatement(authedFetch, s.id, `mevrelbank-${s.account.replace(/\s+/g, "-").toLowerCase()}-${s.period.replace(/\s+/g, "-").toLowerCase()}.pdf`);
     } catch {
-      /* best effort */
+      setError("Couldn't download that statement. Please try again.");
     } finally {
       setDownloadingId(null);
     }
@@ -38,6 +40,10 @@ export default function StatementsPage() {
         <h1 className="text-[20px] font-bold text-[#0D1829] mb-0.5" style={{ fontFamily: "Figtree, sans-serif" }}>Statements</h1>
         <div className="text-[12px] text-[#8A9BBE]">Generated automatically at the end of each period</div>
       </div>
+
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-[8px] bg-[#FBE9E7] text-[#9A2C1D] text-[12px] font-medium">{error}</div>
+      )}
 
       <div className="bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] overflow-hidden">
         {statements.map((s, i) => (

@@ -72,15 +72,17 @@ export default function BeneficiariesPage() {
   const [payTarget, setPayTarget] = useState<Beneficiary | null>(null);
   const [form, setForm] = useState({ name: "", nickname: "", sortCode: "", accountNumber: "" });
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   function load() {
+    setLoadError(null);
     Promise.all([bankingApi.getBeneficiaries(authedFetch), bankingApi.getAccounts(authedFetch)])
       .then(([b, a]) => {
         setBeneficiaries(b.beneficiaries);
         setAccounts(a.accounts);
       })
-      .catch(() => {})
+      .catch(() => setLoadError("Couldn't load your payees. Please try again."))
       .finally(() => setLoading(false));
   }
 
@@ -108,8 +110,12 @@ export default function BeneficiariesPage() {
   }
 
   async function handleRemove(id: string) {
-    await bankingApi.removeBeneficiary(authedFetch, id).catch(() => {});
-    setBeneficiaries((prev) => prev.filter((b) => b.id !== id));
+    try {
+      await bankingApi.removeBeneficiary(authedFetch, id);
+      setBeneficiaries((prev) => prev.filter((b) => b.id !== id));
+    } catch {
+      setLoadError("Couldn't remove that payee. Please try again.");
+    }
   }
 
   return (
@@ -131,6 +137,10 @@ export default function BeneficiariesPage() {
           {showForm ? "Cancel" : "New Payee"}
         </Btn>
       </div>
+
+      {loadError && (
+        <div className="mb-4 px-4 py-3 rounded-[8px] bg-[#FBE9E7] text-[#9A2C1D] text-[12px] font-medium">{loadError}</div>
+      )}
 
       {showForm && (
         <form onSubmit={handleAdd} className="mb-4 p-4 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)]">

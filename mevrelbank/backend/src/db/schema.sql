@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS accounts (
   updated_at     TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_account_number ON accounts(account_number);
+
 CREATE TABLE IF NOT EXISTS transactions (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id  UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,

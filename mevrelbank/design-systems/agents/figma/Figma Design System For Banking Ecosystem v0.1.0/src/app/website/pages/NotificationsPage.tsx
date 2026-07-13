@@ -14,12 +14,13 @@ export default function NotificationsPage() {
   const { authedFetch } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     bankingApi.getNotifications(authedFetch)
       .then((r) => active && setNotifications(r.notifications))
-      .catch(() => {})
+      .catch(() => active && setError("Couldn't load your notifications. Please try again."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [authedFetch]);
@@ -29,7 +30,13 @@ export default function NotificationsPage() {
   async function handleOpen(n: Notification) {
     if (n.read) return;
     setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
-    await bankingApi.markNotificationRead(authedFetch, n.id).catch(() => {});
+    try {
+      await bankingApi.markNotificationRead(authedFetch, n.id);
+    } catch {
+      // Revert the optimistic update so the UI reflects reality if the request failed.
+      setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: false } : x)));
+      setError("Couldn't mark that notification as read. Please try again.");
+    }
   }
 
   return (
@@ -39,6 +46,10 @@ export default function NotificationsPage() {
         <h1 className="text-[20px] font-bold text-[#0D1829] mb-0.5" style={{ fontFamily: "Figtree, sans-serif" }}>Notifications</h1>
         <div className="text-[12px] text-[#8A9BBE]">{loading ? "Loading…" : `${unread} unread`}</div>
       </div>
+
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-[8px] bg-[#FBE9E7] text-[#9A2C1D] text-[12px] font-medium">{error}</div>
+      )}
 
       <div className="bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] overflow-hidden">
         {notifications.map((n, i) => (

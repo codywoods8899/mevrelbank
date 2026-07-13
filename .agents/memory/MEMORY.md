@@ -2,3 +2,4 @@
 - [MevrelBank backend architecture](mevrelbank-backend.md) — Phase 2 backend on port 3001, JWT auth, Resend email, TOTP MFA, Neon PostgreSQL; frontend proxies /api/* via Vite.
 - [MevrelBank payments and statements](mevrelbank-payments-and-statements.md) — transfers/payments are ledger-only (no external bank rail); statements generate lazily, no cron.
 - [MevrelBank auth sessions & admin access](mevrelbank-auth-sessions.md) — opaque refresh tokens via httpOnly cookies, remember-me TTL branching, role+email admin gating, dev must use relative /api not VITE_API_BASE_URL.
+- [MevrelBank account numbers](mevrelbank-account-numbers.md) — account numbers used to be generated already-masked at creation; check generation site (backend), not frontend, if display issues resurface.

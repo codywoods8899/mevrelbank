@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const pool = require('../db/pool');
 const requireAuth = require('../middleware/requireAuth');
+const { generateAccountNumber } = require('../lib/accountNumber');
 const { ensureStatementsForUser } = require('../lib/generateStatements');
 const { STORAGE_DIR } = require('../lib/statementPdf');
 const {
@@ -104,8 +105,7 @@ router.post('/accounts', async (req, res) => {
   }
 
   const sortCode = '40-47-84';
-  const rand4 = () => String(Math.floor(1000 + Math.random() * 9000));
-  const accountNumber = `•••• ${rand4()}`;
+  const accountNumber = await generateAccountNumber();
 
   // Default names: first account of type = base name, extras get a number suffix
   const { rows: sameType } = await pool.query(
@@ -192,7 +192,13 @@ router.get('/statements/:id/file', async (req, res) => {
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="statement-${rows[0].id}.pdf"`);
-  fs.createReadStream(filePath).pipe(res);
+  const stream = fs.createReadStream(filePath);
+  stream.on('error', (err) => {
+    console.error('[statements] file stream failed:', err.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Statement file could not be read.' });
+    else res.destroy();
+  });
+  stream.pipe(res);
 });
 
 // ─── GET /api/banking/beneficiaries ──────────────────────────────────────────

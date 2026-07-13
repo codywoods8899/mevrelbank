@@ -12,13 +12,14 @@ export default function TransactionsPage() {
   const { authedFetch } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<typeof FILTERS[number]>("All");
 
   useEffect(() => {
     let active = true;
     bankingApi.getTransactions(authedFetch, { limit: 100 })
       .then((r) => active && setTransactions(r.transactions))
-      .catch(() => {})
+      .catch(() => active && setError("Couldn't load your transactions. Please try again."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [authedFetch]);
@@ -73,6 +74,10 @@ export default function TransactionsPage() {
           </button>
         ))}
       </div>
+
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-[8px] bg-[#FBE9E7] text-[#9A2C1D] text-[12px] font-medium">{error}</div>
+      )}
 
       <div className="bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] overflow-hidden">
         {filtered.map((tx, i) => (

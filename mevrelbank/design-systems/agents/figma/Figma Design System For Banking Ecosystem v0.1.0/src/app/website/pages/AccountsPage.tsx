@@ -306,10 +306,12 @@ export default function AccountsPage() {
   const [accounts, setAccounts]         = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading]           = useState(true);
+  const [loadError, setLoadError]       = useState<string | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showOpen, setShowOpen]         = useState(false);
 
   function load() {
+    setLoadError(null);
     Promise.all([
       bankingApi.getAccounts(authedFetch),
       bankingApi.getTransactions(authedFetch, { limit: 20 }),
@@ -318,7 +320,7 @@ export default function AccountsPage() {
         setAccounts(a.accounts);
         setTransactions(t.transactions);
       })
-      .catch(() => {})
+      .catch(() => setLoadError("Couldn't load your accounts. Please try again."))
       .finally(() => setLoading(false));
   }
 
@@ -346,6 +348,10 @@ export default function AccountsPage() {
             setAccounts((prev) => [...prev, newAccount]);
           }}
         />
+      )}
+
+      {loadError && (
+        <div className="mb-4 px-4 py-3 rounded-[8px] bg-[#FBE9E7] text-[#9A2C1D] text-[12px] font-medium">{loadError}</div>
       )}
 
       {/* Header row */}

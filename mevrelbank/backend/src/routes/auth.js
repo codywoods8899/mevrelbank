@@ -7,6 +7,7 @@ const { generateOTP, hashToken, otpExpiresAt } = require('../utils/otp');
 const { sendVerificationEmail, sendPasswordResetEmail, sendLoginAlertEmail } = require('../services/email');
 const { authLimiter, otpLimiter } = require('../middleware/rateLimiter');
 const { CUSTOMER_COOKIE, ttlMs, cookieOptions, clearCookieOptions } = require('../utils/cookies');
+const { generateAccountNumber } = require('../lib/accountNumber');
 
 const router = express.Router();
 
@@ -25,12 +26,15 @@ async function storeOTP(userId, code, type, minutes) {
 
 async function seedNewCustomer(user) {
   const sortCode = '40-47-84';
-  const rand4 = () => String(Math.floor(1000 + Math.random() * 9000));
+  const [currentAccountNumber, savingsAccountNumber] = await Promise.all([
+    generateAccountNumber(),
+    generateAccountNumber(),
+  ]);
   await pool.query(
     `INSERT INTO accounts (user_id, name, type, sort_code, account_number, balance, available)
      VALUES ($1, 'Current Account', 'Current Account', $2, $3, 0, 0),
             ($1, 'Instant Access Savings', 'Savings Account', $2, $4, 0, 0)`,
-    [user.id, sortCode, `•••• ${rand4()}`, `•••• ${rand4()}`]
+    [user.id, sortCode, currentAccountNumber, savingsAccountNumber]
   );
   await pool.query(
     `INSERT INTO notifications (user_id, title, body, kind)
@@ -109,9 +113,8 @@ router.post('/register', authLimiter, async (req, res) => {
 
     return res.status(201).json({ message: 'Account created. Check your email for the verification code.' });
   } catch (err) {
-    const msg = err?.message || err?.detail || String(err) || 'Registration failed';
-    console.error('[register] Error:', msg);
-    return res.status(500).json({ error: msg });
+    console.error('[register] Error:', err?.message || err?.detail || err);
+    return res.status(500).json({ error: 'Registration failed. Please try again.' });
   }
 });
 
