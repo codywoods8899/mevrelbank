@@ -30,14 +30,19 @@ export function DashboardOverview({ userName = "James Chen" }: { userName?: stri
     return () => { active = false; };
   }, [authedFetch]);
 
+  // Only show a summary card for an account type the customer has actually
+  // opened — never render a $0.00 "Current Account" / "Savings Account" card
+  // for a type that doesn't exist yet, which would look like a real account.
   const summaryCards = useMemo(() => {
-    const byType = (type: Account["type"]) => accounts.find((a) => a.type === type);
-    const current = byType("Current Account");
-    const savings = byType("Savings Account");
-    return [
-      { label: "Current Account", amount: current?.available ?? 0, sub: "Available balance" },
-      { label: "Savings Account", amount: savings?.available ?? 0, sub: "Instant Access" },
-    ];
+    const subByType: Record<string, string> = {
+      "Current Account": "Available balance",
+      "Savings Account": "Instant Access",
+    };
+    return accounts.map((a) => ({
+      label: a.type,
+      amount: a.available ?? 0,
+      sub: subByType[a.type] ?? "Available balance",
+    }));
   }, [accounts]);
 
   return (
@@ -50,17 +55,32 @@ export function DashboardOverview({ userName = "James Chen" }: { userName?: stri
       </div>
 
       {/* Account summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-        {summaryCards.map((c) => (
-          <div key={c.label} className="p-4 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] shadow-[0_1px_4px_rgba(11,50,112,0.04)] hover:shadow-[0_3px_10px_rgba(11,50,112,0.07)] transition-shadow">
-            <div className="text-[9px] font-semibold tracking-[0.16em] uppercase text-[#8A9BBE] mb-3">{c.label}</div>
-            <div className="text-[22px] font-bold text-[#0D1829] leading-none mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>
-              ${c.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-[11px] text-[#8A9BBE]">{c.sub}</div>
+      {!loading && summaryCards.length === 0 ? (
+        <Link
+          to="/dashboard/accounts"
+          className="mb-4 flex items-center justify-between p-4 bg-white rounded-[10px] border border-dashed border-[rgba(11,50,112,0.18)] hover:border-[#0B3270]/40 transition-colors group"
+        >
+          <div>
+            <div className="text-[13px] font-semibold text-[#0D1829]">You don't have any accounts yet</div>
+            <div className="text-[11px] text-[#8A9BBE] mt-0.5">Open a Current or Savings Account to get started.</div>
           </div>
-        ))}
-      </div>
+          <div className="flex items-center gap-1 text-[12px] font-medium text-[#0B3270] flex-shrink-0">
+            Open account <ChevronRight size={13} />
+          </div>
+        </Link>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          {summaryCards.map((c) => (
+            <div key={c.label} className="p-4 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] shadow-[0_1px_4px_rgba(11,50,112,0.04)] hover:shadow-[0_3px_10px_rgba(11,50,112,0.07)] transition-shadow">
+              <div className="text-[9px] font-semibold tracking-[0.16em] uppercase text-[#8A9BBE] mb-3">{c.label}</div>
+              <div className="text-[22px] font-bold text-[#0D1829] leading-none mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>
+                ${c.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+              <div className="text-[11px] text-[#8A9BBE]">{c.sub}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-3 gap-3 mb-4">
