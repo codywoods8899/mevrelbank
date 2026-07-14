@@ -20,8 +20,12 @@ function baseTemplate({ title, preheader, body }) {
   <tr><td align="center">
     <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;border:1px solid rgba(11,50,112,0.08);">
       <tr>
-        <td style="background:#0B3270;padding:28px 40px;">
-          <span style="color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">MevrelBank</span>
+        <td style="background:#0B3270;padding:22px 40px;">
+          <img src="https://mevrelbank.com/brand/mevrelbank-reverse-logo-v1.png"
+               alt="MevrelBank"
+               width="160"
+               height="53"
+               style="display:block;border:0;"/>
         </td>
       </tr>
       <tr>
