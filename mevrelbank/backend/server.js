@@ -54,6 +54,13 @@ app.use('/api/banking',  bankingRoutes);
 app.use('/api/admin',    adminRoutes);
 app.use('/api/settings', settingsRoutes);
 
+// ─── Static brand assets (used in emails) ────────────────────────────────────
+
+app.use('/brand', express.static(require('path').join(__dirname, 'public/brand'), {
+  maxAge: '7d',
+  immutable: true,
+}));
+
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 
 app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
