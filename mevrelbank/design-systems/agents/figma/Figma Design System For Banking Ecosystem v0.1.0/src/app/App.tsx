@@ -331,7 +331,7 @@ function DesignSystemView() {
             {[
               { name: "Figtree", role: "Display / UI / Headings", sample: "Banking, built for life", size: "26px", weight: 700, family: "Figtree, sans-serif", note: "Geometric sans — confident, modern, premium. Used for all headings, wordmark, hero copy, and primary UI labels." },
               { name: "Inter",   role: "Body / Forms / Prose",    sample: "Manage your finances with clarity.", size: "17px", weight: 400, family: "Inter, sans-serif", note: "Universally readable sans. Body copy, form labels, help text, navigation, and all secondary UI text." },
-              { name: "DM Mono", role: "Data / Numbers / Code",   sample: "$38,240.00", size: "22px", weight: 500, family: "'DM Mono', monospace", note: "Structured mono for account numbers, sort codes, amounts, IBAN, timestamps, and data tables." },
+              { name: "DM Mono", role: "Data / Numbers / Code",   sample: "$38,240.00", size: "22px", weight: 500, family: "'DM Mono', monospace", note: "Structured mono for account numbers, routing numbers, amounts, IBAN, timestamps, and data tables." },
             ].map((f) => (
               <div key={f.name} className="p-5 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)]">
                 <div className="text-[9px] font-semibold tracking-[0.18em] uppercase text-[#8A9BBE] mb-3">{f.name} — {f.role}</div>
@@ -358,9 +358,9 @@ function DesignSystemView() {
               { name: "Body",        px: "15px", lh: "1.60", wt: 400,  family: "Inter",   sample: "Transfer funds, view statements, and set up direct debits with ease." },
               { name: "Body S",      px: "13px", lh: "1.55", wt: 400,  family: "Inter",   sample: "Last updated 08 Jul 2026 at 14:32" },
               { name: "Caption",     px: "11px", lh: "1.50", wt: 400,  family: "Inter",   sample: "Fields marked with an asterisk (*) are required" },
-              { name: "Label",       px: "10px", lh: "1.40", wt: 600,  family: "Inter",   sample: "ACCOUNT NUMBER · SORT CODE · BIC/SWIFT" },
+              { name: "Label",       px: "10px", lh: "1.40", wt: 600,  family: "Inter",   sample: "ACCOUNT NUMBER · ROUTING NUMBER · BIC/SWIFT" },
               { name: "Mono L",      px: "20px", lh: "1.30", wt: 500,  family: "DM Mono", sample: "$38,240.00" },
-              { name: "Mono",        px: "14px", lh: "1.40", wt: 400,  family: "DM Mono", sample: "40-12-34 · 12345678" },
+              { name: "Mono",        px: "14px", lh: "1.40", wt: 400,  family: "DM Mono", sample: "071001245 · 123456789012" },
               { name: "Mono S",      px: "11px", lh: "1.40", wt: 400,  family: "DM Mono", sample: "GB29NWBK60161331926819" },
             ].map((t, i, arr) => (
               <div key={t.name} className={`flex items-baseline gap-5 px-5 py-4 ${i < arr.length - 1 ? "border-b border-[rgba(11,50,112,0.04)]" : ""}`}>
@@ -543,9 +543,9 @@ function DesignSystemView() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#C52B2B] mb-1.5">Sort Code <span className="text-[#C52B2B]">*</span></label>
-                  <input type="text" defaultValue="40-12-3X" className="w-full h-10 px-3.5 rounded-[6px] bg-[#EEF2F9] border border-[#C52B2B] text-[13px] text-[#0D1829] focus:outline-none focus:ring-2 focus:ring-[#C52B2B]/20 transition-all" />
-                  <p className="mt-1 text-[11px] text-[#C52B2B]">Enter a valid sort code (e.g. 40-12-34)</p>
+                  <label className="block text-[12px] font-semibold text-[#C52B2B] mb-1.5">Routing Number <span className="text-[#C52B2B]">*</span></label>
+                  <input type="text" defaultValue="07100124X" className="w-full h-10 px-3.5 rounded-[6px] bg-[#EEF2F9] border border-[#C52B2B] text-[13px] text-[#0D1829] focus:outline-none focus:ring-2 focus:ring-[#C52B2B]/20 transition-all" />
+                  <p className="mt-1 text-[11px] text-[#C52B2B]">Enter a valid 9-digit routing number (e.g. 071001245)</p>
                 </div>
                 <div>
                   <label className="block text-[12px] font-semibold text-[#3A4A62] mb-1.5">Disabled</label>

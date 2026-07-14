@@ -1,9 +1,12 @@
-// Generates real, unique 8-digit UK-style account numbers.
+// Generates real, unique 12-digit US-style account numbers (US banks have no
+// single mandated length, but 10-12 digits is the common convention).
 // Previously the app stored a masked placeholder (e.g. "•••• 4821") as the
 // account_number itself, so customers could never see their own full number.
 // This generates an actual number and checks the DB for collisions.
 
 const pool = require('../db/pool');
+
+const ACCOUNT_NUMBER_LENGTH = 12;
 
 function randomDigits(length) {
   let out = '';
@@ -15,7 +18,7 @@ function randomDigits(length) {
 
 async function generateAccountNumber() {
   for (let attempt = 0; attempt < 10; attempt++) {
-    const candidate = randomDigits(8);
+    const candidate = randomDigits(ACCOUNT_NUMBER_LENGTH);
     const { rows } = await pool.query(
       'SELECT 1 FROM accounts WHERE account_number = $1 LIMIT 1',
       [candidate]

@@ -20,7 +20,7 @@ function publicAccount(a) {
     id: a.id,
     name: a.name,
     type: a.type,
-    sortCode: a.sort_code,
+    routingNumber: a.routing_number,
     accountNumber: a.account_number,
     balance: Number(a.balance),
     available: Number(a.available),
@@ -56,7 +56,7 @@ function publicBeneficiary(b) {
     id: b.id,
     name: b.name,
     nickname: b.nickname,
-    sortCode: b.sort_code,
+    routingNumber: b.routing_number,
     accountNumber: b.account_number,
     lastPaid: b.last_paid_at,
   };
@@ -85,7 +85,7 @@ router.get('/accounts', async (req, res) => {
 
 // ─── POST /api/banking/accounts — open a new account ─────────────────────────
 // Customers can open additional Current or Savings accounts from the dashboard.
-// Each account gets a fresh sort code + masked account number.
+// Each account gets the bank's fixed routing number + a fresh account number.
 
 router.post('/accounts', async (req, res) => {
   const { type, name } = req.body ?? {};
@@ -104,7 +104,7 @@ router.post('/accounts', async (req, res) => {
     return res.status(400).json({ error: 'You can hold a maximum of 10 accounts.' });
   }
 
-  const sortCode = '40-47-84';
+  const ROUTING_NUMBER = '071001245';
   const accountNumber = await generateAccountNumber();
 
   // Default names: first account of type = base name, extras get a number suffix
@@ -116,9 +116,9 @@ router.post('/accounts', async (req, res) => {
     (sameType[0].count === 0 ? type : `${type} ${sameType[0].count + 1}`);
 
   const { rows } = await pool.query(
-    `INSERT INTO accounts (user_id, name, type, sort_code, account_number, balance, available)
+    `INSERT INTO accounts (user_id, name, type, routing_number, account_number, balance, available)
      VALUES ($1, $2, $3, $4, $5, 0, 0) RETURNING *`,
-    [req.user.sub, defaultName, type, sortCode, accountNumber]
+    [req.user.sub, defaultName, type, ROUTING_NUMBER, accountNumber]
   );
 
   await pool.query(
@@ -214,18 +214,18 @@ router.get('/beneficiaries', async (req, res) => {
 // ─── POST /api/banking/beneficiaries ─────────────────────────────────────────
 
 router.post('/beneficiaries', async (req, res) => {
-  const { name, nickname, sortCode, accountNumber } = req.body ?? {};
-  if (!name?.trim() || !sortCode?.trim() || !accountNumber?.trim()) {
-    return res.status(400).json({ error: 'Name, sort code, and account number are required.' });
+  const { name, nickname, routingNumber, accountNumber } = req.body ?? {};
+  if (!name?.trim() || !routingNumber?.trim() || !accountNumber?.trim()) {
+    return res.status(400).json({ error: 'Name, routing number, and account number are required.' });
   }
-  if (!/^\d{2}-?\d{2}-?\d{2}$/.test(sortCode.trim())) {
-    return res.status(400).json({ error: 'Enter a valid 6-digit sort code.' });
+  if (!/^\d{9}$/.test(routingNumber.trim())) {
+    return res.status(400).json({ error: 'Enter a valid 9-digit routing number.' });
   }
 
   const { rows } = await pool.query(
-    `INSERT INTO beneficiaries (user_id, name, nickname, sort_code, account_number)
+    `INSERT INTO beneficiaries (user_id, name, nickname, routing_number, account_number)
      VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [req.user.sub, name.trim(), nickname?.trim() || null, sortCode.trim(), accountNumber.trim()]
+    [req.user.sub, name.trim(), nickname?.trim() || null, routingNumber.trim(), accountNumber.trim()]
   );
   return res.status(201).json({ beneficiary: publicBeneficiary(rows[0]) });
 });
@@ -378,7 +378,7 @@ router.post('/pay', async (req, res) => {
       beneficiaryId: beneficiary.id,
       beneficiaryName: beneficiary.nickname || beneficiary.name,
       reference: label,
-      sortCode: beneficiary.sort_code,
+      routingNumber: beneficiary.routing_number,
       accountNumber: beneficiary.account_number,
     };
 

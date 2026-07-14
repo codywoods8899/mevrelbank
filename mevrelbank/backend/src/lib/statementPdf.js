@@ -20,7 +20,7 @@ function renderStatementPdf({ id, account, period, openingBalance, closingBalanc
   doc.moveDown(1);
 
   doc.fontSize(12).fillColor('#0D1829').text(`Account: ${account.name}`);
-  doc.fontSize(10).fillColor('#5E6E8E').text(`Sort code ${account.sortCode} · Account number ${account.accountNumber}`);
+  doc.fontSize(10).fillColor('#5E6E8E').text(`Routing number ${account.routingNumber} · Account number ${account.accountNumber}`);
   doc.text(`Statement period: ${period}`);
   doc.moveDown(1);
 

@@ -199,7 +199,7 @@ function OpenAccountModal({
               className="text-[11px] text-[#9AAABF] mb-6"
               style={{ fontFamily: "'DM Mono', monospace" }}
             >
-              Sort code {done.sortCode} · Acc {done.accountNumber}
+              Routing {done.routingNumber} · Acc {done.accountNumber}
             </div>
             <Btn size="md" className="w-full justify-center" onClick={onClose}>
               View my accounts
@@ -420,7 +420,7 @@ export default function AccountsPage() {
               className="flex items-center gap-4 text-[11px] text-[#5E6E8E] pt-3 border-t border-[rgba(11,50,112,0.06)]"
               style={{ fontFamily: "'DM Mono', monospace" }}
             >
-              <span>Sort code {acc.sortCode}</span>
+              <span>Routing {acc.routingNumber}</span>
               <span>Acc {acc.accountNumber}</span>
             </div>
           </div>

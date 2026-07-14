@@ -21,7 +21,7 @@ interface Detail {
     id: string;
     name: string;
     type: string;
-    sortCode: string;
+    routingNumber: string;
     accountNumber: string;
     balance: number;
     available: number;
@@ -139,7 +139,7 @@ export default function AdminCustomerDetailPage() {
                 <thead>
                   <tr className="border-b border-[rgba(11,50,112,0.07)] text-[12px] uppercase tracking-[0.04em] text-[#9AAABF]">
                     <th className="px-5 py-3.5 font-semibold">Account</th>
-                    <th className="px-5 py-3.5 font-semibold">Sort code / number</th>
+                    <th className="px-5 py-3.5 font-semibold">Routing / account number</th>
                     <th className="px-5 py-3.5 font-semibold">Balance</th>
                     <th className="px-5 py-3.5 font-semibold">Available</th>
                   </tr>
@@ -148,7 +148,7 @@ export default function AdminCustomerDetailPage() {
                   {data.accounts.map((a) => (
                     <tr key={a.id} className="border-b border-[rgba(11,50,112,0.05)] last:border-0">
                       <td className="px-5 py-4 text-[14px] font-medium text-[#0D1829]">{a.name}</td>
-                      <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{a.sortCode} · {a.accountNumber}</td>
+                      <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{a.routingNumber} · {a.accountNumber}</td>
                       <td className="px-5 py-4 text-[13px] font-semibold text-[#0D1829]">{currency(a.balance)}</td>
                       <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{currency(a.available)}</td>
                     </tr>

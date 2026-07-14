@@ -43,7 +43,7 @@ function PayModal({ beneficiary, accounts, onClose }: { beneficiary: Beneficiary
         ) : (
           <form onSubmit={handleSubmit}>
             <div className="text-[15px] font-bold text-[#0D1829] mb-1">Pay {beneficiary.nickname ?? beneficiary.name}</div>
-            <div className="text-[11px] text-[#8A9BBE] mb-4 font-mono">{beneficiary.sortCode} · {beneficiary.accountNumber}</div>
+            <div className="text-[11px] text-[#8A9BBE] mb-4 font-mono">{beneficiary.routingNumber} · {beneficiary.accountNumber}</div>
             <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">From</label>
             <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="w-full mb-3 px-3 py-2 rounded-[6px] border border-[rgba(11,50,112,0.15)] text-[12px] outline-none focus:border-[#0B3270]">
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} — ${a.available.toFixed(2)} available</option>)}
@@ -70,7 +70,7 @@ export default function BeneficiariesPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [payTarget, setPayTarget] = useState<Beneficiary | null>(null);
-  const [form, setForm] = useState({ name: "", nickname: "", sortCode: "", accountNumber: "" });
+  const [form, setForm] = useState({ name: "", nickname: "", routingNumber: "", accountNumber: "" });
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -96,10 +96,10 @@ export default function BeneficiariesPage() {
       await bankingApi.addBeneficiary(authedFetch, {
         name: form.name.trim(),
         nickname: form.nickname.trim() || undefined,
-        sortCode: form.sortCode.trim(),
+        routingNumber: form.routingNumber.trim(),
         accountNumber: form.accountNumber.trim(),
       });
-      setForm({ name: "", nickname: "", sortCode: "", accountNumber: "" });
+      setForm({ name: "", nickname: "", routingNumber: "", accountNumber: "" });
       setShowForm(false);
       load();
     } catch (err: any) {
@@ -151,8 +151,8 @@ export default function BeneficiariesPage() {
             <input placeholder="Nickname (optional)" value={form.nickname}
               onChange={(e) => setForm((f) => ({ ...f, nickname: e.target.value }))}
               className="px-3 py-2 rounded-[6px] border border-[rgba(11,50,112,0.15)] text-[12px] outline-none focus:border-[#0B3270]" />
-            <input required placeholder="Sort code (00-00-00)" value={form.sortCode}
-              onChange={(e) => setForm((f) => ({ ...f, sortCode: e.target.value }))}
+            <input required placeholder="Routing number (9 digits)" value={form.routingNumber}
+              onChange={(e) => setForm((f) => ({ ...f, routingNumber: e.target.value }))}
               className="px-3 py-2 rounded-[6px] border border-[rgba(11,50,112,0.15)] text-[12px] outline-none focus:border-[#0B3270]" />
             <input required placeholder="Account number" value={form.accountNumber}
               onChange={(e) => setForm((f) => ({ ...f, accountNumber: e.target.value }))}
@@ -173,7 +173,7 @@ export default function BeneficiariesPage() {
               <div className="text-[12px] font-semibold text-[#0D1829] truncate">{b.nickname ?? b.name}</div>
               {b.nickname && <div className="text-[10px] text-[#8A9BBE] truncate">{b.name}</div>}
               <div className="text-[10px] text-[#8A9BBE]" style={{ fontFamily: "'DM Mono', monospace" }}>
-                {b.sortCode} · {b.accountNumber}
+                {b.routingNumber} · {b.accountNumber}
               </div>
             </div>
             <Btn variant="outline" size="sm" icon={<SendHorizontal size={12} />} disabled={accounts.length === 0} onClick={() => setPayTarget(b)}>Pay</Btn>

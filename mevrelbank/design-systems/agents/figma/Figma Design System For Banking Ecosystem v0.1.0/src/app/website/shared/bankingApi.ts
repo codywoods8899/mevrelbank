@@ -6,7 +6,7 @@ export interface Account {
   id: string;
   name: string;
   type: "Current Account" | "Savings Account";
-  sortCode: string;
+  routingNumber: string;
   accountNumber: string;
   balance: number;
   available: number;
@@ -36,7 +36,7 @@ export interface Beneficiary {
   id: string;
   name: string;
   nickname?: string | null;
-  sortCode: string;
+  routingNumber: string;
   accountNumber: string;
   lastPaid?: string | null;
 }
@@ -77,7 +77,7 @@ export const bankingApi = {
   getBeneficiaries: (authedFetch: AuthedFetch) =>
     json<{ beneficiaries: Beneficiary[] }>(authedFetch, "/banking/beneficiaries"),
 
-  addBeneficiary: (authedFetch: AuthedFetch, data: { name: string; nickname?: string; sortCode: string; accountNumber: string }) =>
+  addBeneficiary: (authedFetch: AuthedFetch, data: { name: string; nickname?: string; routingNumber: string; accountNumber: string }) =>
     json<{ beneficiary: Beneficiary }>(authedFetch, "/banking/beneficiaries", {
       method: "POST",
       body: JSON.stringify(data),

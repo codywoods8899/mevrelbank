@@ -24,17 +24,21 @@ async function storeOTP(userId, code, type, minutes) {
   );
 }
 
+// MevrelBank's fixed ABA routing number (checksum-valid 9 digits). US banks
+// use one routing number per bank/branch — not one per account — mirroring
+// how the old UK-style sort code was applied.
+const ROUTING_NUMBER = '071001245';
+
 async function seedNewCustomer(user) {
-  const sortCode = '40-47-84';
   const [currentAccountNumber, savingsAccountNumber] = await Promise.all([
     generateAccountNumber(),
     generateAccountNumber(),
   ]);
   await pool.query(
-    `INSERT INTO accounts (user_id, name, type, sort_code, account_number, balance, available)
+    `INSERT INTO accounts (user_id, name, type, routing_number, account_number, balance, available)
      VALUES ($1, 'Current Account', 'Current Account', $2, $3, 0, 0),
             ($1, 'Instant Access Savings', 'Savings Account', $2, $4, 0, 0)`,
-    [user.id, sortCode, currentAccountNumber, savingsAccountNumber]
+    [user.id, ROUTING_NUMBER, currentAccountNumber, savingsAccountNumber]
   );
   await pool.query(
     `INSERT INTO notifications (user_id, title, body, kind)

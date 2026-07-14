@@ -141,3 +141,40 @@ CREATE TABLE IF NOT EXISTS site_settings (
 INSERT INTO site_settings (key, value)
 VALUES ('whatsapp_number', '')
 ON CONFLICT (key) DO NOTHING;
+
+-- Phase 6 — US-standard identifiers: replace UK-style "sort code" (6 digits,
+-- XX-XX-XX) with a 9-digit ABA routing number, matching how US banks
+-- actually identify themselves. Renames + widens the column on both tables
+-- that carry it; safe to re-run.
+DO $mig$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'accounts' AND column_name = 'sort_code'
+  ) THEN
+    ALTER TABLE accounts RENAME COLUMN sort_code TO routing_number;
+  END IF;
+END $mig$;
+
+DO $mig$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'beneficiaries' AND column_name = 'sort_code'
+  ) THEN
+    ALTER TABLE beneficiaries RENAME COLUMN sort_code TO routing_number;
+  END IF;
+END $mig$;
+
+ALTER TABLE accounts ALTER COLUMN routing_number TYPE VARCHAR(9);
+ALTER TABLE beneficiaries ALTER COLUMN routing_number TYPE VARCHAR(9);
+
+-- Existing demo data had 6-digit UK-style sort codes; backfill to the bank's
+-- fixed 9-digit ABA routing number so old rows don't fail validation.
+UPDATE accounts SET routing_number = '071001245' WHERE length(routing_number) <> 9;
+UPDATE beneficiaries SET routing_number = '071001245' WHERE length(routing_number) <> 9;
+
+-- Widen account numbers from 8 to 10-12 digits (US convention); existing
+-- 8-digit demo numbers are left as-is (still valid, just on the short end).
+ALTER TABLE accounts ALTER COLUMN account_number TYPE VARCHAR(20);
+ALTER TABLE beneficiaries ALTER COLUMN account_number TYPE VARCHAR(20);

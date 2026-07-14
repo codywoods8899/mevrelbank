@@ -58,7 +58,7 @@ async function ensureStatementsForUser(userId) {
         id: statementId,
         account: {
           name: account.name,
-          sortCode: account.sort_code,
+          routingNumber: account.routing_number,
           accountNumber: account.account_number,
         },
         period,

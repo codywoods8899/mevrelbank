@@ -7,7 +7,7 @@ interface Account {
   id: string;
   name: string;
   type: string;
-  sortCode: string;
+  routingNumber: string;
   accountNumber: string;
   balance: number;
   available: number;
@@ -117,7 +117,7 @@ function ActionModalPanel({
 
         <div className="bg-[#F4F7FB] rounded-[10px] px-4 py-3 mb-4">
           <div className="text-[12px] font-semibold text-[#0D1829]">{account.userName}</div>
-          <div className="text-[11px] text-[#8A9BBE]">{account.name} · {account.sortCode} {account.accountNumber}</div>
+          <div className="text-[11px] text-[#8A9BBE]">{account.name} · {account.routingNumber} {account.accountNumber}</div>
           <div className="text-[11px] text-[#5E6E8E] mt-1">Balance: {currency(account.balance)} · Available: {currency(account.available)}</div>
         </div>
 
@@ -311,7 +311,7 @@ export default function AdminAccountsPage() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="text-[13px] text-[#0D1829]">{a.name}</div>
-                    <div className="text-[11px] text-[#9AAABF]">{a.sortCode} · {a.accountNumber}</div>
+                    <div className="text-[11px] text-[#9AAABF]">{a.routingNumber} · {a.accountNumber}</div>
                   </td>
                   <td className="px-5 py-4 text-[13px] font-semibold text-[#0D1829]">{currency(a.balance)}</td>
                   <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{currency(a.available)}</td>
