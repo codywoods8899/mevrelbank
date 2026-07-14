@@ -130,3 +130,14 @@ ALTER TABLE transactions ADD COLUMN IF NOT EXISTS metadata JSONB;
 
 CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
 CREATE INDEX IF NOT EXISTS idx_transactions_initiated_by ON transactions(initiated_by);
+
+-- Phase 5 — Site-wide settings (key/value), admin-editable
+CREATE TABLE IF NOT EXISTS site_settings (
+  key        VARCHAR(50) PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+INSERT INTO site_settings (key, value)
+VALUES ('whatsapp_number', '')
+ON CONFLICT (key) DO NOTHING;

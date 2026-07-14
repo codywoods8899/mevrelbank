@@ -791,4 +791,36 @@ router.patch('/transactions/:id/reject', async (req, res) => {
   }
 });
 
+// ─── GET /api/admin/settings — site-wide settings ─────────────────────────────
+
+router.get('/settings', async (req, res) => {
+  const { rows } = await pool.query(`SELECT key, value FROM site_settings`);
+  const settings = {};
+  for (const row of rows) settings[row.key] = row.value;
+  return res.json({ settings });
+});
+
+// ─── PATCH /api/admin/settings — update the WhatsApp contact number ───────────
+
+router.patch('/settings/whatsapp', async (req, res) => {
+  const { whatsappNumber } = req.body ?? {};
+  if (typeof whatsappNumber !== 'string') {
+    return res.status(400).json({ error: 'whatsappNumber must be a string.' });
+  }
+
+  // Accept an optional leading '+', otherwise digits only (E.164-ish); empty string clears it.
+  const trimmed = whatsappNumber.trim();
+  if (trimmed && !/^\+?[0-9]{6,15}$/.test(trimmed)) {
+    return res.status(400).json({ error: 'Enter a valid phone number with country code, digits only (e.g. +15551234567).' });
+  }
+
+  await pool.query(
+    `INSERT INTO site_settings (key, value, updated_at) VALUES ('whatsapp_number', $1, NOW())
+     ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
+    [trimmed]
+  );
+
+  return res.json({ whatsappNumber: trimmed });
+});
+
 module.exports = router;

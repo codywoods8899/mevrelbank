@@ -38,6 +38,8 @@ import AdminCustomersPage from "./app/admin/AdminCustomersPage";
 import AdminCustomerDetailPage from "./app/admin/AdminCustomerDetailPage";
 import AdminTransactionsPage from "./app/admin/AdminTransactionsPage";
 import AdminAccountsPage from "./app/admin/AdminAccountsPage";
+import AdminSettingsPage from "./app/admin/AdminSettingsPage";
+import { WhatsAppButton } from "./app/website/components/WhatsAppButton";
 import "./styles/index.css";
 
 const router = createBrowserRouter([
@@ -82,6 +84,7 @@ const router = createBrowserRouter([
       { path: "/admin/customers/:id", element: <AdminCustomerDetailPage /> },
       { path: "/admin/transactions", element: <AdminTransactionsPage /> },
       { path: "/admin/accounts", element: <AdminAccountsPage /> },
+      { path: "/admin/settings", element: <AdminSettingsPage /> },
     ],
   },
   // Design system demo
@@ -93,6 +96,7 @@ createRoot(document.getElementById("root")!).render(
   <AuthProvider>
     <AdminAuthProvider>
       <RouterProvider router={router} />
+      <WhatsAppButton />
     </AdminAuthProvider>
   </AuthProvider>
 );
