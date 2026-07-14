@@ -57,12 +57,12 @@ export function CTA() {
           Ready to bank differently?
         </h2>
         <p className={`reveal reveal-delay-2 ${visible ? "visible" : ""} text-[17px] text-[rgba(255,255,255,0.55)] mb-10 leading-relaxed`}>
-          Register your interest and our team will contact you with onboarding details and next steps.
+          Open your account in minutes and get straight into your dashboard.
         </p>
         <div className={`reveal reveal-delay-3 ${visible ? "visible" : ""} flex items-center justify-center gap-3 flex-wrap`}>
           {/* Primary — white with shimmer */}
           <a
-            href="/waitlist"
+            href="/register"
             className="relative inline-flex items-center gap-2 px-7 py-3.5 rounded-[8px] text-[14px] font-semibold text-[#0B3270] bg-white hover:bg-[#EBF0FA] transition-colors overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <span className="shimmer-btn absolute inset-0 rounded-[8px]" aria-hidden="true" />

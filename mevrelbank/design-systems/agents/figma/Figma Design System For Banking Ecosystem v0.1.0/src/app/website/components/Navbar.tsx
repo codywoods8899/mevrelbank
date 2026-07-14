@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Logo } from "../shared/Logo";
 import { Btn } from "../shared/Btn";
+import { useAuth } from "../../context/AuthContext";
 
 const NAV_LINKS = [
   { label: "Personal", href: "/products#personal" },
@@ -12,6 +13,7 @@ const NAV_LINKS = [
 ];
 
 export function Navbar() {
+  const { isAuthenticated, isRestoringSession, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled]     = useState(false);
   const [pathname, setPathname]     = useState(() =>
@@ -70,12 +72,25 @@ export function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2.5">
-          <Btn variant="ghost" size="sm" href="/contact">
-            Contact
-          </Btn>
-          <Btn variant="primary" size="sm" href="/waitlist">
-            Open Account
-          </Btn>
+          {isRestoringSession ? null : isAuthenticated ? (
+            <>
+              <Btn variant="ghost" size="sm" onClick={() => logout()}>
+                Log out
+              </Btn>
+              <Btn variant="primary" size="sm" href="/dashboard">
+                Dashboard
+              </Btn>
+            </>
+          ) : (
+            <>
+              <Btn variant="ghost" size="sm" href="/login">
+                Sign in
+              </Btn>
+              <Btn variant="primary" size="sm" href="/register">
+                Open Account
+              </Btn>
+            </>
+          )}
         </div>
 
         <button
@@ -112,12 +127,25 @@ export function Navbar() {
             ))}
           </nav>
           <div className="flex flex-col gap-2">
-            <Btn variant="outline" size="md" href="/contact" className="w-full justify-center">
-              Contact
-            </Btn>
-            <Btn variant="primary" size="md" href="/waitlist" className="w-full justify-center">
-              Open Account
-            </Btn>
+            {isRestoringSession ? null : isAuthenticated ? (
+              <>
+                <Btn variant="primary" size="md" href="/dashboard" className="w-full justify-center">
+                  Dashboard
+                </Btn>
+                <Btn variant="outline" size="md" onClick={() => logout()} className="w-full justify-center">
+                  Log out
+                </Btn>
+              </>
+            ) : (
+              <>
+                <Btn variant="primary" size="md" href="/register" className="w-full justify-center">
+                  Open Account
+                </Btn>
+                <Btn variant="outline" size="md" href="/login" className="w-full justify-center">
+                  Sign in
+                </Btn>
+              </>
+            )}
           </div>
         </div>
       </div>

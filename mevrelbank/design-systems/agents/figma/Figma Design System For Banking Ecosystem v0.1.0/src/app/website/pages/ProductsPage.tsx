@@ -51,7 +51,7 @@ export default function ProductsPage() {
       eyebrow="Products & Services"
       title="Core banking products designed for clarity, movement, and control."
       intro="MevrelBank is being structured around essential financial journeys first: accounts, saving, payments, cards, and the tools customers use most often."
-      primaryCta={{ label: "Join the waitlist", href: "/waitlist" }}
+      primaryCta={{ label: "Open an account", href: "/register" }}
       secondaryCta={{ label: "Review security posture", href: "/security-center" }}
     >
       <PageSection

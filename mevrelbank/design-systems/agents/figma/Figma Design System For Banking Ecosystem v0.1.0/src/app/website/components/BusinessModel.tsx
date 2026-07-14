@@ -127,7 +127,7 @@ export function BusinessModel() {
 
           <div className="mt-10 text-center">
             <a
-              href="/waitlist"
+              href="/register"
               className="inline-flex items-center gap-2 text-[14px] font-semibold text-[#1764C0] hover:text-[#0B3270] transition-colors"
             >
               Start your application <ChevronRight size={14} />

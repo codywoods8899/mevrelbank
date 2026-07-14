@@ -146,7 +146,7 @@ export function Hero() {
 
             <div className="hero-cta flex items-center gap-4 flex-wrap">
               <a
-                href="/waitlist"
+                href="/register"
                 className="relative inline-flex items-center gap-2 px-6 py-3 rounded-[7px] text-[14px] font-semibold text-[#0B3270] bg-white hover:bg-[#EBF0FA] transition-colors overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <span className="shimmer-btn absolute inset-0 rounded-[7px]" aria-hidden="true" />
