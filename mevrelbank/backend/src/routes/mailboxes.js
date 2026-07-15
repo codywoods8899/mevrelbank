@@ -142,20 +142,22 @@ router.get('/:account/messages', async (req, res) => {
         },
       );
 
-      const messages = await Promise.all(fetched.map(async (msg) => {
+      const messages = fetched.map((msg) => {
         const headerPart = msg.parts.find(p => p.which === 'HEADER.FIELDS (FROM TO SUBJECT DATE)');
-        const parsed = await simpleParser(Buffer.from(headerPart?.body ?? ''));
+        // imap-simple returns HEADER.FIELDS as a pre-parsed object, not raw text
+        const hdr   = headerPart?.body ?? {};
         const flags = msg.attributes?.flags ?? [];
+        const rawDate = Array.isArray(hdr.date) ? hdr.date[0] : (hdr.date ?? null);
         return {
           uid:     msg.attributes?.uid,
           seqno:   msg.seqno,
-          from:    parsed.from?.text ?? '',
-          to:      parsed.to?.text ?? '',
-          subject: parsed.subject ?? '(no subject)',
-          date:    parsed.date?.toISOString() ?? null,
+          from:    Array.isArray(hdr.from)    ? hdr.from[0]    : (hdr.from    ?? ''),
+          to:      Array.isArray(hdr.to)      ? hdr.to[0]      : (hdr.to      ?? ''),
+          subject: Array.isArray(hdr.subject) ? hdr.subject[0] : (hdr.subject ?? '(no subject)'),
+          date:    rawDate ? (() => { try { return new Date(rawDate).toISOString(); } catch { return null; } })() : null,
           seen:    flags.includes('\\Seen'),
         };
-      }));
+      });
 
       return { messages, total };
     });
