@@ -32,19 +32,35 @@ export function DashboardOverview({ userName = "James Chen" }: { userName?: stri
     return () => { active = false; };
   }, [authedFetch]);
 
-  // Only show a summary card for an account type the customer has actually
-  // opened — never render a $0.00 "Current Account" / "Savings Account" card
-  // for a type that doesn't exist yet, which would look like a real account.
+  // Balance card logic:
+  // - If the user has no accounts yet → show a single "Total Balance" card ($0.00).
+  // - Once they open a Current Account → show that card.
+  // - Once they open a Savings Account → show that card.
+  // This means a brand-new user sees one clean "Total Balance" card instead of
+  // two misleading $0.00 account-type cards.
   const summaryCards = useMemo(() => {
     const subByType: Record<string, string> = {
       "Current Account": "Available balance",
       "Savings Account": "Instant Access",
     };
-    return accounts.map((a) => ({
+
+    if (accounts.length === 0) {
+      return [{ label: "Total Balance", amount: 0, sub: "Across all accounts", isTotal: true }];
+    }
+
+    const totalAmount = accounts.reduce((sum, a) => sum + (a.available ?? 0), 0);
+    const typeCards = accounts.map((a) => ({
       label: a.type,
       amount: a.available ?? 0,
       sub: subByType[a.type] ?? "Available balance",
+      isTotal: false,
     }));
+
+    // Show Total Balance card + individual account type cards
+    return [
+      { label: "Total Balance", amount: totalAmount, sub: "Across all accounts", isTotal: true },
+      ...typeCards,
+    ];
   }, [accounts]);
 
   return (
@@ -57,30 +73,36 @@ export function DashboardOverview({ userName = "James Chen" }: { userName?: stri
       </div>
 
       {/* Account summary cards */}
-      {!loading && summaryCards.length === 0 ? (
-        <Link
-          to="/dashboard/accounts"
-          className="mb-4 flex items-center justify-between p-4 bg-white rounded-[10px] border border-dashed border-[rgba(11,50,112,0.18)] hover:border-[#0B3270]/40 transition-colors group"
-        >
-          <div>
-            <div className="text-[13px] font-semibold text-[#0D1829]">You don't have any accounts yet</div>
-            <div className="text-[11px] text-[#8A9BBE] mt-0.5">Open a Current or Savings Account to get started.</div>
-          </div>
-          <div className="flex items-center gap-1 text-[12px] font-medium text-[#0B3270] flex-shrink-0">
-            Open account <ChevronRight size={13} />
-          </div>
-        </Link>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-          {summaryCards.map((c) => (
-            <div key={c.label} className="p-4 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] shadow-[0_1px_4px_rgba(11,50,112,0.04)] hover:shadow-[0_3px_10px_rgba(11,50,112,0.07)] transition-shadow">
-              <div className="text-[9px] font-semibold tracking-[0.16em] uppercase text-[#8A9BBE] mb-3">{c.label}</div>
-              <div className="text-[22px] font-bold text-[#0D1829] leading-none mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>
+      {!loading && (
+        <div className="mb-4 space-y-3">
+          {/* Total Balance — always shown full-width as primary card */}
+          {summaryCards.filter((c) => c.isTotal).map((c) => (
+            <div
+              key={c.label}
+              className="p-5 bg-[#0B3270] rounded-[10px] shadow-[0_2px_10px_rgba(11,50,112,0.18)]"
+            >
+              <div className="text-[9px] font-semibold tracking-[0.16em] uppercase text-[rgba(255,255,255,0.55)] mb-3">{c.label}</div>
+              <div className="text-[28px] font-bold text-white leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>
                 ${c.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-[11px] text-[#8A9BBE]">{c.sub}</div>
+              <div className="text-[11px] text-[rgba(255,255,255,0.5)]">{c.sub}</div>
             </div>
           ))}
+
+          {/* Individual account type cards — only appear once that account type exists */}
+          {summaryCards.filter((c) => !c.isTotal).length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {summaryCards.filter((c) => !c.isTotal).map((c) => (
+                <div key={c.label} className="p-4 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] shadow-[0_1px_4px_rgba(11,50,112,0.04)] hover:shadow-[0_3px_10px_rgba(11,50,112,0.07)] transition-shadow">
+                  <div className="text-[9px] font-semibold tracking-[0.16em] uppercase text-[#8A9BBE] mb-3">{c.label}</div>
+                  <div className="text-[22px] font-bold text-[#0D1829] leading-none mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>
+                    ${c.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-[11px] text-[#8A9BBE]">{c.sub}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
