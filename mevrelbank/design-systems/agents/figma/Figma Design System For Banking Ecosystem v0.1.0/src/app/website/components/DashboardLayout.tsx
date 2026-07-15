@@ -17,17 +17,16 @@ export default function DashboardLayout() {
     navigate("/");
   };
 
+  // DashboardShell is itself h-screen and full-viewport.
+  // Do NOT wrap it in a container or add padding here — for a sidebar-based
+  // dashboard, a max-width centered wrapper creates dead space and is bad UX.
   return (
-    <div className="min-h-screen bg-[#F4F7FB] p-5">
-      <div className="max-w-[1200px] mx-auto">
-        <DashboardShell
-          userName={user?.name ?? "Customer"}
-          accountLabel={user ? accountLabel[user.accountType] ?? "Personal" : "Personal"}
-          onLogout={handleLogout}
-        >
-          <Outlet />
-        </DashboardShell>
-      </div>
-    </div>
+    <DashboardShell
+      userName={user?.name ?? "Customer"}
+      accountLabel={user ? accountLabel[user.accountType] ?? "Personal" : "Personal"}
+      onLogout={handleLogout}
+    >
+      <Outlet />
+    </DashboardShell>
   );
 }
