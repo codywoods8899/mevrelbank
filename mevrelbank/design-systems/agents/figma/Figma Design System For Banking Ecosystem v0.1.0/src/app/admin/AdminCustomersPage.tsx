@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Search, CheckCircle2, XCircle } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Archive } from "lucide-react";
 import { PageMeta } from "../website/components/PageMeta";
 import { useAdminAuth } from "../context/AdminAuthContext";
 
@@ -11,6 +11,7 @@ interface CustomerRow {
   accountType: string;
   emailVerified: boolean;
   isActive: boolean;
+  archivedAt: string | null;
   createdAt: string;
   accountCount: number;
   totalBalance: number;
@@ -25,6 +26,7 @@ export default function AdminCustomersPage() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [includeArchived, setIncludeArchived] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -34,6 +36,7 @@ export default function AdminCustomersPage() {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page) });
     if (search.trim()) params.set("search", search.trim());
+    if (includeArchived) params.set("includeArchived", "true");
     authedJson(`/admin/users?${params.toString()}`)
       .then((data) => {
         setUsers(data.users);
@@ -41,7 +44,7 @@ export default function AdminCustomersPage() {
       })
       .catch((err) => setError(err.message ?? "Failed to load customers."))
       .finally(() => setLoading(false));
-  }, [page, search]);
+  }, [page, search, includeArchived]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -53,17 +56,32 @@ export default function AdminCustomersPage() {
           <h1 className="text-[26px] font-bold text-[#0D1829] tracking-tight" style={{ fontFamily: "Figtree, sans-serif" }}>
             Customers
           </h1>
-          <p className="text-[14px] text-[#5E6E8E] mt-1">{total.toLocaleString()} total customers</p>
+          <p className="text-[14px] text-[#5E6E8E] mt-1">{total.toLocaleString()} {includeArchived ? "customers (including archived)" : "active customers"}</p>
         </div>
-        <div className="relative w-full sm:w-[280px]">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9AAABF]" aria-hidden="true" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search name or email…"
-            className="w-full rounded-[10px] border border-[rgba(11,50,112,0.14)] pl-10 pr-4 py-2.5 text-[13px] text-[#0D1829] outline-none focus:border-[#0B3270] transition-colors"
-          />
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Include archived toggle */}
+          <button
+            onClick={() => { setIncludeArchived((v) => !v); setPage(1); }}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold border transition-colors ${
+              includeArchived
+                ? "bg-[#FEF2F2] text-[#C52B2B] border-[rgba(197,43,43,0.25)]"
+                : "bg-white text-[#5E6E8E] border-[rgba(11,50,112,0.14)] hover:bg-[#F4F7FB]"
+            }`}
+          >
+            <Archive size={13} />
+            {includeArchived ? "Hiding archived" : "Show archived"}
+          </button>
+          {/* Search */}
+          <div className="relative w-full sm:w-[260px]">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9AAABF]" aria-hidden="true" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search name or email…"
+              className="w-full rounded-[10px] border border-[rgba(11,50,112,0.14)] pl-10 pr-4 py-2.5 text-[13px] text-[#0D1829] outline-none focus:border-[#0B3270] transition-colors"
+            />
+          </div>
         </div>
       </div>
 
@@ -90,25 +108,43 @@ export default function AdminCustomersPage() {
             ) : users.length === 0 ? (
               <tr><td colSpan={5} className="px-5 py-8 text-center text-[13px] text-[#5E6E8E]">No customers found.</td></tr>
             ) : (
-              users.map((u) => (
-                <tr key={u.id} className="border-b border-[rgba(11,50,112,0.05)] last:border-0 hover:bg-[#F8FAFD] transition-colors">
-                  <td className="px-5 py-4">
-                    <Link to={`/admin/customers/${u.id}`} className="block">
-                      <p className="text-[14px] font-semibold text-[#0D1829]">{u.name}</p>
-                      <p className="text-[12px] text-[#9AAABF]">{u.email}</p>
-                    </Link>
-                  </td>
-                  <td className="px-5 py-4 text-[13px] text-[#5E6E8E] capitalize">{u.accountType}</td>
-                  <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{u.accountCount}</td>
-                  <td className="px-5 py-4 text-[13px] font-semibold text-[#0D1829]">{currency(u.totalBalance)}</td>
-                  <td className="px-5 py-4">
-                    <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${u.isActive ? "text-[#0E7C4D]" : "text-[#C52B2B]"}`}>
-                      {u.isActive ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
-                      {u.isActive ? "Active" : "Suspended"}
-                    </span>
-                  </td>
-                </tr>
-              ))
+              users.map((u) => {
+                const isArchived = !!u.archivedAt;
+                return (
+                  <tr key={u.id} className={`border-b border-[rgba(11,50,112,0.05)] last:border-0 hover:bg-[#F8FAFD] transition-colors ${isArchived ? "opacity-60" : ""}`}>
+                    <td className="px-5 py-4">
+                      <Link to={`/admin/customers/${u.id}`} className="block">
+                        <div className="flex items-center gap-2">
+                          <p className="text-[14px] font-semibold text-[#0D1829]">{u.name}</p>
+                          {isArchived && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FEF2F2] text-[#C52B2B]">
+                              <Archive size={9} />
+                              ARCHIVED
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[12px] text-[#9AAABF]">{u.email}</p>
+                      </Link>
+                    </td>
+                    <td className="px-5 py-4 text-[13px] text-[#5E6E8E] capitalize">{u.accountType}</td>
+                    <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{u.accountCount}</td>
+                    <td className="px-5 py-4 text-[13px] font-semibold text-[#0D1829]">{currency(u.totalBalance)}</td>
+                    <td className="px-5 py-4">
+                      {isArchived ? (
+                        <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#C52B2B]">
+                          <Archive size={13} />
+                          Archived
+                        </span>
+                      ) : (
+                        <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${u.isActive ? "text-[#0E7C4D]" : "text-[#C52B2B]"}`}>
+                          {u.isActive ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
+                          {u.isActive ? "Active" : "Suspended"}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

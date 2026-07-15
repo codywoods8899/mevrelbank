@@ -224,7 +224,9 @@ export default function AdminCustomerDetailPage() {
             {archiveError && (
               <div className="rounded-[8px] bg-[#FEF2F2] border border-[rgba(197,43,43,0.2)] px-3 py-2 text-[12px] text-[#C52B2B] mb-3">{archiveError}</div>
             )}
-            <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Reason (optional)</label>
+            <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">
+              Reason <span className="text-[#C52B2B]">*</span>
+            </label>
             <textarea
               value={archiveReason}
               onChange={(e) => setArchiveReason(e.target.value)}
@@ -237,7 +239,7 @@ export default function AdminCustomerDetailPage() {
                 className="flex-1 px-4 py-2.5 rounded-[10px] border border-[rgba(11,50,112,0.15)] text-[13px] font-semibold text-[#5E6E8E] hover:bg-[#F4F7FB] transition-colors">
                 Cancel
               </button>
-              <button onClick={doArchive} disabled={archiveLoading}
+              <button onClick={doArchive} disabled={archiveLoading || !archiveReason.trim()}
                 className="flex-1 px-4 py-2.5 rounded-[10px] bg-[#C52B2B] text-white text-[13px] font-semibold hover:bg-[#a82424] disabled:opacity-60 transition-colors">
                 {archiveLoading ? "Archiving…" : "Archive customer"}
               </button>

@@ -584,27 +584,107 @@ router.patch('/users/:id', async (req, res) => {
 router.post('/users/:id/archive', requireConfirmToken, async (req, res) => {
   const { reason } = req.body ?? {};
 
+  // ── Guard: reason is mandatory ────────────────────────────────────────────────
+  if (!reason?.trim()) {
+    return res.status(400).json({ error: 'A reason is required to archive a customer.' });
+  }
+
   const { rows } = await pool.query(`SELECT * FROM users WHERE id = $1 AND role = 'customer'`, [req.params.id]);
   if (rows.length === 0) return res.status(404).json({ error: 'User not found.' });
   const user = rows[0];
 
   if (user.archived_at) return res.status(409).json({ error: 'Customer is already archived.' });
 
-  await pool.query(
-    `UPDATE users SET is_active = false, archived_at = NOW(), archive_reason = $1, updated_at = NOW() WHERE id = $2`,
-    [reason?.trim() || null, user.id]
+  // ── Fetch all active accounts owned by this customer ─────────────────────────
+  const { rows: accounts } = await pool.query(
+    `SELECT * FROM accounts WHERE user_id = $1 AND status = 'active'`,
+    [user.id]
   );
 
-  // Revoke all active sessions
-  await pool.query('UPDATE refresh_tokens SET revoked = true WHERE user_id = $1', [user.id]);
+  // ── Validate every active account satisfies close conditions ─────────────────
+  // All checks must pass for every account before any account is touched.
+  if (accounts.length > 0) {
+    // Fetch pending transaction counts for all accounts in one query.
+    const accountIds = accounts.map(a => a.id);
+    const { rows: pendingCounts } = await pool.query(
+      `SELECT account_id, COUNT(*)::int AS count
+       FROM transactions
+       WHERE account_id = ANY($1) AND status = 'pending'
+       GROUP BY account_id`,
+      [accountIds]
+    );
+    const pendingByAccount = Object.fromEntries(pendingCounts.map(r => [r.account_id, r.count]));
 
-  // Internal notification record (user won't see it but it's in the audit trail)
-  await pool.query(
-    `INSERT INTO notifications (user_id, title, body, kind) VALUES ($1, 'Account archived', $2, 'security')`,
-    [user.id, `Account archived by administrator. ${reason?.trim() ? 'Reason: ' + reason.trim() : ''}`]
-  );
+    for (const acct of accounts) {
+      const balance   = Number(acct.balance);
+      const available = Number(acct.available);
+      const held      = balance - available;
+      const pending   = pendingByAccount[acct.id] ?? 0;
+      const name      = acct.name;
 
-  return res.json({ id: user.id, archived: true });
+      if (balance !== 0) {
+        return res.status(409).json({
+          error: `Cannot archive customer. Account "${name}" cannot be closed because the balance is not zero.`,
+        });
+      }
+      if (available !== 0) {
+        return res.status(409).json({
+          error: `Cannot archive customer. Account "${name}" cannot be closed because the available balance is not zero.`,
+        });
+      }
+      if (held !== 0) {
+        return res.status(409).json({
+          error: `Cannot archive customer. Account "${name}" cannot be closed because funds are currently reserved.`,
+        });
+      }
+      if (pending > 0) {
+        return res.status(409).json({
+          error: `Cannot archive customer. Account "${name}" cannot be closed because there ${pending === 1 ? 'is 1 pending transaction' : `are ${pending} pending transactions`}. Resolve or cancel them first.`,
+        });
+      }
+    }
+  }
+
+  // ── All accounts are closeable — execute atomically ───────────────────────────
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Close every active account.
+    for (const acct of accounts) {
+      await client.query(
+        `UPDATE accounts SET status = 'closed', closed_at = NOW(),
+         close_reason = 'Closed automatically during customer archival.', updated_at = NOW()
+         WHERE id = $1`,
+        [acct.id]
+      );
+    }
+
+    // Archive the customer.
+    await client.query(
+      `UPDATE users SET is_active = false, archived_at = NOW(), archive_reason = $1, updated_at = NOW() WHERE id = $2`,
+      [reason.trim(), user.id]
+    );
+
+    // Revoke all active sessions.
+    await client.query('UPDATE refresh_tokens SET revoked = true WHERE user_id = $1', [user.id]);
+
+    // Audit trail notification (user cannot see it post-archival, but it is retained).
+    await client.query(
+      `INSERT INTO notifications (user_id, title, body, kind) VALUES ($1, 'Account archived', $2, 'security')`,
+      [user.id, `Account archived by administrator. Reason: ${reason.trim()}`]
+    );
+
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[admin archive] failed:', err.message);
+    return res.status(500).json({ error: 'Archival failed. Please try again.' });
+  } finally {
+    client.release();
+  }
+
+  return res.json({ id: user.id, archived: true, accountsClosed: accounts.length });
 });
 
 // ─── PATCH /api/admin/accounts/:id/name — rename an account ──────────────────
