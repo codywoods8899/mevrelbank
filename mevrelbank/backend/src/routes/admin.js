@@ -626,14 +626,61 @@ router.patch('/accounts/:id/name', async (req, res) => {
 router.post('/accounts/:id/close', requireConfirmToken, async (req, res) => {
   const { reason } = req.body ?? {};
 
-  const { rows: acctRows } = await pool.query(
-    `SELECT a.*, u.id AS user_id FROM accounts a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
-    [req.params.id]
-  );
+  // Fetch the account and a count of its pending transactions in one round-trip.
+  const [{ rows: acctRows }, { rows: pendingRows }] = await Promise.all([
+    pool.query(
+      `SELECT a.*, u.id AS user_id FROM accounts a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
+      [req.params.id]
+    ),
+    pool.query(
+      `SELECT COUNT(*)::int AS count FROM transactions WHERE account_id = $1 AND status = 'pending'`,
+      [req.params.id]
+    ),
+  ]);
+
   if (acctRows.length === 0) return res.status(404).json({ error: 'Account not found.' });
   const account = acctRows[0];
-  if (account.status === 'closed') return res.status(409).json({ error: 'Account is already closed.' });
 
+  // ── Guard: already closed ────────────────────────────────────────────────────
+  if (account.status === 'closed') {
+    return res.status(409).json({ error: 'Account is already closed.' });
+  }
+
+  const balance   = Number(account.balance);
+  const available = Number(account.available);
+  const held      = balance - available; // positive when funds are reserved/held
+
+  // ── Guard 1: balance must be exactly zero ────────────────────────────────────
+  if (balance !== 0) {
+    return res.status(409).json({
+      error: 'Account cannot be closed because the balance is not zero.',
+    });
+  }
+
+  // ── Guard 2: available balance must be exactly zero ──────────────────────────
+  if (available !== 0) {
+    return res.status(409).json({
+      error: 'Account cannot be closed because the available balance is not zero.',
+    });
+  }
+
+  // ── Guard 3 & 4: no held or reserved funds ───────────────────────────────────
+  // held > 0 means balance and available have diverged — funds are reserved.
+  // held < 0 would indicate a data integrity issue; block closure in that case too.
+  if (held !== 0) {
+    return res.status(409).json({
+      error: 'Account cannot be closed because funds are currently reserved.',
+    });
+  }
+
+  // ── Guard 5: no pending (in-progress) transactions ───────────────────────────
+  if (pendingRows[0].count > 0) {
+    return res.status(409).json({
+      error: `Account cannot be closed because there ${pendingRows[0].count === 1 ? 'is 1 pending transaction' : `are ${pendingRows[0].count} pending transactions`}. Resolve or cancel them first.`,
+    });
+  }
+
+  // ── All conditions satisfied — proceed with soft-close ───────────────────────
   await pool.query(
     `UPDATE accounts SET status = 'closed', closed_at = NOW(), close_reason = $1, updated_at = NOW() WHERE id = $2`,
     [reason?.trim() || null, account.id]
