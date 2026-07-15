@@ -4,8 +4,9 @@ const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
 const requireAuth = require('../middleware/requireAuth');
 const { requireAdmin } = require('../middleware/requireAuth');
-const { signAccess, signMfa, refreshExpiresAt } = require('../utils/jwt');
+const { signAccess, signMfa, signConfirm, verifyConfirm, refreshExpiresAt } = require('../utils/jwt');
 const { hashToken } = require('../utils/otp');
+const { verifyToken: verifyTotp } = require('../services/totp');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { ADMIN_COOKIE, ttlMs, cookieOptions, clearCookieOptions } = require('../utils/cookies');
 const {
@@ -151,6 +152,11 @@ router.get('/overview', async (req, res) => {
     pool.query(`SELECT COUNT(*)::int AS count FROM transactions WHERE status = 'pending'`),
   ]);
 
+  const [archived, closed] = await Promise.all([
+    pool.query(`SELECT COUNT(*)::int AS count FROM users WHERE archived_at IS NOT NULL`),
+    pool.query(`SELECT COUNT(*)::int AS count FROM accounts WHERE status = 'closed'`),
+  ]);
+
   return res.json({
     totalUsers: users.rows[0].count,
     verifiedUsers: verified.rows[0].count,
@@ -158,6 +164,8 @@ router.get('/overview', async (req, res) => {
     totalBalance: Number(accounts.rows[0].total_balance),
     transactionsTotal: txns.rows[0].count,
     pendingTransactions: pending.rows[0].count,
+    archivedUsers: archived.rows[0].count,
+    closedAccounts: closed.rows[0].count,
   });
 });
 
@@ -169,11 +177,14 @@ router.get('/users', async (req, res) => {
   const pageSize = 25;
   const offset = (page - 1) * pageSize;
 
+  const includeArchived = req.query.includeArchived === 'true';
+
   const params = [];
   let where = `WHERE u.role = 'customer'`;
+  if (!includeArchived) where += ` AND u.archived_at IS NULL`;
   if (search) {
     params.push(`%${search.toLowerCase()}%`);
-    where += ` AND (LOWER(u.name) LIKE $${params.length} OR LOWER(u.email) LIKE $${params.length})`;
+    where += ` AND (LOWER(u.name) LIKE ${params.length} OR LOWER(u.email) LIKE ${params.length})`;
   }
 
   const { rows: countRows } = await pool.query(`SELECT COUNT(*)::int AS count FROM users u ${where}`, params);
@@ -206,6 +217,7 @@ router.get('/users', async (req, res) => {
       accountType: u.account_type,
       emailVerified: u.email_verified,
       isActive: u.is_active,
+      archivedAt: u.archived_at ?? null,
       createdAt: u.created_at,
       accountCount: u.account_count,
       totalBalance: Number(u.total_balance),
@@ -249,6 +261,8 @@ router.get('/users/:id', async (req, res) => {
       emailVerified: user.email_verified,
       totpEnabled: user.totp_enabled,
       isActive: user.is_active,
+      archivedAt: user.archived_at ?? null,
+      archiveReason: user.archive_reason ?? null,
       createdAt: user.created_at,
     },
     accounts: accounts.map(a => ({
@@ -259,15 +273,19 @@ router.get('/users/:id', async (req, res) => {
       accountNumber: a.account_number,
       balance: Number(a.balance),
       available: Number(a.available),
+      status: a.status ?? 'active',
     })),
     transactions: transactions.map(t => ({
       id: t.id,
       account: t.account_name,
       name: t.name,
       category: t.category,
+      txType: t.tx_type ?? 'transaction',
       amount: Number(t.amount),
       status: t.status,
       initiatedBy: t.initiated_by,
+      reversalOf: t.reversal_of ?? null,
+      reversedBy: t.reversed_by ?? null,
       date: t.occurred_at,
     })),
   });
@@ -305,12 +323,14 @@ router.get('/accounts', async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const pageSize = 50;
   const offset = (page - 1) * pageSize;
+  const includeClosed = req.query.includeClosed === 'true';
 
   const params = [];
   let where = `WHERE u.role = 'customer'`;
+  if (!includeClosed) where += ` AND a.status = 'active'`;
   if (search) {
     params.push(`%${search.toLowerCase()}%`);
-    where += ` AND (LOWER(u.name) LIKE $${params.length} OR LOWER(u.email) LIKE $${params.length} OR LOWER(a.name) LIKE $${params.length})`;
+    where += ` AND (LOWER(u.name) LIKE ${params.length} OR LOWER(u.email) LIKE ${params.length} OR LOWER(a.name) LIKE ${params.length})`;
   }
 
   params.push(pageSize, offset);
@@ -319,7 +339,7 @@ router.get('/accounts', async (req, res) => {
      FROM accounts a JOIN users u ON u.id = a.user_id
      ${where}
      ORDER BY u.name ASC, a.created_at ASC
-     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+     LIMIT ${params.length - 1} OFFSET ${params.length}`,
     params
   );
 
@@ -340,6 +360,7 @@ router.get('/accounts', async (req, res) => {
       accountNumber: a.account_number,
       balance: Number(a.balance),
       available: Number(a.available),
+      status: a.status ?? 'active',
       userName: a.user_name,
       userEmail: a.user_email,
       userId: a.user_id,
@@ -380,9 +401,12 @@ router.get('/pending', async (req, res) => {
       userEmail: t.user_email,
       name: t.name,
       category: t.category,
+      txType: t.tx_type ?? 'transaction',
       amount: Number(t.amount),
       status: t.status,
       initiatedBy: t.initiated_by,
+      reversalOf: t.reversal_of ?? null,
+      reversedBy: t.reversed_by ?? null,
       metadata: t.metadata,
       date: t.occurred_at,
     })),
@@ -438,22 +462,328 @@ router.get('/transactions', async (req, res) => {
       userEmail: t.user_email,
       name: t.name,
       category: t.category,
+      txType: t.tx_type ?? 'transaction',
       amount: Number(t.amount),
       status: t.status,
       initiatedBy: t.initiated_by,
+      reversalOf: t.reversal_of ?? null,
+      reversedBy: t.reversed_by ?? null,
       metadata: t.metadata,
       date: t.occurred_at,
     })),
   });
 });
 
+// ─── Middleware: require a short-lived confirm token for destructive operations ─
+
+function requireConfirmToken(req, res, next) {
+  const token = req.headers['x-admin-confirm-token'];
+  if (!token) {
+    return res.status(403).json({ error: 'This action requires re-authentication. Please confirm your admin password.' });
+  }
+  try {
+    const payload = verifyConfirm(token);
+    if (payload.sub !== req.user.sub) throw new Error('Token subject mismatch.');
+    next();
+  } catch {
+    return res.status(403).json({ error: 'Confirmation token is invalid or expired. Please re-authenticate.' });
+  }
+}
+
+// ─── POST /api/admin/re-auth — issue a 5-minute destructive-action token ──────
+
+router.post('/re-auth', async (req, res) => {
+  const { password, totpCode } = req.body ?? {};
+  if (!password) return res.status(400).json({ error: 'Password is required.' });
+
+  const { rows } = await pool.query(`SELECT * FROM users WHERE id = $1 AND role = 'admin'`, [req.user.sub]);
+  if (rows.length === 0) return res.status(404).json({ error: 'Admin not found.' });
+  const admin = rows[0];
+
+  const valid = await bcrypt.compare(password, admin.password_hash);
+  if (!valid) return res.status(401).json({ error: 'Incorrect password.' });
+
+  if (admin.totp_enabled) {
+    if (!totpCode?.trim()) return res.status(400).json({ error: '2FA code is required.' });
+    const ok = verifyTotp(totpCode.trim(), admin.totp_secret);
+    if (!ok) return res.status(401).json({ error: 'Invalid 2FA code.' });
+  }
+
+  const confirmToken = signConfirm({ sub: admin.id });
+  return res.json({ confirmToken });
+});
+
+// ─── PATCH /api/admin/users/:id — edit customer profile ──────────────────────
+
+router.patch('/users/:id', async (req, res) => {
+  const ALLOWED = ['name', 'email', 'phone', 'address', 'account_type'];
+  const { name, email, phone, address, accountType } = req.body ?? {};
+
+  const { rows } = await pool.query(`SELECT * FROM users WHERE id = $1 AND role = 'customer'`, [req.params.id]);
+  if (rows.length === 0) return res.status(404).json({ error: 'User not found.' });
+  const user = rows[0];
+
+  const updates = [];
+  const params  = [];
+
+  if (name !== undefined) {
+    if (!name.trim()) return res.status(400).json({ error: 'Name cannot be empty.' });
+    params.push(name.trim()); updates.push(`name = ${params.length}`);
+  }
+
+  let emailChanged = false;
+  if (email !== undefined) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) return res.status(400).json({ error: 'Email cannot be empty.' });
+    if (normalizedEmail !== user.email) {
+      // Check uniqueness
+      const { rows: existing } = await pool.query(`SELECT id FROM users WHERE email = $1 AND id <> $2`, [normalizedEmail, user.id]);
+      if (existing.length > 0) return res.status(409).json({ error: 'That email address is already in use.' });
+      params.push(normalizedEmail); updates.push(`email = ${params.length}`);
+      updates.push(`email_verified = false`);
+      emailChanged = true;
+    }
+  }
+
+  if (phone !== undefined) { params.push(phone.trim() || null); updates.push(`phone = ${params.length}`); }
+  if (address !== undefined) { params.push(address.trim() || null); updates.push(`address = ${params.length}`); }
+  if (accountType !== undefined) {
+    if (!['personal', 'business'].includes(accountType)) return res.status(400).json({ error: 'accountType must be personal or business.' });
+    params.push(accountType); updates.push(`account_type = ${params.length}`);
+  }
+
+  if (updates.length === 0) return res.status(400).json({ error: 'No fields to update.' });
+  updates.push(`updated_at = NOW()`);
+  params.push(user.id);
+
+  const { rows: updated } = await pool.query(
+    `UPDATE users SET ${updates.join(', ')} WHERE id = ${params.length} RETURNING *`,
+    params
+  );
+
+  // If email changed: revoke sessions + send security notification
+  if (emailChanged) {
+    await pool.query('UPDATE refresh_tokens SET revoked = true WHERE user_id = $1', [user.id]);
+    await pool.query(
+      `INSERT INTO notifications (user_id, title, body, kind) VALUES ($1, 'Email address updated', $2, 'security')`,
+      [user.id, `Your email address has been updated by an administrator from ${user.email} to ${updated[0].email}.`]
+    );
+  }
+
+  const u = updated[0];
+  return res.json({
+    user: {
+      id: u.id, name: u.name, email: u.email, phone: u.phone, address: u.address,
+      accountType: u.account_type, emailVerified: u.email_verified, isActive: u.is_active,
+    },
+  });
+});
+
+// ─── POST /api/admin/users/:id/archive — archive a customer ──────────────────
+
+router.post('/users/:id/archive', requireConfirmToken, async (req, res) => {
+  const { reason } = req.body ?? {};
+
+  const { rows } = await pool.query(`SELECT * FROM users WHERE id = $1 AND role = 'customer'`, [req.params.id]);
+  if (rows.length === 0) return res.status(404).json({ error: 'User not found.' });
+  const user = rows[0];
+
+  if (user.archived_at) return res.status(409).json({ error: 'Customer is already archived.' });
+
+  await pool.query(
+    `UPDATE users SET is_active = false, archived_at = NOW(), archive_reason = $1, updated_at = NOW() WHERE id = $2`,
+    [reason?.trim() || null, user.id]
+  );
+
+  // Revoke all active sessions
+  await pool.query('UPDATE refresh_tokens SET revoked = true WHERE user_id = $1', [user.id]);
+
+  // Internal notification record (user won't see it but it's in the audit trail)
+  await pool.query(
+    `INSERT INTO notifications (user_id, title, body, kind) VALUES ($1, 'Account archived', $2, 'security')`,
+    [user.id, `Account archived by administrator. ${reason?.trim() ? 'Reason: ' + reason.trim() : ''}`]
+  );
+
+  return res.json({ id: user.id, archived: true });
+});
+
+// ─── PATCH /api/admin/accounts/:id/name — rename an account ──────────────────
+
+router.patch('/accounts/:id/name', async (req, res) => {
+  const { name } = req.body ?? {};
+  if (!name?.trim()) return res.status(400).json({ error: 'Name is required.' });
+
+  const { rows } = await pool.query(
+    `UPDATE accounts SET name = $1, updated_at = NOW() WHERE id = $2 AND status = 'active' RETURNING id, name`,
+    [name.trim(), req.params.id]
+  );
+  if (rows.length === 0) return res.status(404).json({ error: 'Account not found or already closed.' });
+  return res.json({ id: rows[0].id, name: rows[0].name });
+});
+
+// ─── POST /api/admin/accounts/:id/close — soft-close an account ──────────────
+
+router.post('/accounts/:id/close', requireConfirmToken, async (req, res) => {
+  const { reason } = req.body ?? {};
+
+  const { rows: acctRows } = await pool.query(
+    `SELECT a.*, u.id AS user_id FROM accounts a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
+    [req.params.id]
+  );
+  if (acctRows.length === 0) return res.status(404).json({ error: 'Account not found.' });
+  const account = acctRows[0];
+  if (account.status === 'closed') return res.status(409).json({ error: 'Account is already closed.' });
+
+  await pool.query(
+    `UPDATE accounts SET status = 'closed', closed_at = NOW(), close_reason = $1, updated_at = NOW() WHERE id = $2`,
+    [reason?.trim() || null, account.id]
+  );
+
+  await pool.query(
+    `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
+     VALUES ($1, 'Account closed', $2, 'info', 'account', $3)`,
+    [account.user_id, `Your ${account.name} has been closed. ${reason?.trim() ? reason.trim() : ''}`.trim(), account.id]
+  );
+
+  return res.json({ id: account.id, status: 'closed' });
+});
+
+// ─── PATCH /api/admin/transactions/:id/description — edit description/category
+
+router.patch('/transactions/:id/description', async (req, res) => {
+  const { name, category } = req.body ?? {};
+  if (!name?.trim()) return res.status(400).json({ error: 'Description (name) is required.' });
+
+  // Fetch the transaction to determine its period for statement invalidation
+  const { rows: txRows } = await pool.query(
+    `SELECT t.*, a.user_id FROM transactions t JOIN accounts a ON a.id = t.account_id WHERE t.id = $1`,
+    [req.params.id]
+  );
+  if (txRows.length === 0) return res.status(404).json({ error: 'Transaction not found.' });
+  const tx = txRows[0];
+
+  const updates = [`name = $1`];
+  const params  = [name.trim()];
+
+  if (category !== undefined && category.trim()) {
+    params.push(category.trim());
+    updates.push(`category = ${params.length}`);
+  }
+
+  params.push(tx.id);
+  await pool.query(`UPDATE transactions SET ${updates.join(', ')} WHERE id = ${params.length}`, params);
+
+  // Invalidate any already-generated statement PDF that covers this transaction's period
+  // so it regenerates with the updated description on next access.
+  const d = new Date(tx.occurred_at);
+  const periodLabel = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  await pool.query(
+    `UPDATE statements SET file_url = NULL WHERE account_id = $1 AND period = $2`,
+    [tx.account_id, periodLabel]
+  );
+
+  return res.json({ id: tx.id, name: name.trim() });
+});
+
+// ─── POST /api/admin/transactions/:id/void — void with explicit reversal ──────
+
+router.post('/transactions/:id/void', requireConfirmToken, async (req, res) => {
+  const { reason } = req.body ?? {};
+  if (!reason?.trim()) return res.status(400).json({ error: 'Reason is required for a void.' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows: txRows } = await client.query(
+      `SELECT t.*, a.name AS account_name, a.user_id, a.balance AS account_balance, a.available AS account_available,
+              u.name AS user_name, u.email AS user_email
+       FROM transactions t
+       JOIN accounts a ON a.id = t.account_id
+       JOIN users u ON u.id = a.user_id
+       WHERE t.id = $1 FOR UPDATE`,
+      [req.params.id]
+    );
+    if (txRows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Transaction not found.' }); }
+    const tx = txRows[0];
+
+    if (tx.status !== 'completed') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Only completed transactions can be voided. Use reject for pending ones.' });
+    }
+    if (tx.reversed_by) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'This transaction has already been voided.' });
+    }
+    if (tx.tx_type === 'void_reversal') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Cannot void a void-reversal entry.' });
+    }
+
+    const reversalAmount = -Number(tx.amount); // opposite sign
+
+    // Post the void-reversal transaction
+    const { rows: reversalRows } = await client.query(
+      `INSERT INTO transactions
+         (account_id, name, category, amount, status, initiated_by, tx_type, admin_reason, reversal_of, occurred_at)
+       VALUES ($1, $2, $3, $4, 'completed', 'admin', 'void_reversal', $5, $6, NOW()) RETURNING id`,
+      [
+        tx.account_id,
+        `Void: ${tx.name}`,
+        tx.category,
+        reversalAmount,
+        reason.trim(),
+        tx.id,
+      ]
+    );
+    const reversalId = reversalRows[0].id;
+
+    // Link the original transaction to its reversal
+    await client.query(`UPDATE transactions SET reversed_by = $1 WHERE id = $2`, [reversalId, tx.id]);
+
+    // Adjust account balance and available (reversal unwinds the original amount)
+    await client.query(
+      `UPDATE accounts SET balance = balance + $1, available = available + $1, updated_at = NOW() WHERE id = $2`,
+      [reversalAmount, tx.account_id]
+    );
+
+    // Invalidate statement PDFs for both the original period and the current period
+    const origDate = new Date(tx.occurred_at);
+    const origPeriod = origDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+    const nowDate = new Date();
+    const nowPeriod = nowDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+    const periodsToInvalidate = [...new Set([origPeriod, nowPeriod])];
+    await client.query(
+      `UPDATE statements SET file_url = NULL WHERE account_id = $1 AND period = ANY($2::text[])`,
+      [tx.account_id, periodsToInvalidate]
+    );
+
+    // Notify the customer
+    await client.query(
+      `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
+       VALUES ($1, 'Transaction voided', $2, 'payment', 'transaction', $3)`,
+      [tx.user_id, `A transaction of ${Math.abs(Number(tx.amount)).toFixed(2)} (${tx.name}) has been voided and reversed.`, reversalId]
+    );
+
+    await client.query('COMMIT');
+    return res.json({ originalId: tx.id, reversalId, reversalAmount });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[admin void] failed:', err.message);
+    return res.status(500).json({ error: 'Void failed. Please try again.' });
+  } finally {
+    client.release();
+  }
+});
+
 // ─── POST /api/admin/accounts/:id/credit — credit any account ────────────────
 
 router.post('/accounts/:id/credit', async (req, res) => {
-  const { amount, description, category } = req.body ?? {};
+  const { amount, description, reason, category } = req.body ?? {};
   const value = Number(amount);
   if (!Number.isFinite(value) || value <= 0) return res.status(400).json({ error: 'Enter a valid positive amount.' });
   if (!description?.trim()) return res.status(400).json({ error: 'Description is required.' });
+  if (!reason?.trim()) return res.status(400).json({ error: 'Internal reason is required.' });
 
   const client = await pool.connect();
   try {
@@ -476,9 +806,9 @@ router.post('/accounts/:id/credit', async (req, res) => {
     const label = description.trim();
     const cat = category?.trim() || 'Credit';
     const { rows: creditTxRows } = await client.query(
-      `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, occurred_at)
-       VALUES ($1, $2, $3, $4, 'completed', 'admin', NOW()) RETURNING id`,
-      [account.id, label, cat, value]
+      `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, tx_type, admin_reason, occurred_at)
+       VALUES ($1, $2, $3, $4, 'completed', 'admin', 'adjustment', $5, NOW()) RETURNING id`,
+      [account.id, label, cat, value, reason.trim()]
     );
     await client.query(
       `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
@@ -511,10 +841,11 @@ router.post('/accounts/:id/credit', async (req, res) => {
 // ─── POST /api/admin/accounts/:id/debit — debit any account ─────────────────
 
 router.post('/accounts/:id/debit', async (req, res) => {
-  const { amount, description, category, allowNegative } = req.body ?? {};
+  const { amount, description, reason, category, allowNegative } = req.body ?? {};
   const value = Number(amount);
   if (!Number.isFinite(value) || value <= 0) return res.status(400).json({ error: 'Enter a valid positive amount.' });
   if (!description?.trim()) return res.status(400).json({ error: 'Description is required.' });
+  if (!reason?.trim()) return res.status(400).json({ error: 'Internal reason is required.' });
 
   const client = await pool.connect();
   try {
@@ -542,9 +873,9 @@ router.post('/accounts/:id/debit', async (req, res) => {
     const label = description.trim();
     const cat = category?.trim() || 'Debit';
     const { rows: debitTxRows } = await client.query(
-      `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, occurred_at)
-       VALUES ($1, $2, $3, $4, 'completed', 'admin', NOW()) RETURNING id`,
-      [account.id, label, cat, -value]
+      `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, tx_type, admin_reason, occurred_at)
+       VALUES ($1, $2, $3, $4, 'completed', 'admin', 'adjustment', $5, NOW()) RETURNING id`,
+      [account.id, label, cat, -value, reason.trim()]
     );
     await client.query(
       `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)

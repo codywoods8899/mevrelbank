@@ -186,3 +186,37 @@ UPDATE beneficiaries SET routing_number = '071001245' WHERE length(routing_numbe
 -- 8-digit demo numbers are left as-is (still valid, just on the short end).
 ALTER TABLE accounts ALTER COLUMN account_number TYPE VARCHAR(20);
 ALTER TABLE beneficiaries ALTER COLUMN account_number TYPE VARCHAR(20);
+
+-- Phase 8 — Admin Data Management
+-- Transaction types distinguish ordinary customer transactions from admin
+-- adjustments, reversals, and void-reversals. Explicit FK columns (reversal_of /
+-- reversed_by) create a first-class audit chain without relying on metadata text.
+
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS tx_type VARCHAR(20) NOT NULL DEFAULT 'transaction'
+  CHECK (tx_type IN ('transaction', 'adjustment', 'reversal', 'void_reversal'));
+
+-- Mandatory internal reason field for all admin-originated adjustment / void entries.
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS admin_reason TEXT;
+
+-- Self-referential reversal links — set to NULL if the linked transaction is ever removed.
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS reversal_of UUID REFERENCES transactions(id) ON DELETE SET NULL;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS reversed_by UUID REFERENCES transactions(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_transactions_tx_type    ON transactions(tx_type);
+CREATE INDEX IF NOT EXISTS idx_transactions_reversal_of ON transactions(reversal_of);
+
+-- Account lifecycle: soft-close replaces hard deletion; history is always retained.
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS status       VARCHAR(20) NOT NULL DEFAULT 'active'
+  CHECK (status IN ('active', 'closed'));
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS closed_at    TIMESTAMPTZ;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS close_reason TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_accounts_status ON accounts(status);
+
+-- Customer archival: replaces permanent deletion.
+-- archived_at being non-NULL means the customer has been archived.
+-- is_active is also set to FALSE and all sessions are revoked at archive time.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_at    TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS archive_reason TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_users_archived_at ON users(archived_at);
