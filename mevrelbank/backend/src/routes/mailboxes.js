@@ -237,6 +237,9 @@ router.post('/:account/send', async (req, res) => {
     secure: smtpPort() === 465,
     auth: { user: account.email, pass: password },
     tls: { rejectUnauthorized: false },
+    connectionTimeout: 15000,
+    greetingTimeout:   10000,
+    socketTimeout:     20000,
   });
 
   try {
