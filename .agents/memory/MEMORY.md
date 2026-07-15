@@ -4,3 +4,4 @@
 - [MevrelBank auth sessions & admin access](mevrelbank-auth-sessions.md) — opaque refresh tokens via httpOnly cookies, remember-me TTL branching, role+email admin gating, dev must use relative /api not VITE_API_BASE_URL.
 - [MevrelBank account numbers](mevrelbank-account-numbers.md) — account numbers used to be generated already-masked at creation; check generation site (backend), not frontend, if display issues resurface.
 - [Fresh import restores](fresh-import-restores.md) — after a GitHub import node_modules are absent; run npm install in aicg/, mevrelbank/backend/, and the frontend dir before restarting workflows.
+- [WhatsApp / Smartsupp alignment](whatsapp-smartsupp-alignment.md) — STACK_GAP=12px must apply on both dynamic and fallback paths; DEFAULT_BOTTOM derives from getSmartsuppOffset().y + size + gap, not a hardcoded constant.
