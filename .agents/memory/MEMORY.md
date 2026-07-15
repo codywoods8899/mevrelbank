@@ -3,3 +3,4 @@
 - [MevrelBank payments and statements](mevrelbank-payments-and-statements.md) — transfers/payments are ledger-only (no external bank rail); statements generate lazily, no cron.
 - [MevrelBank auth sessions & admin access](mevrelbank-auth-sessions.md) — opaque refresh tokens via httpOnly cookies, remember-me TTL branching, role+email admin gating, dev must use relative /api not VITE_API_BASE_URL.
 - [MevrelBank account numbers](mevrelbank-account-numbers.md) — account numbers used to be generated already-masked at creation; check generation site (backend), not frontend, if display issues resurface.
+- [Fresh import restores](fresh-import-restores.md) — after a GitHub import node_modules are absent; run npm install in aicg/, mevrelbank/backend/, and the frontend dir before restarting workflows.

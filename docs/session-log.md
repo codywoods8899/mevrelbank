@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-16](#s-16) | 2026-07-15T04:00Z | — | Orientation: full codebase review + restore all workflows | Replit Agent |
 | [S-14](#s-14) | 2026-07-15T01:40Z | — | Admin mailboxes, Smartsupp fix, AICG repair + Cloudflare Worker deployment | Replit Agent |
 | [S-13](#s-13) | 2026-07-11T02:55Z | — | Phase 3 customer banking scaffold: accounts, transactions, statements, beneficiaries, profile, notifications | Replit Agent |
 | [S-12](#s-12) | 2026-07-11T02:33Z | — | Phase 2 auth wiring: AuthContext, protected routes, dashboard | Replit Agent |
@@ -24,6 +25,44 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-16"></a>
+## S-16 · 2026-07-15T04:00Z · Orientation: full codebase review + restore all workflows
+
+**Agent:** Replit Agent  
+**Branch:** (current)  
+**PR:** —  
+**Trigger:** New agent import — user asked the incoming agent to read all project guides and understand the full system before doing any work.
+
+### Objective
+Read and digest all project documentation (session log, roadmap, `replit.md`, `docs/`, AICG README, backend architecture, frontend route map) to establish full situational awareness. Restore the three Replit workflows that were failing due to missing `node_modules` (fresh import strips them).
+
+### Problems solved
+| Problem | Root cause | Fix |
+|---------|-----------|-----|
+| `Start application` workflow failing (`Cannot find module 'dotenv'`) | `aicg/node_modules/` absent after import | `npm install` in `aicg/` |
+| `MevrelBank Backend` workflow failing (`Cannot find module 'dotenv'`) | `mevrelbank/backend/node_modules/` absent after import | `npm install` in `mevrelbank/backend/` |
+| `MevrelBank Dev (verify)` workflow stalling on vite install prompt | Vite already in `node_modules` (frontend deps were present); workflow recovered on restart | No action needed |
+
+### Files Changed
+| File | Status | Notes |
+|------|--------|-------|
+| `docs/session-log.md` | modified | Added this entry |
+
+### System State After This Session
+- **AICG** (port 3000): running — `POST /authorize` + `/tree` operational
+- **MevrelBank Backend** (port 3001): running — connected to Neon PostgreSQL, all routes live
+- **MevrelBank Frontend** (port 5173): running — Vite dev server, proxies `/api/*` to port 3001
+
+### Knowledge Summary
+- Project is a full-stack digital banking platform at Phase 4 (payments, ledger-only)
+- Production: frontend on Cloudflare Pages (`mevrelbank.com`), backend on Railway, DB on Neon PostgreSQL
+- AICG is a separate intelligence gateway also deployed as a Cloudflare Worker at `aigc.mevrelbank.com`
+- Admin panel restricted to `support@mevrelbank.com` (`role = 'admin'`); password set via reset-password flow
+- All five SpaceMail inboxes accessible via admin mailbox panel (IMAP read, Resend-backed send)
+- Roadmap next item: Phase 4 remainder (local transfers to other MevrelBank customers, scheduled transfers)
 
 ---
 
