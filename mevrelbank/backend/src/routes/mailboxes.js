@@ -122,9 +122,9 @@ router.get('/:account/messages', async (req, res) => {
     const { messages, total } = await withImap(account, async (conn) => {
       await conn.openBox(folder);
 
-      // Get all message sequence numbers; newest first
-      const searchResults = await conn.search(['ALL'], {});
-      const allUids = searchResults.sort((a, b) => b - a);
+      // Step 1: lightweight fetch to get all UIDs (no bodies)
+      const allMsgs = await conn.search(['ALL'], { bodies: [], struct: false });
+      const allUids = allMsgs.map(m => m.attributes.uid).sort((a, b) => b - a);
       const total = allUids.length;
 
       const start = (page - 1) * pageSize;
@@ -132,11 +132,15 @@ router.get('/:account/messages', async (req, res) => {
 
       if (sliced.length === 0) return { messages: [], total };
 
-      const fetched = await conn.fetch(sliced.join(','), {
-        bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'],
-        markSeen: false,
-        struct: true,
-      });
+      // Step 2: fetch headers for just this page's UIDs
+      const fetched = await conn.search(
+        [['UID', sliced.join(',')]],
+        {
+          bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'],
+          markSeen: false,
+          struct: true,
+        },
+      );
 
       const messages = await Promise.all(fetched.map(async (msg) => {
         const headerPart = msg.parts.find(p => p.which === 'HEADER.FIELDS (FROM TO SUBJECT DATE)');
@@ -177,11 +181,10 @@ router.get('/:account/messages/:uid', async (req, res) => {
   try {
     const message = await withImap(account, async (conn) => {
       await conn.openBox(folder);
-      const fetched = await conn.fetch(`${uid}`, {
-        bodies: [''],
-        markSeen: true,
-        struct: true,
-      });
+      const fetched = await conn.search(
+        [['UID', String(uid)]],
+        { bodies: [''], markSeen: true, struct: true },
+      );
 
       if (!fetched.length) throw new Error('Message not found.');
       const msg = fetched[0];
