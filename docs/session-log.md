@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-14](#s-14) | 2026-07-15T01:40Z | — | Admin mailboxes, Smartsupp fix, AICG repair + Cloudflare Worker deployment | Replit Agent |
 | [S-13](#s-13) | 2026-07-11T02:55Z | — | Phase 3 customer banking scaffold: accounts, transactions, statements, beneficiaries, profile, notifications | Replit Agent |
 | [S-12](#s-12) | 2026-07-11T02:33Z | — | Phase 2 auth wiring: AuthContext, protected routes, dashboard | Replit Agent |
 | [S-11](#s-11) | 2026-07-10T03:30Z | — | GitHub Sync Engine v1 | Copilot Coding Agent |
@@ -23,6 +24,78 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-14"></a>
+## S-14 · 2026-07-15T01:40Z · Admin mailboxes, Smartsupp fix, AICG repair + Cloudflare Worker deployment
+
+**Agent:** Replit Agent  
+**Branch:** (current)  
+**PR:** —  
+**Trigger:** Three distinct user requests: (1) admin mailbox viewer for the five SpaceMail inboxes, (2) fix Smartsupp live-chat script placement, (3) get AICG reachable at `aigc.mevrelbank.com` without using Replit's publish system.
+
+### Objective
+1. Build a full three-column mailbox UI in the admin panel backed by IMAP read + branded SMTP send for all five SpaceMail accounts.
+2. Move the Smartsupp `<script>` block from `<body>` to `<head>` (Smartsupp requirement); relocate the `<noscript>` to `<body>` to satisfy the HTML spec (Vite rejects `<noscript>` inside `<head>`).
+3. Repair the AICG Node.js service (`@octokit/rest` v22 ESM-only breakage), then rewrite it as a Cloudflare Worker and deploy it to `aigc.mevrelbank.com` — no Replit publishing involved.
+
+### Files Changed
+
+#### Admin Mailboxes (backend)
+| File | Status | Notes |
+|------|--------|-------|
+| `mevrelbank/backend/src/services/emailTemplates.js` | added | Extracted `baseTemplate()` from `email.js` into a shared module |
+| `mevrelbank/backend/src/services/email.js` | modified | Imports `baseTemplate` from the new shared module instead of defining it inline |
+| `mevrelbank/backend/src/routes/mailboxes.js` | added | 5 routes: list accounts, list IMAP folders, paginated message list, full message body, SMTP send. All protected by `requireAuth + requireAdmin`. IMAP host derived by swapping `smtp.` → `imap.` in `SPACEMAIL_SMTP_HOST`. Passwords read from `CAREERS_EMAIL_PASSWORD`, `COMPLIANCE_EMAIL_PASSWORD`, `HELLO_EMAIL_PASSWORD`, `SECURITY_EMAIL_PASSWORD`, `SUPPORT_EMAIL_PASSWORD`. |
+| `mevrelbank/backend/server.js` | modified | Mounted `/api/admin/mailboxes` route |
+| `mevrelbank/backend/package.json` | modified | Added `imap-simple`, `mailparser`, `nodemailer` |
+
+#### Admin Mailboxes (frontend)
+| File | Status | Notes |
+|------|--------|-------|
+| `src/app/admin/AdminMailboxPage.tsx` | added | Three-column layout: account list → folder + message list → message detail/iframe viewer. Compose modal with bank HTML template; reply pre-fills To/Subject. |
+| `src/app/admin/AdminLayout.tsx` | modified | Added "Mailboxes" nav item (`Inbox` icon → `/admin/mailboxes`) |
+| `src/main.tsx` | modified | Added `/admin/mailboxes` route inside the admin protected route block |
+
+#### Smartsupp Script
+| File | Status | Notes |
+|------|--------|-------|
+| `mevrelbank/design-systems/agents/figma/Figma Design System For Banking Ecosystem v0.1.0/index.html` | modified | Moved `<script>` block to `<head>`; moved `<noscript>` to `<body>` |
+
+#### AICG — Node.js repair
+| File | Status | Notes |
+|------|--------|-------|
+| `aicg/package.json` | modified | Downgraded `@octokit/rest` from v22 (ESM-only) to v19 (last CommonJS-compatible release) |
+
+#### AICG — Cloudflare Worker (`aicg-worker/`)
+| File | Status | Notes |
+|------|--------|-------|
+| `aicg-worker/wrangler.toml` | added | Worker name `aicg`, `vm`-style deployment, KV binding `SESSIONS → 7efe2f42d42b44b58473e7e02a04a00f`, static vars for `GITHUB_OWNER`/`GITHUB_REPO`/`SESSION_TTL_MS` |
+| `aicg-worker/package.json` | added | `wrangler@^3` dev dependency |
+| `aicg-worker/src/index.js` | added | Main fetch handler — manual router, CORS preflight, public + session-guarded routes |
+| `aicg-worker/src/config.js` | added | `getConfig(env)` — reads secrets from Worker env instead of `process.env` |
+| `aicg-worker/src/auth.js` | added | Token validation (XOR constant-time compare), KV session creation |
+| `aicg-worker/src/session.js` | added | KV-backed session: create/get/validate/invalidate; KV TTL used for expiry |
+| `aicg-worker/src/github.js` | added | All GitHub REST calls via native `fetch()` — no Octokit dependency |
+| `aicg-worker/src/tree.js` | added | `isBlocked()` + `getFilteredTree()` — ported from Node, `path` module replaced with inline string helpers |
+| `aicg-worker/src/read.js` | added | Binary extension blocklist, `readAllowed()` |
+| `aicg-worker/src/search.js` | added | Filename + code search, merge/rank logic |
+
+### Infrastructure
+- **Cloudflare KV namespace** `aicg_sessions` created via API (`id: 7efe2f42d42b44b58473e7e02a04a00f`)
+- **Worker deployed** to `https://aicg.mevrelbank.workers.dev` via `wrangler deploy`
+- **Secrets set** on Worker: `G_TOKEN`, `SESSION_SECRET`
+- **Custom domain** `aigc.mevrelbank.com` attached via Cloudflare Workers Domains API (zone `f28313a6d22104fce346302f16ca665e`); Cloudflare manages DNS record and TLS automatically
+- **`G_TOKEN`** added to Replit Secrets (GitHub PAT for `codywoods8899/mevrelbank`, read-only)
+
+### Verification
+- Node.js AICG: `POST /authorize` + `GET /tree` confirmed — 35,930 nodes returned from GitHub.
+- Cloudflare Worker: `POST /authorize` + `GET /tree` confirmed via `https://aicg.mevrelbank.workers.dev` — 35,930 nodes returned.
+- `aigc.mevrelbank.com` custom domain attached; DNS/TLS provisioned by Cloudflare.
+
+### Outcome
+Admin mailbox panel is live in the backend and frontend. Smartsupp script is correctly placed. AICG runs both as a local Node.js service (port 3000, Replit workspace) and as a production Cloudflare Worker at `aigc.mevrelbank.com`. No Replit publishing was used.
 
 ---
 
