@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
+import { IconBrandWhatsapp } from "@tabler/icons-react";
 
 // Global floating WhatsApp contact bubble, bottom-right, shown on every page.
-// The green circle is intentionally left icon-free — a custom PNG icon will be
-// placed inside once sourced. Just add an <img> tag as the sole child here.
 
 const BASE_URL = import.meta.env.DEV
   ? ""
@@ -40,7 +39,7 @@ export function WhatsAppButton() {
       aria-label="Chat with us on WhatsApp"
       className="fixed bottom-24 right-5 z-[60] w-14 h-14 rounded-full bg-[#25D366] shadow-[0_6px_20px_rgba(0,0,0,0.25)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#25D366]"
     >
-      {/* WhatsApp icon PNG goes here — drop an <img src="/brand/whatsapp-icon.png" ... /> */}
+      <IconBrandWhatsapp size={30} color="white" stroke={1.75} />
     </a>
   );
 }
