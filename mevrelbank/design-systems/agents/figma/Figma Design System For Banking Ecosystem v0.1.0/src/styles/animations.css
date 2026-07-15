@@ -15,6 +15,23 @@
   animation: whatsapp-enter 400ms cubic-bezier(0.215, 0.61, 0.355, 1) both;
 }
 
+/* Notification deep-link row highlight
+ * Applied by notificationActionResolver.applyRowHighlight() after navigating to a
+ * destination page. The element must carry data-entity-id="<uuid>". The class is
+ * removed automatically via animationend so subsequent hover states are unaffected.
+ *
+ * Design intent: a calm blue wash (brand #1764C0 at low opacity) with an inset
+ * border ring that fades out over 2 s, drawing the eye without jarring the user.
+ */
+@keyframes row-highlight {
+  0%   { background-color: rgba(23, 100, 192, 0.12); box-shadow: inset 0 0 0 1.5px rgba(23, 100, 192, 0.28); }
+  60%  { background-color: rgba(23, 100, 192, 0.06); box-shadow: inset 0 0 0 1.5px rgba(23, 100, 192, 0.10); }
+  100% { background-color: transparent;               box-shadow: inset 0 0 0 1.5px transparent; }
+}
+.row-highlight {
+  animation: row-highlight 2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Mobile drawer slide-in from left */
 @keyframes slideInLeft {
   from { transform: translateX(-100%); }

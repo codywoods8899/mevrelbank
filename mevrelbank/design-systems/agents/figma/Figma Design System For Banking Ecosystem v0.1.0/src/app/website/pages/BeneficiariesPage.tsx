@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Users, SendHorizontal, Plus, X, Trash2, AlertCircle } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { Btn } from "../shared/Btn";
 import { useAuth } from "../../context/AuthContext";
 import { bankingApi, type Beneficiary, type Account } from "../shared/bankingApi";
+import { applyRowHighlight } from "../services/notificationActionResolver";
 
 function PayModal({ beneficiary, accounts, onClose }: { beneficiary: Beneficiary; accounts: Account[]; onClose: () => void }) {
   const { authedFetch } = useAuth();
@@ -74,19 +76,23 @@ export default function BeneficiariesPage() {
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [searchParams] = useSearchParams();
 
-  function load() {
+  function load(highlightId?: string | null) {
     setLoadError(null);
     Promise.all([bankingApi.getBeneficiaries(authedFetch), bankingApi.getAccounts(authedFetch)])
       .then(([b, a]) => {
         setBeneficiaries(b.beneficiaries);
         setAccounts(a.accounts);
+        if (highlightId) applyRowHighlight(highlightId);
       })
       .catch(() => setLoadError("Couldn't load your payees. Please try again."))
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { load(); }, [authedFetch]);
+  useEffect(() => {
+    load(searchParams.get("highlight"));
+  }, [authedFetch, searchParams]);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -165,7 +171,11 @@ export default function BeneficiariesPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {beneficiaries.map((b) => (
-          <div key={b.id} className="p-4 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] flex items-center gap-3">
+          <div
+            key={b.id}
+            data-entity-id={b.id}
+            className="p-4 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] flex items-center gap-3"
+          >
             <div className="w-9 h-9 rounded-full bg-[#EBF0FA] flex items-center justify-center text-[#0B3270] flex-shrink-0">
               <Users size={15} />
             </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { ArrowDownLeft, ArrowUpRight, Download } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { Btn } from "../shared/Btn";
@@ -6,6 +7,7 @@ import { StatusDot } from "../shared/StatusDot";
 import { useAuth } from "../../context/AuthContext";
 import { bankingApi, formatRelativeDate, type Transaction } from "../shared/bankingApi";
 import { TransactionReceiptModal } from "../components/TransactionReceiptModal";
+import { applyRowHighlight } from "../services/notificationActionResolver";
 
 const FILTERS = ["All", "Current Account", "Savings Account"] as const;
 
@@ -16,20 +18,27 @@ export default function TransactionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<typeof FILTERS[number]>("All");
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     let active = true;
     bankingApi.getTransactions(authedFetch, { limit: 100 })
-      .then((r) => active && setTransactions(r.transactions))
+      .then((r) => {
+        if (!active) return;
+        setTransactions(r.transactions);
+        // Highlight the referenced row after data is in the DOM.
+        const highlightId = searchParams.get("highlight");
+        if (highlightId) applyRowHighlight(highlightId);
+      })
       .catch(() => active && setError("Couldn't load your transactions. Please try again."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [authedFetch]);
+  }, [authedFetch, searchParams]);
 
   const filtered = filter === "All" ? transactions : transactions.filter((t) => t.account === filter);
 
   function handleExport() {
-    const header = ["Date", "Description", "Category", "Account", "Status", "Amount (GBP)"];
+    const header = ["Date", "Description", "Category", "Account", "Status", "Amount (USD)"];
     const rows = filtered.map((t) => [
       new Date(t.date).toISOString(),
       t.name,
@@ -86,6 +95,7 @@ export default function TransactionsPage() {
           <button
             key={tx.id}
             type="button"
+            data-entity-id={tx.id}
             onClick={() => setSelectedTx(tx)}
             className={`w-full flex items-center gap-3.5 px-5 py-3 text-left ${i < filtered.length - 1 ? "border-b border-[rgba(11,50,112,0.04)]" : ""} hover:bg-[#F8FAFD] active:bg-[#EEF2F9] transition-colors cursor-pointer`}
           >

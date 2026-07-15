@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { FileText, Download } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { Btn } from "../shared/Btn";
 import { useAuth } from "../../context/AuthContext";
 import { bankingApi, type Statement } from "../shared/bankingApi";
+import { applyRowHighlight } from "../services/notificationActionResolver";
 
 export default function StatementsPage() {
   const { authedFetch } = useAuth();
@@ -11,15 +13,21 @@ export default function StatementsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     let active = true;
     bankingApi.getStatements(authedFetch)
-      .then((r) => active && setStatements(r.statements))
+      .then((r) => {
+        if (!active) return;
+        setStatements(r.statements);
+        const highlightId = searchParams.get("highlight");
+        if (highlightId) applyRowHighlight(highlightId);
+      })
       .catch(() => active && setError("Couldn't load your statements. Please try again."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [authedFetch]);
+  }, [authedFetch, searchParams]);
 
   async function handleDownload(s: Statement) {
     setDownloadingId(s.id);
@@ -47,7 +55,11 @@ export default function StatementsPage() {
 
       <div className="bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] overflow-hidden">
         {statements.map((s, i) => (
-          <div key={s.id} className={`flex items-center gap-3.5 px-5 py-3.5 ${i < statements.length - 1 ? "border-b border-[rgba(11,50,112,0.04)]" : ""} hover:bg-[#F8FAFD] transition-colors`}>
+          <div
+            key={s.id}
+            data-entity-id={s.id}
+            className={`flex items-center gap-3.5 px-5 py-3.5 ${i < statements.length - 1 ? "border-b border-[rgba(11,50,112,0.04)]" : ""} hover:bg-[#F8FAFD] transition-colors`}
+          >
             <div className="w-8 h-8 rounded-[7px] bg-[#EBF0FA] flex items-center justify-center text-[#0B3270] flex-shrink-0">
               <FileText size={14} />
             </div>

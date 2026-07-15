@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import {
   CreditCard, ArrowDownLeft, ArrowUpRight, ArrowLeftRight,
   X, AlertCircle, Plus, Landmark, PiggyBank, CheckCircle2,
@@ -7,6 +8,7 @@ import { PageMeta } from "../components/PageMeta";
 import { Btn } from "../shared/Btn";
 import { useAuth } from "../../context/AuthContext";
 import { bankingApi, formatRelativeDate, type Account, type Transaction } from "../shared/bankingApi";
+import { applyRowHighlight } from "../services/notificationActionResolver";
 
 // ─── Transfer Modal ───────────────────────────────────────────────────────────
 
@@ -186,7 +188,6 @@ function OpenAccountModal({
         </button>
 
         {done ? (
-          /* Success state */
           <div className="text-center py-4">
             <div className="w-14 h-14 rounded-full bg-[#D6F0E6] flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 size={26} className="text-[#0E7C4D]" />
@@ -219,7 +220,6 @@ function OpenAccountModal({
               </p>
             </div>
 
-            {/* Account type cards */}
             <div className="flex flex-col gap-3 mb-5">
               {ACCOUNT_OPTIONS.map((opt) => {
                 const Icon = opt.icon;
@@ -253,7 +253,6 @@ function OpenAccountModal({
               })}
             </div>
 
-            {/* Optional custom name */}
             {selected && (
               <div className="mb-5">
                 <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">
@@ -309,8 +308,9 @@ export default function AccountsPage() {
   const [loadError, setLoadError]       = useState<string | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showOpen, setShowOpen]         = useState(false);
+  const [searchParams] = useSearchParams();
 
-  function load() {
+  function load(highlightId?: string | null) {
     setLoadError(null);
     Promise.all([
       bankingApi.getAccounts(authedFetch),
@@ -319,12 +319,15 @@ export default function AccountsPage() {
       .then(([a, t]) => {
         setAccounts(a.accounts);
         setTransactions(t.transactions);
+        if (highlightId) applyRowHighlight(highlightId);
       })
       .catch(() => setLoadError("Couldn't load your accounts. Please try again."))
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { load(); }, [authedFetch]);
+  useEffect(() => {
+    load(searchParams.get("highlight"));
+  }, [authedFetch, searchParams]);
 
   return (
     <>
@@ -388,11 +391,12 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* Account cards */}
+      {/* Account cards — data-entity-id enables notification deep-link highlight */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
         {accounts.map((acc) => (
           <div
             key={acc.id}
+            data-entity-id={acc.id}
             className="p-5 bg-white rounded-[12px] border border-[rgba(11,50,112,0.07)] shadow-[0_1px_4px_rgba(11,50,112,0.04)] hover:shadow-[0_4px_16px_rgba(11,50,112,0.08)] transition-shadow"
           >
             <div className="flex items-center justify-between mb-4">
@@ -426,7 +430,6 @@ export default function AccountsPage() {
           </div>
         ))}
 
-        {/* Empty-state "open account" prompt when user has no accounts yet */}
         {!loading && accounts.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
             <div className="w-12 h-12 rounded-full bg-[#EBF0FA] flex items-center justify-center mb-3">

@@ -70,6 +70,9 @@ function publicNotification(n) {
     kind: n.kind,
     read: n.read,
     time: n.created_at,
+    entityType: n.entity_type ?? null,
+    entityId: n.entity_id ?? null,
+    metadata: n.metadata ?? null,
   };
 }
 
@@ -122,9 +125,9 @@ router.post('/accounts', async (req, res) => {
   );
 
   await pool.query(
-    `INSERT INTO notifications (user_id, title, body, kind)
-     VALUES ($1, 'New account opened', $2, 'info')`,
-    [req.user.sub, `Your new ${defaultName} is ready to use.`]
+    `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
+     VALUES ($1, 'New account opened', $2, 'info', 'account', $3)`,
+    [req.user.sub, `Your new ${defaultName} is ready to use.`, rows[0].id]
   );
 
   return res.status(201).json({ account: publicAccount(rows[0]) });
@@ -227,6 +230,13 @@ router.post('/beneficiaries', async (req, res) => {
      VALUES ($1, $2, $3, $4, $5) RETURNING *`,
     [req.user.sub, name.trim(), nickname?.trim() || null, routingNumber.trim(), accountNumber.trim()]
   );
+
+  await pool.query(
+    `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
+     VALUES ($1, 'Beneficiary added', $2, 'info', 'beneficiary', $3)`,
+    [req.user.sub, `${name.trim()} has been added to your payees.`, rows[0].id]
+  );
+
   return res.status(201).json({ beneficiary: publicBeneficiary(rows[0]) });
 });
 
@@ -288,9 +298,9 @@ router.post('/transfer', async (req, res) => {
     );
 
     await client.query(
-      `INSERT INTO notifications (user_id, title, body, kind)
-       VALUES ($1, 'Transfer submitted', $2, 'payment')`,
-      [req.user.sub, `Your transfer of $${value.toFixed(2)} to ${to.name} is being processed.`]
+      `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
+       VALUES ($1, 'Transfer submitted', $2, 'payment', 'transaction', $3)`,
+      [req.user.sub, `Your transfer of ${value.toFixed(2)} to ${to.name} is being processed.`, txRows[0].id]
     );
 
     await client.query('COMMIT');
@@ -390,9 +400,9 @@ router.post('/pay', async (req, res) => {
 
     await client.query('UPDATE beneficiaries SET last_paid_at = NOW() WHERE id = $1', [beneficiary.id]);
     await client.query(
-      `INSERT INTO notifications (user_id, title, body, kind)
-       VALUES ($1, 'Payment submitted', $2, 'payment')`,
-      [req.user.sub, `Your payment of $${value.toFixed(2)} to ${beneficiary.nickname || beneficiary.name} is being processed.`]
+      `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
+       VALUES ($1, 'Payment submitted', $2, 'payment', 'transaction', $3)`,
+      [req.user.sub, `Your payment of ${value.toFixed(2)} to ${beneficiary.nickname || beneficiary.name} is being processed.`, txRows[0].id]
     );
 
     await client.query('COMMIT');

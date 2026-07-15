@@ -5,3 +5,4 @@
 - [MevrelBank account numbers](mevrelbank-account-numbers.md) — account numbers used to be generated already-masked at creation; check generation site (backend), not frontend, if display issues resurface.
 - [Fresh import restores](fresh-import-restores.md) — after a GitHub import node_modules are absent; run npm install in aicg/, mevrelbank/backend/, and the frontend dir before restarting workflows.
 - [WhatsApp / Smartsupp alignment](whatsapp-smartsupp-alignment.md) — STACK_GAP=12px must apply on both dynamic and fallback paths; DEFAULT_BOTTOM derives from getSmartsuppOffset().y + size + gap, not a hardcoded constant.
+- [Notification action resolver](notification-action-resolver.md) — routing lives in notificationActionResolver.ts; entity_type+entity_id on notifications table; never text-match; all creation sites documented.

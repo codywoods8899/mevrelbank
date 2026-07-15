@@ -48,6 +48,12 @@ export interface Notification {
   kind: "security" | "payment" | "info";
   read: boolean;
   time: string;
+  /** Routing vocabulary owned entirely by the backend — never parsed from text. */
+  entityType: "transaction" | "account" | "beneficiary" | "statement" | "security" | null;
+  /** UUID of the referenced entity, or null when the notification has no destination. */
+  entityId: string | null;
+  /** JSONB bag for future extensibility. Not used for routing decisions. */
+  metadata: Record<string, unknown> | null;
 }
 
 type AuthedFetch = (path: string, options?: RequestInit) => Promise<Response>;

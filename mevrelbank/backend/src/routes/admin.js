@@ -475,15 +475,15 @@ router.post('/accounts/:id/credit', async (req, res) => {
 
     const label = description.trim();
     const cat = category?.trim() || 'Credit';
-    await client.query(
+    const { rows: creditTxRows } = await client.query(
       `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, occurred_at)
-       VALUES ($1, $2, $3, $4, 'completed', 'admin', NOW())`,
+       VALUES ($1, $2, $3, $4, 'completed', 'admin', NOW()) RETURNING id`,
       [account.id, label, cat, value]
     );
     await client.query(
-      `INSERT INTO notifications (user_id, title, body, kind)
-       VALUES ($1, 'Account credit', $2, 'payment')`,
-      [account.user_id, `$${value.toFixed(2)} has been credited to your ${account.name}.`]
+      `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
+       VALUES ($1, 'Account credit', $2, 'payment', 'transaction', $3)`,
+      [account.user_id, `${value.toFixed(2)} has been credited to your ${account.name}.`, creditTxRows[0].id]
     );
 
     await client.query('COMMIT');
@@ -541,15 +541,15 @@ router.post('/accounts/:id/debit', async (req, res) => {
 
     const label = description.trim();
     const cat = category?.trim() || 'Debit';
-    await client.query(
+    const { rows: debitTxRows } = await client.query(
       `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, occurred_at)
-       VALUES ($1, $2, $3, $4, 'completed', 'admin', NOW())`,
+       VALUES ($1, $2, $3, $4, 'completed', 'admin', NOW()) RETURNING id`,
       [account.id, label, cat, -value]
     );
     await client.query(
-      `INSERT INTO notifications (user_id, title, body, kind)
-       VALUES ($1, 'Account debit', $2, 'payment')`,
-      [account.user_id, `$${value.toFixed(2)} has been debited from your ${account.name}.`]
+      `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
+       VALUES ($1, 'Account debit', $2, 'payment', 'transaction', $3)`,
+      [account.user_id, `${value.toFixed(2)} has been debited from your ${account.name}.`, debitTxRows[0].id]
     );
 
     await client.query('COMMIT');
@@ -608,19 +608,31 @@ router.post('/transfer', async (req, res) => {
       'UPDATE accounts SET balance = balance + $1, available = available + $1, updated_at = NOW() WHERE id = $2',
       [value, to.id]
     );
-    await client.query(
+    // Two separate inserts (instead of a single multi-row VALUES) so we can
+    // capture each transaction's id for notification deep-linking.
+    const { rows: fromTxRows } = await client.query(
       `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, occurred_at)
-       VALUES ($1, $2, 'Transfer', $3, 'completed', 'admin', NOW()),
-              ($4, $5, 'Transfer', $6, 'completed', 'admin', NOW())`,
-      [from.id, `${label} (out)`, -value, to.id, `${label} (in)`, value]
+       VALUES ($1, $2, 'Transfer', $3, 'completed', 'admin', NOW()) RETURNING id`,
+      [from.id, `${label} (out)`, -value]
+    );
+    const { rows: toTxRows } = await client.query(
+      `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, occurred_at)
+       VALUES ($1, $2, 'Transfer', $3, 'completed', 'admin', NOW()) RETURNING id`,
+      [to.id, `${label} (in)`, value]
     );
 
     await Promise.all([
-      client.query(`INSERT INTO notifications (user_id, title, body, kind) VALUES ($1, 'Account transfer', $2, 'payment')`,
-        [from.user_id, `$${value.toFixed(2)} transferred from your ${from.name}.`]),
+      client.query(
+        `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
+         VALUES ($1, 'Account transfer', $2, 'payment', 'transaction', $3)`,
+        [from.user_id, `${value.toFixed(2)} transferred from your ${from.name}.`, fromTxRows[0].id]
+      ),
       ...(to.user_id !== from.user_id
-        ? [client.query(`INSERT INTO notifications (user_id, title, body, kind) VALUES ($1, 'Account credit', $2, 'payment')`,
-            [to.user_id, `$${value.toFixed(2)} credited to your ${to.name}.`])]
+        ? [client.query(
+            `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
+             VALUES ($1, 'Account credit', $2, 'payment', 'transaction', $3)`,
+            [to.user_id, `${value.toFixed(2)} credited to your ${to.name}.`, toTxRows[0].id]
+          )]
         : []),
     ]);
 
@@ -697,9 +709,9 @@ router.patch('/transactions/:id/confirm', async (req, res) => {
     );
 
     await client.query(
-      `INSERT INTO notifications (user_id, title, body, kind)
-       VALUES ($1, 'Transaction completed', $2, 'payment')`,
-      [tx.user_id, `Your ${tx.category.toLowerCase()} of $${value.toFixed(2)} has been completed.`]
+      `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
+       VALUES ($1, 'Transaction completed', $2, 'payment', 'transaction', $3)`,
+      [tx.user_id, `Your ${tx.category.toLowerCase()} of ${value.toFixed(2)} has been completed.`, tx.id]
     );
 
     await client.query('COMMIT');
@@ -765,9 +777,9 @@ router.patch('/transactions/:id/reject', async (req, res) => {
       : `Your ${tx.category.toLowerCase()} of $${value.toFixed(2)} could not be completed. Any held funds have been returned.`;
 
     await client.query(
-      `INSERT INTO notifications (user_id, title, body, kind)
-       VALUES ($1, 'Transaction unsuccessful', $2, 'payment')`,
-      [tx.user_id, notifBody]
+      `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
+       VALUES ($1, 'Transaction unsuccessful', $2, 'payment', 'transaction', $3)`,
+      [tx.user_id, notifBody, tx.id]
     );
 
     await client.query('COMMIT');

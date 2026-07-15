@@ -100,6 +100,14 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Phase 7 — Actionable notifications
+-- entity_type: routing vocabulary owned by the backend (never parsed from text).
+-- entity_id:   UUID of the referenced entity (transaction, account, etc.).
+-- metadata:    JSONB bag for future extensibility; not used for routing decisions.
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS entity_type VARCHAR(30);
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS entity_id   UUID;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS metadata    JSONB;
+
 CREATE INDEX IF NOT EXISTS idx_accounts_user ON accounts(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_occurred ON transactions(occurred_at);
