@@ -1,120 +1,0 @@
-   -    \    |    /    -    \    |    /    -    \    |    /    -    \    |    /    -    \                                                                                                                            -    \    |                                                                                                                         Name                                Id                                  Version                    Available     Source
------------------------------------------------------------------------------------------------------------------------
-Windows Driver Package - Google, I… ARP\Machine\X64\092555911492C6959D… 08/28/2014 11.0.0000.00000               
-Windows Driver Package - DriverCod… ARP\Machine\X64\2047AB3E5227630079… 05/26/2014 1.0.0.21                      
-Windows Driver Package - Miracle T… ARP\Machine\X64\93CAA51E2FB5008FCC… 11/5/2013 4.0.0000.00000                 
-Windows Driver Package - Miracle T… ARP\Machine\X64\E8E7A52180B4EE3B01… 11/5/2013 4.0.0000.00000                 
-Firefox Developer Edition (x64 en-… ARP\Machine\X64\Firefox Developer … 153.0                                    
-Git                                 Git.Git                             2.54.0                     2.55.0.3      winget
-MediaTek Driver Packages version 5… ARP\Machine\X64\MediaTek Driver Pa… 5.14.53.00                               
-Microsoft .NET Framework 1.1 SP1    ARP\Machine\X64\Microsoft .NET Fra… Unknown                                  
-Microsoft Visual J# 2.0 Redistribu… ARP\Machine\X64\Microsoft Visual J… Unknown                                  
-Mozilla Maintenance Service         ARP\Machine\X64\MozillaMaintenance… 148.0                                    
-Proton VPN                          Proton.ProtonVPN                    5.1.5                                    winget
-VLC media player                    VideoLAN.VLC                        3.0.23                                   winget
-Vulkan Run Time Libraries 1.0.42.1  ARP\Machine\X64\VulkanRT1.0.42.1    1.0.42.1                                 
-WinRAR 6.11 (64-bit)                RARLab.WinRAR                       6.11.0                     7.23.0        winget
-HP DeskJet 2600 series Basic Devic… ARP\Machine\X64\{01BF1E7F-76A2-4C3… 43.4.2486.21347                          
-Microsoft Visual C++ 2010  x64 Red… Microsoft.VCRedist.2010.x64         10.0.40219                               winget
-Microsoft Update Health Tools       ARP\Machine\X64\{1FC1A6C2-576E-489… 3.74.0.0                                 
-Microsoft Visual C++ 2008 Redistri… Microsoft.VCRedist.2008.x64         9.0.30729.6161                           winget
-Google Drive                        Google.GoogleDrive                  128.0.0.0                                winget
-Update for Windows 10 for x64-base… ARP\Machine\X64\{85C69797-7336-4E8… 8.94.0.0                                 
-Node.js                             ARP\Machine\X64\{8E3EF5A2-585E-453… 24.16.0                                  
-NVIDIA Graphics Driver 382.05       ARP\Machine\X64\{B2FE1952-0186-46C… 382.05                                   
-NVIDIA PhysX System Software 9.17.… Nvidia.PhysX                        9.17.0524                  9.23.1019     winget
-Microsoft .NET Framework 1.1 SP1    ARP\Machine\X64\{CB2F7EDD-9D1F-43C… Unknown                                  
-Microsoft Visual C++ 2005 Redistri… ARP\Machine\X64\{ad8a2fa1-06e7-4b0… 8.0.61000                                
-Microsoft Office Enterprise 2007    ARP\Machine\X86\ENTERPRISE          12.0.4518.1014                           
-Google Chrome                       Google.Chrome.EXE                   150.0.7871.125                           winget
-Microsoft .NET Framework 1.1 Secur… ARP\Machine\X86\M2698023            Unknown                                  
-Microsoft .NET Framework 1.1 Secur… ARP\Machine\X86\M2833941            Unknown                                  
-Microsoft .NET Framework 1.1 Secur… ARP\Machine\X86\M979906             Unknown                                  
-MTN F@stLink                        ARP\Machine\X86\MTN F@stLink        21.005.11.05.200                         
-Microsoft .NET Framework 1.1        ARP\Machine\X86\Microsoft .NET Fra… Unknown                                  
-Microsoft DirectX SDK (June 2010)   ARP\Machine\X86\Microsoft DirectX … 9.29.1962.0                              
-Microsoft Edge                      Microsoft.Edge                      150.0.4078.48              150.0.4078.65 winget
-OBS Studio                          OBSProject.OBSStudio                32.0.1                     32.1.2        winget
-Voicemeeter, The Virtual Mixing Co… ARP\Machine\X86\VB:Voicemeeter {17… Unknown                                  
-CorelDRAW Graphics Suite X3         ARP\Machine\X86\_{63218538-4A69-49… 13.2                                     
-Microsoft Visual C++ 2015-2019 Red… Microsoft.VCRedist.2015+.x86        14.23.27820.0              14.51.36247.0 winget
-Microsoft Visual C++ 2013 Redistri… ARP\Machine\X86\{49e969a1-2990-464… 12.0.40664.0                             
-CorelDRAW Graphics Suite 12         ARP\Machine\X86\{505AFDC0-5E72-492… 12.0.0.458                               
-Microsoft Visual C++ 2005 Redistri… Microsoft.VCRedist.2005.x86         8.0.61001                                winget
-Microsoft .NET SDK 6.0.400 (x64)    Microsoft.DotNet.SDK.6              6.0.400                    6.0.428       winget
-Microsoft Visual C++ v14 Redistrib… Microsoft.VCRedist.2015+.x64        14.50.35719.0              14.51.36247.0 winget
-HP DeskJet 2600 series Help         ARP\Machine\X86\{9A36A9D9-787C-4E7… 44.0.0                                   
-Microsoft Visual C++ 2008 Redistri… Microsoft.VCRedist.2008.x86         9.0.30729.6161                           winget
-Microsoft Visual C++ 2010  x86 Red… Microsoft.VCRedist.2010.x86         10.0.40219                               winget
-Realtek High Definition Audio Driv… ARP\Machine\X86\{F132AF7F-7BCA-4ED… 6.0.1.8351                               
-Microsoft Visual C++ 2012 Redistri… ARP\Machine\X86\{a2199617-3609-410… 11.0.61030.0                             
-Microsoft Windows Desktop Runtime … Microsoft.DotNet.DesktopRuntime.6   6.0.6                      6.0.36        winget
-Microsoft Visual C++ 2013 Redistri… ARP\Machine\X86\{d2c8df0e-f15d-442… 12.0.40664.0                             
-Microsoft Visual C++ 2012 Redistri… ARP\Machine\X86\{f0080ca2-80ae-495… 11.0.61030.0                             
-Antigravity 2.2.1                   Google.Antigravity                  2.2.1                                    winget
-Microsoft OneDrive                  Microsoft.OneDrive                  26.108.0607.0002           26.113.0614.… winget
-Proton Mail                         Proton.ProtonMail                   1.13.3                                   winget
-Microsoft Visual Studio Code (User) Microsoft.VisualStudioCode          1.128.0                                  winget
-Antigravity IDE (User)              Google.AntigravityIDE               2.1.1                                    winget
-WhatsApp                            MSIX\5319275A.WhatsAppDesktop_2.26… 2.2625.101.0                             
-App connector                       MSIX\Microsoft.Appconnector_1.3.3.… 1.3.3.0                                  
-Microsoft Bing                      MSIX\Microsoft.BingSearch_1.1.40.0… 1.1.40.0                                 
-MSN Weather                         MSIX\Microsoft.BingWeather_4.54.63… 4.54.63040.0                             
-App Installer                       Microsoft.AppInstaller              1.28.240.0                 1.29.280.0    winget
-Get Help                            MSIX\Microsoft.GetHelp_10.2409.411… 10.2409.41132.0                          
-Microsoft Tips                      MSIX\Microsoft.Getstarted_10.2312.… 10.2312.1.0                              
-HEIF Image Extension                MSIX\Microsoft.HEIFImageExtension_… 1.2.36.0                                 
-Solitaire & Casual Games            MSIX\Microsoft.MicrosoftSolitaireC… 4.25.4290.0                              
-Microsoft Sticky Notes              MSIX\Microsoft.MicrosoftStickyNote… 6.1.4.0                                  
-Mixed Reality Portal                MSIX\Microsoft.MixedReality.Portal… 2000.21051.1282.0                        
-Microsoft .Net Native Framework Pa… MSIX\Microsoft.NET.Native.Framewor… 1.7.27413.0                              
-Microsoft .Net Native Framework Pa… MSIX\Microsoft.NET.Native.Framewor… 1.7.27413.0                              
-Microsoft .Net Native Framework Pa… MSIX\Microsoft.NET.Native.Framewor… 2.2.29512.0                              
-Microsoft .Net Native Framework Pa… MSIX\Microsoft.NET.Native.Framewor… 2.2.29512.0                              
-Microsoft .Net Native Runtime Pack… MSIX\Microsoft.NET.Native.Runtime.… 1.7.27422.0                              
-Microsoft .Net Native Runtime Pack… MSIX\Microsoft.NET.Native.Runtime.… 1.7.27422.0                              
-Microsoft .Net Native Runtime Pack… Microsoft.DotNet.Native.Runtime     2.2.28604.0                              winget
-Microsoft .Net Native Runtime Pack… Microsoft.DotNet.Native.Runtime     2.2.28604.0                              winget
-Outlook for Windows                 MSIX\Microsoft.OutlookForWindows_1… 1.2026.520.0                             
-Snip & Sketch                       MSIX\Microsoft.ScreenSketch_10.200… 10.2008.3001.0                           
-Store Experience Host               MSIX\Microsoft.StorePurchaseApp_22… 22604.1401.3.0                           
-Microsoft.UI.Xaml.2.1               MSIX\Microsoft.UI.Xaml.2.1_2.11906… 2.11906.6001.0                           
-Microsoft.UI.Xaml.2.1               MSIX\Microsoft.UI.Xaml.2.1_2.11906… 2.11906.6001.0                           
-Microsoft.UI.Xaml.2.3               MSIX\Microsoft.UI.Xaml.2.3_2.32002… 2.32002.13001.0                          
-Microsoft.UI.Xaml.2.3               MSIX\Microsoft.UI.Xaml.2.3_2.32002… 2.32002.13001.0                          
-Microsoft.UI.Xaml.2.4               MSIX\Microsoft.UI.Xaml.2.4_2.42007… 2.42007.9001.0                           
-Microsoft.UI.Xaml.2.4               MSIX\Microsoft.UI.Xaml.2.4_2.42007… 2.42007.9001.0                           
-Microsoft.UI.Xaml.2.7               Microsoft.UI.Xaml.2.7               7.2409.9001.0                            winget
-Microsoft.UI.Xaml.2.7               Microsoft.UI.Xaml.2.7               7.2409.9001.0                            winget
-Microsoft.UI.Xaml.2.8               Microsoft.UI.Xaml.2.8               8.2501.31001.0                           winget
-Microsoft.UI.Xaml.2.8               Microsoft.UI.Xaml.2.8               8.2501.31001.0                           winget
-Microsoft Visual C++ 2015 UWP Desk… Microsoft.VCLibs.Desktop.14         14.0.33728.0                             winget
-Microsoft Visual C++ 2015 UWP Desk… Microsoft.VCLibs.Desktop.14         14.0.33728.0                             winget
-Microsoft Visual C++ 2015 UWP Runt… Microsoft.VCLibs.14                 14.0.33519.0                             winget
-Microsoft Visual C++ 2015 UWP Runt… Microsoft.VCLibs.14                 14.0.33519.0                             winget
-VP9 Video Extensions                MSIX\Microsoft.VP9VideoExtensions_… 1.2.13.0                                 
-Microsoft Pay                       MSIX\Microsoft.Wallet_2.4.18324.0_… 2.4.18324.0                              
-Web Media Extensions                MSIX\Microsoft.WebMediaExtensions_… 1.2.17.0                                 
-WebP Image Extension                MSIX\Microsoft.WebpImageExtension_… 1.2.14.0                                 
-Windows Advanced Settings           MSIX\Microsoft.Windows.DevHome_0.2… 0.2100.858.0                             
-Microsoft Photos                    MSIX\Microsoft.Windows.Photos_2026… 2026.11050.1001.0                        
-Windows Clock                       MSIX\Microsoft.WindowsAlarms_11.25… 11.2512.0.0                              
-WindowsAppRuntime.1.6               Microsoft.WindowsAppRuntime.1.6     1.6.9                                    winget
-WindowsAppRuntime.1.6               Microsoft.WindowsAppRuntime.1.6     1.6.9                                    winget
-WindowsAppRuntime.1.7               Microsoft.WindowsAppRuntime.1.7     1.7.9                                    winget
-WindowsAppRuntime.1.7               Microsoft.WindowsAppRuntime.1.7     1.7.9                                    winget
-WindowsAppRuntime.1.8               Microsoft.WindowsAppRuntime.1.8     1.8.9                                    winget
-WindowsAppRuntime.1.8               Microsoft.WindowsAppRuntime.1.8     1.8.9                                    winget
-Windows Calculator                  MSIX\Microsoft.WindowsCalculator_1… 11.2508.4.0                              
-Feedback Hub                        MSIX\Microsoft.WindowsFeedbackHub_… 1.2602.13304.0                           
-Windows Maps                        MSIX\Microsoft.WindowsMaps_11.2506… 11.2506.3.0                              
-Windows Voice Recorder              MSIX\Microsoft.WindowsSoundRecorde… 10.2103.28.0                             
-Microsoft Store                     MSIX\Microsoft.WindowsStore_22605.… 22605.1401.12.0                          
-Windows Package Manager Source (wi… MSIX\Microsoft.Winget.Source_2026.… 2026.715.1900.7                          
-Xbox Game Bar Plugin                MSIX\Microsoft.XboxGameOverlay_1.5… 1.54.4001.0                              
-Game Bar                            MSIX\Microsoft.XboxGamingOverlay_7… 7.326.6011.0                             
-Xbox Identity Provider              MSIX\Microsoft.XboxIdentityProvide… 12.130.16001.0                           
-Xbox Game Speech Window             MSIX\Microsoft.XboxSpeechToTextOve… 1.21.13002.0                             
-Phone Link                          MSIX\Microsoft.YourPhone_1.25072.7… 1.25072.79.0                             
-Movies & TV                         MSIX\Microsoft.ZuneVideo_10.26041.… 10.26041.10031.0                         
-Mail and Calendar                   MSIX\microsoft.windowscommunicatio… 16005.14326.22342.0                      
