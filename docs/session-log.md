@@ -694,6 +694,32 @@ Fully functional Dropbox sync workflow. Note: workflow was blocked in CI until S
 
 ---
 
+---
+
+## S-18 — WhatsApp SVG icon, icons folder, dashboard Total Balance card
+
+**Date:** 2026-07-15
+
+### Changes
+
+#### 1. `public/icons/` folder
+- Created `public/icons/` alongside the existing `public/brand/` folder as the home for standalone icon assets.
+- Any free icon added to the project in future goes here (one copy in the repo root for commit history, one copy in `public/icons/` for the Vite build to serve).
+
+#### 2. WhatsApp icon — SVG from repo
+- User added `mevrelbank/whatsapp.svg` (free Adobe Illustrator SVG) to the GitHub repo.
+- Copied to `public/icons/whatsapp.svg` after pulling the commit.
+- `WhatsAppButton.tsx` — replaced `<IconBrandWhatsapp>` (tabler icon, rendered flat on some browsers) with `<img src="/icons/whatsapp.svg" className="w-7 h-7 brightness-0 invert" />` — native SVG served as a static asset, guaranteed crisp across incognito/cache states.
+
+#### 3. Dashboard balance cards — Total Balance as primary card
+- **Before:** New users with $0.00 accounts saw "Current Account $0.00" and "Savings Account $0.00" cards — misleading since those types had not been intentionally opened.
+- **After:**
+  - A full-width navy **Total Balance** card is always shown at the top (sum of all account balances, or $0.00 for a new user with no accounts).
+  - Individual **Current Account** and **Savings Account** cards appear in a 2-col grid beneath it — **only when that account type actually exists** in the user's profile.
+  - Removed the dead "You don't have any accounts yet" dashed-link branch (now superseded by the Total Balance card state).
+
+---
+
 ## Pre-Session Baseline State
 
 **Established before PR #1 (2026-07-08)**
