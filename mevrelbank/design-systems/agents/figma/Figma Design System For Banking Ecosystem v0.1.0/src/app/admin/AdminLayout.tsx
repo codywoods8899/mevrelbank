@@ -27,7 +27,7 @@ export default function AdminLayout() {
     <>
       <div className="px-6 py-6 border-b border-white/10 flex items-center justify-between">
         <div>
-          <Logo heightClass="h-6" variant="dark" />
+          <Logo heightClass="h-8" variant="dark" />
           <div className="mt-3 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-white/60">
             <ShieldCheck size={12} />
             Admin panel
@@ -86,7 +86,7 @@ export default function AdminLayout() {
 
       {/* Mobile top bar */}
       <header className="md:hidden h-14 bg-[#0B3270] text-white flex items-center justify-between px-4 flex-shrink-0">
-        <Logo heightClass="h-6" variant="dark" />
+        <Logo heightClass="h-7" variant="dark" />
         <button
           type="button"
           aria-label="Open menu"

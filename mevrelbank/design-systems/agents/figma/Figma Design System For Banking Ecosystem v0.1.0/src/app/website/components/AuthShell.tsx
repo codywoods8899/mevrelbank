@@ -12,7 +12,7 @@ export function AuthShell({ children }: AuthShellProps) {
       {/* Top bar */}
       <header className="w-full px-6 py-5 flex items-center justify-between max-w-6xl mx-auto">
         <a href="/" aria-label="MevrelBank home">
-          <Logo heightClass="h-7" />
+          <Logo heightClass="h-8" />
         </a>
         <a
           href="/"

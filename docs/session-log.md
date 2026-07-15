@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-17](#s-17) | 2026-07-15T05:00Z | — | Brand asset audit: logo sizing, variant usage, email URL fix | Replit Agent |
 | [S-16](#s-16) | 2026-07-15T04:00Z | — | Orientation: full codebase review + restore all workflows | Replit Agent |
 | [S-14](#s-14) | 2026-07-15T01:40Z | — | Admin mailboxes, Smartsupp fix, AICG repair + Cloudflare Worker deployment | Replit Agent |
 | [S-13](#s-13) | 2026-07-11T02:55Z | — | Phase 3 customer banking scaffold: accounts, transactions, statements, beneficiaries, profile, notifications | Replit Agent |
@@ -25,6 +26,57 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-17"></a>
+## S-17 · 2026-07-15T05:00Z · Brand asset audit: logo sizing, variant usage, email URL fix
+
+**Agent:** Replit Agent
+**Branch:** (current)
+**PR:** —
+**Trigger:** User requested a thorough audit of every brand asset placement across the site and emails.
+
+### Audit Findings
+
+**Assets available (all RGBA — transparent backgrounds):**
+| File | Dimensions | Use case |
+|------|-----------|---------|
+| `mevrelbank-horizontal-logo-v1.png` | 1010 × 343 (2.94:1) | Light/white backgrounds — full wordmark with tagline |
+| `mevrelbank-reverse-logo-v1.png` | 957 × 319 (3.0:1) | Dark/navy backgrounds — white wordmark with tagline |
+| `mevrelbank-primary-logo-v1.png` | 1089 × 360 (3.03:1) | Alternate colour wordmark — not currently referenced |
+| `mevrelbank-symbol-favicon-v1.png` | 565 × 565 (1:1) | Square icon — used as favicon; now also exposed as `symbol` Logo variant |
+| `mevrelbank-symbol-logo-v1.png` | 386 × 472 (portrait) | Standalone icon — portrait orientation, not suitable for inline use |
+
+**Issues found and fixed:**
+
+| Location | Was | Fixed to | Why |
+|----------|-----|----------|-----|
+| Dashboard sidebar logo | `dark` `h-6` (24px) | `dark` `h-8` (32px) | 24px for a full wordmark + tagline is microscopic |
+| Dashboard mobile topbar logo | `light` `h-6` | `light` `h-7` | Same — too small |
+| Admin sidebar logo | `dark` `h-6` | `dark` `h-8` | Same |
+| Admin mobile topbar logo | `dark` `h-6` | `dark` `h-7` | Same |
+| Auth shell header logo | `light` `h-7` | `light` `h-8` | Slightly undersized for a centered auth card header |
+| Email logo URL | `https://mevrelbank-production.up.railway.app/brand/...` | `https://mevrelbank.com/brand/...` | Cloudflare Pages is the canonical static host; Railway URL is fragile |
+
+**Confirmed correct — no change:**
+- Navbar: `light` `h-10` on white ✅
+- Footer: `dark` `h-7` on `#0D1829` ✅
+- Favicon: `mevrelbank-symbol-favicon-v1.png` in `index.html` ✅
+- Email logo variant (reverse = white on `#0B3270` header) ✅
+- Email logo proportions (`width="160" height="53"` = 3.02:1, matching the 3.0:1 asset) ✅
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `src/app/website/shared/Logo.tsx` | Added `"symbol"` and `"symbol-dark"` variants (point to symbol-favicon); added full asset dimension documentation in comments |
+| `src/app/website/components/DashboardShell.tsx` | Sidebar `h-6` → `h-8`; mobile topbar `h-6` → `h-7` |
+| `src/app/admin/AdminLayout.tsx` | Sidebar `h-6` → `h-8`; mobile topbar `h-6` → `h-7` |
+| `src/app/website/components/AuthShell.tsx` | Header logo `h-7` → `h-8` |
+| `mevrelbank/backend/src/services/emailTemplates.js` | Logo URL → `https://mevrelbank.com/brand/mevrelbank-reverse-logo-v1.png` |
+
+### Verification
+- `vite build` — clean (chunk-size advisory only, no errors)
 
 ---
 

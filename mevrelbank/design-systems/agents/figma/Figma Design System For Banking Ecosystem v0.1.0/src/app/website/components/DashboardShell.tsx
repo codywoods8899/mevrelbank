@@ -53,7 +53,7 @@ export function DashboardShell({
     <>
       {/* Logo */}
       <div className="px-5 py-5 border-b border-[rgba(255,255,255,0.06)] flex items-center justify-between">
-        <Logo variant="dark" heightClass="h-6" />
+        <Logo variant="dark" heightClass="h-8" />
         {onClose && (
           <button
             onClick={onClose}
@@ -181,7 +181,7 @@ export function DashboardShell({
             >
               <Menu size={18} />
             </button>
-            <Logo heightClass="h-6" />
+            <Logo heightClass="h-7" />
             <div className="flex items-center gap-1">
               <NavLink
                 to="/dashboard/notifications"
