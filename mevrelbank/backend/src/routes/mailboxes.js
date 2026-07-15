@@ -144,7 +144,7 @@ router.get('/:account/messages', async (req, res) => {
 
       const messages = await Promise.all(fetched.map(async (msg) => {
         const headerPart = msg.parts.find(p => p.which === 'HEADER.FIELDS (FROM TO SUBJECT DATE)');
-        const parsed = await simpleParser(headerPart?.body ?? '');
+        const parsed = await simpleParser(Buffer.from(headerPart?.body ?? ''));
         const flags = msg.attributes?.flags ?? [];
         return {
           uid:     msg.attributes?.uid,
@@ -189,7 +189,7 @@ router.get('/:account/messages/:uid', async (req, res) => {
       if (!fetched.length) throw new Error('Message not found.');
       const msg = fetched[0];
       const raw = msg.parts.find(p => p.which === '')?.body ?? '';
-      const parsed = await simpleParser(raw);
+      const parsed = await simpleParser(Buffer.from(raw));
 
       return {
         uid,
