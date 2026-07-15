@@ -122,29 +122,22 @@ router.get('/:account/messages', async (req, res) => {
     const { messages, total } = await withImap(account, async (conn) => {
       await conn.openBox(folder);
 
-      // Step 1: lightweight fetch to get all UIDs (no bodies)
-      const allMsgs = await conn.search(['ALL'], { bodies: [], struct: false });
-      const allUids = allMsgs.map(m => m.attributes.uid).sort((a, b) => b - a);
-      const total = allUids.length;
+      // Fetch all message headers in one shot, paginate in JS
+      const allMsgs = await conn.search(['ALL'], {
+        bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'],
+        markSeen: false,
+        struct: false,
+      });
 
-      const start = (page - 1) * pageSize;
-      const sliced = allUids.slice(start, start + pageSize);
+      // Sort newest-first by UID
+      allMsgs.sort((a, b) => (b.attributes.uid ?? 0) - (a.attributes.uid ?? 0));
+      const total = allMsgs.length;
 
-      if (sliced.length === 0) return { messages: [], total };
+      const start  = (page - 1) * pageSize;
+      const sliced = allMsgs.slice(start, start + pageSize);
 
-      // Step 2: fetch headers for just this page's UIDs
-      const fetched = await conn.search(
-        [['UID', sliced.join(',')]],
-        {
-          bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'],
-          markSeen: false,
-          struct: true,
-        },
-      );
-
-      const messages = fetched.map((msg) => {
+      const messages = sliced.map((msg) => {
         const headerPart = msg.parts.find(p => p.which === 'HEADER.FIELDS (FROM TO SUBJECT DATE)');
-        // imap-simple returns HEADER.FIELDS as a pre-parsed object, not raw text
         const hdr   = headerPart?.body ?? {};
         const flags = msg.attributes?.flags ?? [];
         const rawDate = Array.isArray(hdr.date) ? hdr.date[0] : (hdr.date ?? null);
