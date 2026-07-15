@@ -17,5 +17,32 @@ The WhatsApp bubble must always sit exactly `STACK_GAP = 12 px` above the Smarts
 - `MAX_BUBBLE_SIZE = 160` and `EDGE_THRESHOLD = 100 px` — raised from 110/60 to handle larger mobile iframes.
 - No breakpoint-specific offsets — all positioning is derived from the live Smartsupp element or its configured defaults.
 
-## Relevant file
-`mevrelbank/design-systems/agents/figma/Figma Design System For Banking Ecosystem v0.1.0/src/app/website/components/WhatsAppButton.tsx`
+## Entrance animation (measured from Smartsupp widget-v3)
+Smartsupp's entrance is a Svelte `fly({ y: 20, delay: 300, duration: 400 })` transition:
+- `translateY(20px) → translateY(0)`, `opacity: 0 → 1`
+- Easing: Svelte `cubicOut` = CSS `cubic-bezier(0.215, 0.61, 0.355, 1)`
+- 300 ms delay from when Svelte component mounts (element appears in DOM)
+- 400 ms animation duration → fully visible at T+700 ms
+
+Source: `https://widget-v3.smartsuppcdn.com/assets/main-t6WxLABA.js` manifest at `https://widget-v3.smartsuppcdn.com/manifest.json`
+
+### Synchronisation approach
+- MutationObserver fires when Smartsupp element appears in DOM (T+0).
+- We wait `max(0, 300 - elapsed)` ms from detection before setting `phase = "entering"`.
+- `@keyframes whatsapp-enter` in `animations.css` runs the 400 ms keyframe.
+- Both bubbles begin and finish animating together.
+- Fallback: 3 000 ms after `number` loads if Smartsupp never appears.
+
+### SVG flash fix
+- `<link rel="preload" as="image" href="/icons/whatsapp.svg">` in `index.html`.
+- `new Image()` in `useEffect` tracks when SVG is actually cached (`iconReadyRef`).
+- Button stays `phase = "hidden"` (opacity:0, translateY(20px)) until BOTH `iconReady` AND Smartsupp signal fire — no bare green circle ever shown.
+
+### Phase state machine
+`hidden → entering → visible` (transitions via `tryEnter()` + `onAnimationEnd`).
+`hover:scale-105 / active:scale-95` only re-applied in `visible` phase to avoid transform conflicts with the CSS animation.
+
+## Relevant files
+- `src/app/website/components/WhatsAppButton.tsx`
+- `src/styles/animations.css` — `@keyframes whatsapp-enter` + `.whatsapp-enter`
+- `index.html` — SVG preload link
