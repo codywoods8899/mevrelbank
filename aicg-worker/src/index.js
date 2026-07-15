@@ -1,119 +1,186 @@
-import { Hono }            from 'hono';
-import { cors }            from 'hono/cors';
-import { createSession, validateSession, invalidateSession, getSessionMeta } from './session.js';
+import { getConfig }        from './config.js';
+import { authorize }        from './auth.js';
+import { validateSession, invalidateAll, getSession } from './session.js';
 import { getFilteredTree, isBlocked } from './tree.js';
-import { readAllowed }     from './read.js';
-import { search }          from './search.js';
+import { listFolder }       from './github.js';
+import { readAllowed }      from './read.js';
+import { search }           from './search.js';
 
-const app = new Hono();
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-// ─── CORS ─────────────────────────────────────────────────────────────────────
-app.use('*', cors({ origin: '*', allowMethods: ['GET', 'POST', 'OPTIONS'] }));
-
-// ─── Session middleware ────────────────────────────────────────────────────────
-async function requireSession(c, next) {
-  const sessionId = c.req.header('x-session-id');
-  if (!sessionId) {
-    return c.json({ error: 'Unauthorized', detail: 'Missing X-Session-ID header' }, 401);
-  }
-  const result = await validateSession(c.env.SESSIONS, sessionId);
-  if (!result.valid) {
-    return c.json({ error: 'Unauthorized', detail: result.reason }, 401);
-  }
-  c.set('sessionId', sessionId);
-  await next();
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
-// ─── Identity ─────────────────────────────────────────────────────────────────
-app.get('/', c => c.json({
-  service: 'AI Context Gateway',
-  version: '0.1.0',
-  status:  'running',
-}));
+function httpStatus(err) {
+  if (err.code   && err.code   >= 400) return err.code;
+  if (err.status && err.status >= 400) return err.status;
+  return 500;
+}
 
-// ─── Health ───────────────────────────────────────────────────────────────────
-app.get('/health', async c => {
-  const session = await getSessionMeta(c.env.SESSIONS);
-  return c.json({
+async function requireSession(request, env, handler) {
+  const sessionId = request.headers.get('x-session-id');
+  if (!sessionId) {
+    return json({ error: 'Unauthorized', detail: 'Missing X-Session-ID header' }, 401);
+  }
+  const result = await validateSession(env.SESSIONS, sessionId);
+  if (!result.valid) {
+    return json({ error: 'Unauthorized', detail: result.reason }, 401);
+  }
+  return handler(request, sessionId);
+}
+
+// ---------------------------------------------------------------------------
+// Route handlers
+// ---------------------------------------------------------------------------
+
+function handleRoot() {
+  return json({ service: 'AI Context Gateway', version: '0.1.0', status: 'running' });
+}
+
+async function handleHealth(env) {
+  const session = await getSession(env.SESSIONS);
+  return json({
     status:        'ok',
     service:       'AI Context Gateway',
     version:       '0.1.0',
     timestamp:     new Date().toISOString(),
-    activeSession: session !== null,
+    activeSession: !!session,
   });
-});
+}
 
-// ─── Authorize ────────────────────────────────────────────────────────────────
-app.post('/authorize', async c => {
-  const body = await c.req.json().catch(() => ({}));
+async function handleAuthorize(request, env) {
+  const config = getConfig(env);
+  let body = {};
+  try { body = await request.json(); } catch (_) { /* empty body is fine */ }
   const { token } = body;
 
-  if (!token) {
-    return c.json({ error: 'missing_token' }, 400);
+  const result = await authorize(token, env.SESSIONS, config);
+
+  if (!result.ok) {
+    let status = 401;
+    if (result.reason === 'missing_token') status = 400;
+    if (result.serverError)               status = 503;
+    return json({ error: result.reason }, status);
   }
 
-  if (!c.env.SESSION_SECRET) {
-    return c.json({ error: 'server_misconfigured' }, 503);
-  }
+  return json({ sessionId: result.sessionId });
+}
 
-  // Constant-time comparison
-  const a = new TextEncoder().encode(token);
-  const b = new TextEncoder().encode(c.env.SESSION_SECRET);
-  let match = a.length === b.length;
-  if (match) {
-    const buf = new Uint8Array(a.length);
-    for (let i = 0; i < a.length; i++) buf[i] = a[i] ^ b[i];
-    match = buf.every(v => v === 0);
-  }
+async function handleInvalidate(request, sessionId, env) {
+  await invalidateAll(env.SESSIONS);
+  return json({ invalidated: true });
+}
 
-  if (!match) {
-    return c.json({ error: 'invalid_token' }, 401);
-  }
-
-  const sessionId = await createSession(c.env.SESSIONS);
-  return c.json({ sessionId });
-});
-
-// ─── Invalidate ───────────────────────────────────────────────────────────────
-app.post('/invalidate', requireSession, async c => {
-  await invalidateSession(c.env.SESSIONS, c.get('sessionId'));
-  return c.json({ invalidated: true });
-});
-
-// ─── Tree ─────────────────────────────────────────────────────────────────────
-app.get('/tree', requireSession, async c => {
+async function handleTree(request, sessionId, env) {
+  const config = getConfig(env);
   try {
-    const tree = await getFilteredTree(c.env);
-    return c.json({ total: tree.length, tree });
+    const tree = await getFilteredTree(config);
+    return json({ total: tree.length, tree });
   } catch (err) {
-    return c.json({ error: err.message }, err.status || 500);
+    return json({ error: err.message }, httpStatus(err));
   }
-});
+}
 
-// ─── Read ─────────────────────────────────────────────────────────────────────
-app.get('/read', requireSession, async c => {
-  const filePath = c.req.query('path');
+async function handleFolder(request, sessionId, env) {
+  const config     = getConfig(env);
+  const url        = new URL(request.url);
+  const folderPath = url.searchParams.get('path') || '';
+
+  if (isBlocked(folderPath, config) && folderPath !== '') {
+    return json({ error: 'Access denied: path is restricted' }, 403);
+  }
+
   try {
-    const file = await readAllowed(filePath, c.env);
-    return c.json(file);
+    const items   = await listFolder(config.github.owner, config.github.repo, config.github.token, folderPath);
+    const visible = items.filter(item => !isBlocked(item.path, config));
+    return json({ path: folderPath || '/', total: visible.length, items: visible });
   } catch (err) {
-    return c.json({ error: err.message }, err.status || 500);
+    return json({ error: err.message }, httpStatus(err));
   }
-});
+}
 
-// ─── Search ───────────────────────────────────────────────────────────────────
-app.get('/search', requireSession, async c => {
-  const q    = c.req.query('q');
-  const mode = c.req.query('mode') || 'both';
+async function handleFile(request, sessionId, env) {
+  const config   = getConfig(env);
+  const url      = new URL(request.url);
+  const filePath = url.searchParams.get('path');
+
   try {
-    const results = await search(q, mode, c.env);
-    return c.json(results);
+    const file = await readAllowed(filePath, config);
+    return json(file);
   } catch (err) {
-    return c.json({ error: err.message }, err.status || 500);
+    return json({ error: err.message }, httpStatus(err));
   }
-});
+}
 
-// ─── 404 ──────────────────────────────────────────────────────────────────────
-app.notFound(c => c.json({ error: 'Not found' }, 404));
+async function handleSearch(request, sessionId, env) {
+  const config = getConfig(env);
+  const url    = new URL(request.url);
+  const q      = url.searchParams.get('q');
+  const mode   = url.searchParams.get('mode') || 'both';
 
-export default app;
+  const VALID_MODES = new Set(['filename', 'code', 'both']);
+  if (!VALID_MODES.has(mode)) {
+    return json({ error: `Invalid mode "${mode}". Must be one of: filename, code, both` }, 400);
+  }
+
+  try {
+    const results = await search(q, mode, config);
+    return json(results);
+  } catch (err) {
+    return json({ error: err.message }, httpStatus(err));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main fetch handler
+// ---------------------------------------------------------------------------
+
+export default {
+  async fetch(request, env) {
+    const url    = new URL(request.url);
+    const method = request.method;
+    const path   = url.pathname;
+
+    // CORS preflight
+    if (method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin':  '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, X-Session-ID',
+        },
+      });
+    }
+
+    // Public routes
+    if (method === 'GET'  && path === '/')       return handleRoot();
+    if (method === 'GET'  && path === '/health') return handleHealth(env);
+    if (method === 'POST' && path === '/authorize') return handleAuthorize(request, env);
+
+    // Session-protected routes
+    if (method === 'POST' && path === '/invalidate') {
+      return requireSession(request, env, (req, sid) => handleInvalidate(req, sid, env));
+    }
+    if (method === 'GET' && path === '/tree') {
+      return requireSession(request, env, (req, sid) => handleTree(req, sid, env));
+    }
+    if (method === 'GET' && path === '/folder') {
+      return requireSession(request, env, (req, sid) => handleFolder(req, sid, env));
+    }
+    if (method === 'GET' && path === '/file') {
+      return requireSession(request, env, (req, sid) => handleFile(req, sid, env));
+    }
+    if (method === 'GET' && path === '/search') {
+      return requireSession(request, env, (req, sid) => handleSearch(req, sid, env));
+    }
+
+    return json({ error: 'Not found' }, 404);
+  },
+};

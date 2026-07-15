@@ -1,96 +1,98 @@
-/**
- * GitHub API calls via native fetch.
- * Requires env.AICG_PAT, env.GITHUB_OWNER, env.GITHUB_REPO.
- */
+const BASE = 'https://api.github.com';
 
-const UA = 'AICG-Worker/0.1.0';
-
-function headers(token) {
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Accept':        'application/vnd.github.v3+json',
-    'User-Agent':    UA,
-  };
-}
-
-async function ghFetch(path, env) {
-  const owner = env.GITHUB_OWNER || 'codywoods8899';
-  const repo  = env.GITHUB_REPO  || 'mevrelbank';
-  const url   = `https://api.github.com/repos/${owner}/${repo}${path}`;
-
-  const res = await fetch(url, { headers: headers(env.AICG_PAT) });
-
+async function ghFetch(path, token) {
+  const res = await fetch(`${BASE}${path}`, {
+    headers: {
+      Authorization:        `Bearer ${token}`,
+      Accept:               'application/vnd.github.v3+json',
+      'User-Agent':         'AICG/0.1.0',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  });
   if (!res.ok) {
-    const err = new Error(`GitHub ${res.status}: ${res.statusText}`);
+    const err = new Error(`GitHub API error: ${res.status} ${res.statusText}`);
     err.status = res.status;
     throw err;
   }
   return res.json();
 }
 
-/**
- * Fetch the full recursive file tree for the default branch.
- * @returns {Array<{ path, type, sha, size }>}
- */
-export async function getTree(env) {
-  // Get default branch first
-  const meta   = await ghFetch('', env);
-  const branch = meta.default_branch;
-
-  const data = await ghFetch(`/git/trees/${branch}?recursive=1`, env);
-  return (data.tree || []).map(item => ({
-    path: item.path,
-    type: item.type, // 'blob' | 'tree'
-    sha:  item.sha,
-    size: item.size ?? null,
-  }));
+export async function getRepoMeta(owner, repo, token) {
+  const d = await ghFetch(`/repos/${owner}/${repo}`, token);
+  return {
+    name:          d.name,
+    owner:         d.owner.login,
+    description:   d.description,
+    defaultBranch: d.default_branch,
+    private:       d.private,
+    size:          d.size,
+    updatedAt:     d.updated_at,
+    language:      d.language,
+    topics:        d.topics,
+  };
 }
 
-/**
- * Read a single file's content (base64 decoded).
- * @returns {{ path, name, size, sha, content, encoding }}
- */
-export async function readFile(filePath, env) {
-  const data = await ghFetch(`/contents/${encodeURIComponent(filePath)}`, env);
+export async function getTree(owner, repo, token, branch = null) {
+  let ref = branch;
+  if (!ref) {
+    const meta = await getRepoMeta(owner, repo, token);
+    ref = meta.defaultBranch;
+  }
+  const d = await ghFetch(
+    `/repos/${owner}/${repo}/git/trees/${ref}?recursive=1`,
+    token,
+  );
+  return d.tree; // [{ path, mode, type, sha, size, url }]
+}
 
-  if (data.type !== 'file') {
-    const err = new Error('Requested path is not a file');
+export async function listFolder(owner, repo, token, folderPath) {
+  const p = folderPath
+    ? '/' + folderPath.split('/').map(encodeURIComponent).join('/')
+    : '';
+  const d = await ghFetch(`/repos/${owner}/${repo}/contents${p}`, token);
+  if (!Array.isArray(d)) {
+    const err = new Error('Path is a file, not a directory');
     err.status = 400;
     throw err;
   }
+  return d.map(item => ({
+    name: item.name,
+    path: item.path,
+    type: item.type,
+    size: item.size ?? null,
+    sha:  item.sha,
+  }));
+}
 
-  const content = data.encoding === 'base64'
-    ? atob(data.content.replace(/\n/g, ''))
-    : data.content;
+export async function readFile(owner, repo, token, filePath) {
+  const p = '/' + filePath.split('/').map(encodeURIComponent).join('/');
+  const d = await ghFetch(`/repos/${owner}/${repo}/contents${p}`, token);
+  if (Array.isArray(d)) {
+    const err = new Error('Path is a directory, not a file');
+    err.status = 400;
+    throw err;
+  }
+  // Decode base64 — GitHub always returns file content encoded
+  const content = d.encoding === 'base64'
+    ? new TextDecoder().decode(
+        Uint8Array.from(atob(d.content.replace(/\n/g, '')), c => c.charCodeAt(0)),
+      )
+    : d.content;
 
   return {
-    path:     data.path,
-    name:     data.name,
-    size:     data.size,
-    sha:      data.sha,
+    path:     d.path,
+    name:     d.name,
+    size:     d.size,
+    sha:      d.sha,
     content,
     encoding: 'utf8',
   };
 }
 
-/**
- * GitHub code search (10 req/min rate limit for authenticated).
- * @returns {Array<{ path, name, sha, score, htmlUrl }>}
- */
-export async function searchCode(query, env) {
-  const owner = env.GITHUB_OWNER || 'codywoods8899';
-  const repo  = env.GITHUB_REPO  || 'mevrelbank';
-  const q     = encodeURIComponent(`${query} repo:${owner}/${repo}`);
-  const url   = `https://api.github.com/search/code?q=${q}&per_page=30`;
-
-  const res = await fetch(url, { headers: headers(env.AICG_PAT) });
-  if (!res.ok) {
-    const err = new Error(`GitHub search ${res.status}: ${res.statusText}`);
-    err.status = res.status;
-    throw err;
-  }
-  const data = await res.json();
-  return (data.items || []).map(item => ({
+export async function searchCode(owner, repo, token, query) {
+  const q = encodeURIComponent(`${query} repo:${owner}/${repo}`);
+  const d = await ghFetch(`/search/code?q=${q}&per_page=30`, token);
+  return d.items.map(item => ({
     path:    item.path,
     name:    item.name,
     sha:     item.sha,
@@ -99,13 +101,10 @@ export async function searchCode(query, env) {
   }));
 }
 
-/**
- * Fast filename search — filters the tree locally, no extra API quota.
- */
-export async function searchFilenames(query, env) {
-  const tree = await getTree(env);
-  const q    = query.toLowerCase();
+export async function searchFilenames(owner, repo, token, query) {
+  const tree = await getTree(owner, repo, token);
+  const q = query.toLowerCase();
   return tree
     .filter(item => item.type === 'blob' && item.path.toLowerCase().includes(q))
-    .map(item => ({ path: item.path, sha: item.sha, size: item.size }));
+    .map(item => ({ path: item.path, sha: item.sha, size: item.size ?? null }));
 }

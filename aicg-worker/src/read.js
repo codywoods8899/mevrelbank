@@ -1,5 +1,11 @@
-import { readFile as ghReadFile } from './github.js';
-import { isBlocked } from './tree.js';
+import { readFile } from './github.js';
+import { isBlocked }  from './tree.js';
+
+function extname(p) {
+  const base = (p.split('/').pop() || '');
+  const dot  = base.lastIndexOf('.');
+  return dot > 0 ? base.slice(dot).toLowerCase() : '';
+}
 
 const BINARY_EXTENSIONS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.tiff',
@@ -11,33 +17,31 @@ const BINARY_EXTENSIONS = new Set([
   '.db', '.sqlite',
 ]);
 
-function ext(filePath) {
-  const dot = filePath.lastIndexOf('.');
-  return dot === -1 ? '' : filePath.slice(dot).toLowerCase();
+export function isReadable(filePath, config) {
+  if (!filePath) return false;
+  if (isBlocked(filePath, config)) return false;
+  const ext = extname(filePath);
+  if (!ext) return true;           // Makefile, LICENSE, Dockerfile, etc.
+  if (BINARY_EXTENSIONS.has(ext)) return false;
+  return true;
 }
 
-export function isReadable(filePath) {
-  if (!filePath || isBlocked(filePath)) return false;
-  const e = ext(filePath);
-  if (!e) return true; // Makefile, Dockerfile, etc.
-  return !BINARY_EXTENSIONS.has(e);
-}
-
-export async function readAllowed(filePath, env) {
+export async function readAllowed(filePath, config) {
   if (!filePath) {
     const err = new Error('Query parameter "path" is required');
-    err.status = 400;
+    err.code = 400;
     throw err;
   }
-  if (isBlocked(filePath)) {
+  if (isBlocked(filePath, config)) {
     const err = new Error('Access denied: path is restricted');
-    err.status = 403;
+    err.code = 403;
     throw err;
   }
-  if (!isReadable(filePath)) {
-    const err = new Error(`Binary file type not supported: ${ext(filePath)}`);
-    err.status = 415;
+  if (!isReadable(filePath, config)) {
+    const ext = extname(filePath);
+    const err = new Error(`Binary file type not supported: ${ext}`);
+    err.code = 415;
     throw err;
   }
-  return ghReadFile(filePath, env);
+  return readFile(config.github.owner, config.github.repo, config.github.token, filePath);
 }

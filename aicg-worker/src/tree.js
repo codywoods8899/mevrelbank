@@ -1,31 +1,43 @@
-import { getTree as ghGetTree } from './github.js';
+import { getTree } from './github.js';
 
-const BLOCKED_PREFIXES = ['.github', '.env', 'secrets'];
-const BLOCKED_FILENAMES = ['.env', '.env.local', '.env.production', '.env.development'];
+function basename(p) {
+  return p.split('/').pop() || '';
+}
 
-export function isBlocked(itemPath) {
+/**
+ * Return true when a repository path should never be exposed.
+ */
+export function isBlocked(itemPath, config) {
   if (!itemPath) return true;
 
-  const normalized = itemPath.replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
-  const basename   = normalized.split('/').pop();
+  const normalized = itemPath
+    .replace(/\\/g, '/')
+    .replace(/^\/+/, '')
+    .toLowerCase();
 
-  if (BLOCKED_FILENAMES.includes(basename)) return true;
+  const base = basename(normalized);
 
-  for (const prefix of BLOCKED_PREFIXES) {
+  if (config.blockedFilenames.includes(base)) return true;
+
+  for (const prefix of config.blockedPrefixes) {
     if (normalized === prefix || normalized.startsWith(prefix + '/')) return true;
   }
 
   return false;
 }
 
-export async function getFilteredTree(env) {
-  const raw = await ghGetTree(env);
+/**
+ * Fetch the complete repository tree and strip all blocked paths.
+ */
+export async function getFilteredTree(config) {
+  const raw = await getTree(config.github.owner, config.github.repo, config.github.token);
+
   return raw
-    .filter(item => !isBlocked(item.path))
+    .filter(item => !isBlocked(item.path, config))
     .map(item => ({
       path: item.path,
       type: item.type === 'blob' ? 'file' : 'tree',
-      size: item.size,
+      size: item.size ?? null,
       sha:  item.sha,
     }));
 }

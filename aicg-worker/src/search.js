@@ -1,32 +1,35 @@
-import { searchCode as ghSearchCode, searchFilenames as ghSearchFilenames } from './github.js';
+import { searchCode, searchFilenames } from './github.js';
 import { isBlocked } from './tree.js';
 
-/**
- * Search by filename and/or code content.
- * @param {string} query
- * @param {'filename'|'code'|'both'} mode
- * @param {object} env
- */
-export async function search(query, mode = 'both', env) {
-  if (!query?.trim()) {
+export async function search(query, mode = 'both', config) {
+  if (!query || !query.trim()) {
     const err = new Error('Query parameter "q" is required');
-    err.status = 400;
+    err.code = 400;
     throw err;
   }
 
+  const { owner, repo, token } = config.github;
   const filenameResults = [];
   const codeResults     = [];
   let   codeError       = null;
 
   if (mode === 'filename' || mode === 'both') {
-    const matches = await ghSearchFilenames(query, env);
-    filenameResults.push(...matches.filter(m => !isBlocked(m.path)).map(m => ({ ...m, matchType: 'filename' })));
+    const matches = await searchFilenames(owner, repo, token, query);
+    filenameResults.push(
+      ...matches
+        .filter(m => !isBlocked(m.path, config))
+        .map(m => ({ ...m, matchType: 'filename' })),
+    );
   }
 
   if (mode === 'code' || mode === 'both') {
     try {
-      const matches = await ghSearchCode(query, env);
-      codeResults.push(...matches.filter(m => !isBlocked(m.path)).map(m => ({ ...m, matchType: 'code' })));
+      const matches = await searchCode(owner, repo, token, query);
+      codeResults.push(
+        ...matches
+          .filter(m => !isBlocked(m.path, config))
+          .map(m => ({ ...m, matchType: 'code' })),
+      );
     } catch (err) {
       codeError = err.message;
     }
@@ -34,9 +37,8 @@ export async function search(query, mode = 'both', env) {
 
   const seen   = new Set();
   const ranked = [];
-  for (const r of [...filenameResults, ...codeResults]) {
-    if (!seen.has(r.path)) { seen.add(r.path); ranked.push(r); }
-  }
+  for (const r of filenameResults) { if (!seen.has(r.path)) { seen.add(r.path); ranked.push(r); } }
+  for (const r of codeResults)     { if (!seen.has(r.path)) { seen.add(r.path); ranked.push(r); } }
 
   const response = { query, total: ranked.length, results: ranked };
   if (codeError) response.codeSearchUnavailable = codeError;

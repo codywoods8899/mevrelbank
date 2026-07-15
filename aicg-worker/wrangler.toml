@@ -1,24 +1,12 @@
-name               = "aicg"
-main               = "src/index.js"
-compatibility_date = "2024-12-01"
+name             = "aicg"
+main             = "src/index.js"
+compatibility_date = "2024-09-23"
 
-# ─── KV namespace for session storage ────────────────────────────────────────
-# The ID below is filled in automatically by the deploy script.
-# Do not edit manually.
 [[kv_namespaces]]
 binding = "SESSIONS"
-id      = "PLACEHOLDER_KV_ID"
+id      = "7efe2f42d42b44b58473e7e02a04a00f"
 
-# ─── Custom domain ───────────────────────────────────────────────────────────
-[[routes]]
-pattern   = "aicg.mevrelbank.com/*"
-zone_name = "mevrelbank.com"
-
-# ─── Environment variables (non-secret) ──────────────────────────────────────
 [vars]
-GITHUB_OWNER = "codywoods8899"
-GITHUB_REPO  = "mevrelbank"
-
-# ─── Secrets (set via wrangler secret put) ───────────────────────────────────
-# SESSION_SECRET  — the token callers POST to /authorize
-# AICG_PAT        — GitHub read-only personal access token
+GITHUB_OWNER    = "codywoods8899"
+GITHUB_REPO     = "mevrelbank"
+SESSION_TTL_MS  = "86400000"
