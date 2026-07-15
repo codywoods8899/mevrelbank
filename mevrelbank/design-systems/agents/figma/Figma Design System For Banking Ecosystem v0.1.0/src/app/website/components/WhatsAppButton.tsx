@@ -37,12 +37,9 @@ export function WhatsAppButton() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with us on WhatsApp"
-      className="fixed bottom-24 right-5 z-[60] flex items-center gap-3 rounded-full bg-[#25D366] pl-5 pr-1.5 h-14 shadow-[0_6px_20px_rgba(0,0,0,0.25)] hover:scale-105 active:scale-95 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#25D366]"
+      className="fixed bottom-24 right-5 z-[60] flex items-center justify-center w-14 h-14 rounded-full bg-[#1FAF54] shadow-[0_6px_20px_rgba(0,0,0,0.25)] hover:scale-105 active:scale-95 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#25D366]"
     >
-      <span className="text-white font-semibold text-sm whitespace-nowrap">WhatsApp</span>
-      <span className="flex items-center justify-center w-11 h-11 rounded-full bg-[#1FAF54] shrink-0">
-        <img src="/icons/whatsapp.svg" alt="" aria-hidden="true" className="w-6 h-6 brightness-0 invert" />
-      </span>
+      <img src="/icons/whatsapp.svg" alt="" aria-hidden="true" className="w-7 h-7 brightness-0 invert" />
     </a>
   );
 }
