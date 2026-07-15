@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
-import { LayoutDashboard, Users, LogOut, ShieldCheck, Clock, Landmark, Settings, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, ShieldCheck, Clock, Landmark, Settings, Menu, X, Inbox } from "lucide-react";
 import { Logo } from "../website/shared/Logo";
 import { useAdminAuth } from "../context/AdminAuthContext";
 
@@ -9,6 +9,7 @@ const navItems = [
   { to: "/admin/customers", label: "Customers", icon: Users, end: false },
   { to: "/admin/transactions", label: "Transactions", icon: Clock, end: false },
   { to: "/admin/accounts", label: "Accounts", icon: Landmark, end: false },
+  { to: "/admin/mailboxes", label: "Mailboxes", icon: Inbox, end: false },
   { to: "/admin/settings", label: "Settings", icon: Settings, end: false },
 ];
 

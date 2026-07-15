@@ -39,6 +39,7 @@ import AdminCustomerDetailPage from "./app/admin/AdminCustomerDetailPage";
 import AdminTransactionsPage from "./app/admin/AdminTransactionsPage";
 import AdminAccountsPage from "./app/admin/AdminAccountsPage";
 import AdminSettingsPage from "./app/admin/AdminSettingsPage";
+import AdminMailboxPage from "./app/admin/AdminMailboxPage";
 import { WhatsAppButton } from "./app/website/components/WhatsAppButton";
 import "./styles/index.css";
 
@@ -84,6 +85,7 @@ const router = createBrowserRouter([
       { path: "/admin/customers/:id", element: <AdminCustomerDetailPage /> },
       { path: "/admin/transactions", element: <AdminTransactionsPage /> },
       { path: "/admin/accounts", element: <AdminAccountsPage /> },
+      { path: "/admin/mailboxes", element: <AdminMailboxPage /> },
       { path: "/admin/settings", element: <AdminSettingsPage /> },
     ],
   },

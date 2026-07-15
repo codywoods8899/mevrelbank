@@ -5,12 +5,13 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 
-const authRoutes    = require('./src/routes/auth');
-const mfaRoutes     = require('./src/routes/mfa');
-const userRoutes    = require('./src/routes/user');
-const bankingRoutes  = require('./src/routes/banking');
-const adminRoutes    = require('./src/routes/admin');
-const settingsRoutes = require('./src/routes/settings');
+const authRoutes      = require('./src/routes/auth');
+const mfaRoutes       = require('./src/routes/mfa');
+const userRoutes      = require('./src/routes/user');
+const bankingRoutes   = require('./src/routes/banking');
+const adminRoutes     = require('./src/routes/admin');
+const settingsRoutes  = require('./src/routes/settings');
+const mailboxRoutes   = require('./src/routes/mailboxes');
 
 const app  = express();
 const PORT = process.env.PORT ?? process.env.BACKEND_PORT ?? 3001;
@@ -47,12 +48,13 @@ app.get('/api/health', (req, res) => {
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-app.use('/api/auth',    authRoutes);
-app.use('/api/mfa',     mfaRoutes);
-app.use('/api/user',    userRoutes);
-app.use('/api/banking',  bankingRoutes);
-app.use('/api/admin',    adminRoutes);
-app.use('/api/settings', settingsRoutes);
+app.use('/api/auth',             authRoutes);
+app.use('/api/mfa',              mfaRoutes);
+app.use('/api/user',             userRoutes);
+app.use('/api/banking',          bankingRoutes);
+app.use('/api/admin',            adminRoutes);
+app.use('/api/admin/mailboxes',  mailboxRoutes);
+app.use('/api/settings',         settingsRoutes);
 
 // ─── Static brand assets (used in emails) ────────────────────────────────────
 
