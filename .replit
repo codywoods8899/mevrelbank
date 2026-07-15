@@ -79,6 +79,10 @@ externalPort = 3000
 localPort = 5173
 externalPort = 5173
 
+[[ports]]
+localPort = 5174
+externalPort = 3002
+
 [deployment]
 deploymentTarget = "vm"
 run = ["node", "aicg/server.js"]
