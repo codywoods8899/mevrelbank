@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ShieldAlert, ArrowLeftRight, Info } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
-import { useAuth } from "../../context/AuthContext";
-import { bankingApi, formatRelativeTime, type Notification } from "../shared/bankingApi";
+import { useNotifications } from "../../context/NotificationsContext";
+import { formatRelativeTime, type Notification } from "../shared/bankingApi";
 
 const ICONS: Record<string, JSX.Element> = {
   security: <ShieldAlert size={14} className="text-[#B46A0A]" />,
@@ -11,30 +11,16 @@ const ICONS: Record<string, JSX.Element> = {
 };
 
 export default function NotificationsPage() {
-  const { authedFetch } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Shared with the sidebar/top-bar bell badges, so marking one as read here
+  // updates the unread count everywhere instantly — no reload needed.
+  const { notifications, unreadCount, loading, markAsRead } = useNotifications();
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    bankingApi.getNotifications(authedFetch)
-      .then((r) => active && setNotifications(r.notifications))
-      .catch(() => active && setError("Couldn't load your notifications. Please try again."))
-      .finally(() => active && setLoading(false));
-    return () => { active = false; };
-  }, [authedFetch]);
-
-  const unread = notifications.filter((n) => !n.read).length;
 
   async function handleOpen(n: Notification) {
     if (n.read) return;
-    setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
     try {
-      await bankingApi.markNotificationRead(authedFetch, n.id);
+      await markAsRead(n.id);
     } catch {
-      // Revert the optimistic update so the UI reflects reality if the request failed.
-      setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: false } : x)));
       setError("Couldn't mark that notification as read. Please try again.");
     }
   }
@@ -44,7 +30,7 @@ export default function NotificationsPage() {
       <PageMeta title="Notifications — MevrelBank" description="Security alerts and account updates from MevrelBank." />
       <div className="mb-5">
         <h1 className="text-[20px] font-bold text-[#0D1829] mb-0.5" style={{ fontFamily: "Figtree, sans-serif" }}>Notifications</h1>
-        <div className="text-[12px] text-[#8A9BBE]">{loading ? "Loading…" : `${unread} unread`}</div>
+        <div className="text-[12px] text-[#8A9BBE]">{loading ? "Loading…" : `${unreadCount} unread`}</div>
       </div>
 
       {error && (

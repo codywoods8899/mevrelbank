@@ -5,6 +5,7 @@ import {
   SendHorizontal, LogOut, Activity, Users, Menu, X,
 } from "lucide-react";
 import { Logo } from "../shared/Logo";
+import { useNotifications } from "../../context/NotificationsContext";
 
 function initialsFor(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -41,6 +42,8 @@ export function DashboardShell({
   children,
 }: DashboardShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { unreadCount } = useNotifications();
+  const unreadBadge = unreadCount > 9 ? "9+" : String(unreadCount);
 
   const sidebarLinkClasses = (isActive: boolean) =>
     `w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium transition-all ${
@@ -105,7 +108,14 @@ export function DashboardShell({
             <>
               <span className={isActive ? "text-[#4AA2D8]" : ""}><Bell size={15} /></span>
               Notifications
-              {isActive && <div className="ml-auto w-1 h-4 rounded-full bg-[#4AA2D8]" />}
+              {unreadCount > 0 && (
+                <span
+                  className={`ml-auto flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full text-[9px] font-semibold text-white bg-[#C52B2B] ${isActive ? "" : ""}`}
+                >
+                  {unreadBadge}
+                </span>
+              )}
+              {isActive && unreadCount === 0 && <div className="ml-auto w-1 h-4 rounded-full bg-[#4AA2D8]" />}
             </>
           )}
         </NavLink>
@@ -188,7 +198,11 @@ export function DashboardShell({
                 className="relative w-9 h-9 flex items-center justify-center rounded-[8px] hover:bg-[#EEF2F9] transition-colors"
               >
                 <Bell size={16} className="text-[#5E6E8E]" />
-                <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-[#C52B2B] rounded-full" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-[#C52B2B] text-white text-[9px] font-semibold leading-none">
+                    {unreadBadge}
+                  </span>
+                )}
               </NavLink>
             </div>
           </div>
@@ -212,7 +226,11 @@ export function DashboardShell({
                 className="relative w-8 h-8 flex items-center justify-center rounded-[6px] hover:bg-[#EEF2F9] transition-colors"
               >
                 <Bell size={15} className="text-[#5E6E8E]" />
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#C52B2B] rounded-full" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-[#C52B2B] text-white text-[9px] font-semibold leading-none">
+                    {unreadBadge}
+                  </span>
+                )}
               </NavLink>
               <NavLink
                 to="/dashboard/profile"

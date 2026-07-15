@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from "react-router";
 import { DashboardShell } from "./DashboardShell";
 import { useAuth } from "../../context/AuthContext";
+import { NotificationsProvider } from "../../context/NotificationsContext";
 
 const accountLabel: Record<string, string> = {
   personal: "Personal · Premium",
@@ -21,12 +22,14 @@ export default function DashboardLayout() {
   // Do NOT wrap it in a container or add padding here — for a sidebar-based
   // dashboard, a max-width centered wrapper creates dead space and is bad UX.
   return (
-    <DashboardShell
-      userName={user?.name ?? "Customer"}
-      accountLabel={user ? accountLabel[user.accountType] ?? "Personal" : "Personal"}
-      onLogout={handleLogout}
-    >
-      <Outlet />
-    </DashboardShell>
+    <NotificationsProvider>
+      <DashboardShell
+        userName={user?.name ?? "Customer"}
+        accountLabel={user ? accountLabel[user.accountType] ?? "Personal" : "Personal"}
+        onLogout={handleLogout}
+      >
+        <Outlet />
+      </DashboardShell>
+    </NotificationsProvider>
   );
 }
