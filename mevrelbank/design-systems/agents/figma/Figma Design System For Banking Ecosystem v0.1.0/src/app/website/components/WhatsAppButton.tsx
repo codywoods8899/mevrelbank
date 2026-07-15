@@ -1,27 +1,40 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 
 // Global floating WhatsApp contact bubble, shown on every page.
-// Icon: /public/icons/whatsapp.svg (free SVG, stored in the repo under public/icons/)
+// Icon: /public/icons/whatsapp.svg  (preloaded in index.html <head>)
 //
-// Smartsupp injects its own closed-chat bubble as a third-party widget with no
-// fixed selector/size contract, and its markup can change without notice. Rather
-// than hardcoding an offset that can drift out of alignment, we measure the
-// live Smartsupp bubble in the DOM at runtime and mirror its size + right/bottom
-// position (stacked just above it), falling back to a sane default position
-// when Smartsupp hasn't loaded (or isn't present) yet.
+// Entrance animation:
+//   Measured from Smartsupp widget-v3 source (assets/main-t6WxLABA.js):
+//     fly({ y: 20, delay: 300, duration: 400 })   ← Svelte transition directive
+//   Easing: Svelte's default cubicOut (t => --t*t*t+1)
+//         ≡ CSS cubic-bezier(0.215, 0.61, 0.355, 1)
+//   Opacity: 0 → 1  (Svelte fly always animates opacity)
+//   Translation: translateY(20px) → translateY(0)
 //
-// Smartsupp v5 renders its closed-chat button inside a full-screen transparent
-// overlay iframe (position:fixed; inset:0). We cannot read inside the cross-origin
-// iframe, so we also walk the direct children of any Smartsupp-tagged containers
-// to find a small positioned child (their button div, if same-origin), and we
-// read window._smartsupp for any configured offset values.
+//   We synchronise the trigger with Smartsupp's entrance so both bubbles
+//   appear as a coordinated pair (Law of Proximity):
+//     • We detect when Smartsupp's element first appears in the DOM via
+//       MutationObserver (this coincides with Svelte component mount, T+0).
+//     • We wait 300 ms from that moment — matching Smartsupp's internal
+//       fly delay — before setting phase → "entering".
+//     • The .whatsapp-enter CSS class (animations.css) plays the 400 ms
+//       keyframe, running in parallel with Smartsupp's animation.
+//     • Fallback: if Smartsupp never loads (e.g. ad-blocker), we enter
+//       after ENTRANCE_FALLBACK_MS.
+//
+// SVG flash prevention:
+//   The SVG is preloaded via <link rel="preload"> in index.html AND via
+//   new Image() here.  The button stays in phase "hidden" (opacity:0,
+//   translateY(20px)) until BOTH the icon is cached AND the Smartsupp
+//   timing signal fires, so the user always sees background + icon
+//   together during the entrance animation — never a bare green circle.
 
 const BASE_URL = import.meta.env.DEV
   ? ""
   : (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
-// Smartsupp's default offset is 20 px from both edges on all screen sizes
-// unless the _smartsupp.offsetX / _smartsupp.offsetY globals are set.
+// ─── Smartsupp offset helpers ─────────────────────────────────────────────────
+
 function getSmartsuppOffset(): { x: number; y: number } {
   try {
     const ss = (window as unknown as Record<string, unknown>)._smartsupp as
@@ -36,13 +49,13 @@ function getSmartsuppOffset(): { x: number; y: number } {
   }
 }
 
-const DEFAULT_SIZE = 56;   // px — matches Smartsupp's standard closed-chat button
-const STACK_GAP = 12;      // px gap between the two bubbles (all paths use this)
-const MAX_BUBBLE_SIZE = 160; // ignore elements once Smartsupp expands into an open window
-const EDGE_THRESHOLD = 100;  // px — how close to the viewport edge counts as "corner"
+// ─── Layout constants ─────────────────────────────────────────────────────────
 
-// Derived fallback: Smartsupp's configured bottom margin + button height + our gap.
-// Uses getSmartsuppOffset().y at call-time so it respects any runtime config.
+const DEFAULT_SIZE = 56;     // px — Smartsupp standard closed-chat button size
+const STACK_GAP = 12;        // px — gap between our bubble and Smartsupp's
+const MAX_BUBBLE_SIZE = 160; // px — above this we assume Smartsupp is open/expanded
+const EDGE_THRESHOLD = 100;  // px — proximity to viewport corner counts as "corner widget"
+
 function defaultBottom(): number {
   return getSmartsuppOffset().y + DEFAULT_SIZE + STACK_GAP;
 }
@@ -50,20 +63,24 @@ function defaultRight(): number {
   return getSmartsuppOffset().x;
 }
 
+// ─── Entrance animation timing ────────────────────────────────────────────────
+
+// Measured from Smartsupp widget-v3: fly({ y:20, delay:300, duration:400 })
+const SS_ENTER_DELAY_MS = 300;    // Smartsupp's Svelte fly delay
+const ENTRANCE_FALLBACK_MS = 3000; // max wait before forcing entrance
+
+// ─── Smartsupp bubble detection ───────────────────────────────────────────────
+
 function digitsOnly(value: string) {
   return value.replace(/[^0-9]/g, "");
 }
 
 /**
- * Returns a small element representing Smartsupp's closed-chat button.
+ * Returns the element representing Smartsupp's closed-chat button.
  *
- * Strategy:
- *  1. Collect all elements that match Smartsupp selectors (including iframes).
- *  2. For every Smartsupp-tagged container that is too large to be the button,
- *     also walk its direct children — this handles the full-screen overlay case
- *     where the actual button div sits inside a transparent cover layer.
- *  3. Among all candidates, return the one nearest to the viewport corner
- *     that is small enough to be a closed-chat button.
+ * Smartsupp v5 renders inside a full-screen transparent iframe overlay,
+ * so we also walk direct children of any large Smartsupp-tagged container
+ * to find the actual button div sitting inside the overlay.
  */
 function findSmartsuppBubble(ownEl: HTMLElement | null): HTMLElement | null {
   const selectors = [
@@ -82,13 +99,12 @@ function findSmartsuppBubble(ownEl: HTMLElement | null): HTMLElement | null {
       candidates.add(el)
     );
   }
-  // Fallback: any element appended directly to <body> near the bottom-right corner.
   document
     .querySelectorAll<HTMLElement>("body > div, body > iframe")
     .forEach((el) => candidates.add(el));
 
-  const viewportW = window.innerWidth;
-  const viewportH = window.innerHeight;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
 
   function isQualified(el: HTMLElement): boolean {
     if (!el || el === ownEl || (ownEl && ownEl.contains(el))) return false;
@@ -97,12 +113,10 @@ function findSmartsuppBubble(ownEl: HTMLElement | null): HTMLElement | null {
     const rect = el.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return false;
     if (rect.width > MAX_BUBBLE_SIZE || rect.height > MAX_BUBBLE_SIZE) return false;
-    const nearRight = viewportW - rect.right < EDGE_THRESHOLD;
-    const nearBottom = viewportH - rect.bottom < EDGE_THRESHOLD;
-    return nearRight && nearBottom;
+    return vw - rect.right < EDGE_THRESHOLD && vh - rect.bottom < EDGE_THRESHOLD;
   }
 
-  // Collect large Smartsupp containers so we can walk their children.
+  // Collect large Smartsupp containers to walk their children.
   for (const el of candidates) {
     if (!el || el === ownEl || (ownEl && ownEl.contains(el))) continue;
     const s = window.getComputedStyle(el);
@@ -113,7 +127,6 @@ function findSmartsuppBubble(ownEl: HTMLElement | null): HTMLElement | null {
     }
   }
 
-  // Walk direct children of any large Smartsupp containers.
   for (const container of containers) {
     Array.from(container.children).forEach((child) => {
       if (child instanceof HTMLElement) candidates.add(child);
@@ -127,25 +140,63 @@ function findSmartsuppBubble(ownEl: HTMLElement | null): HTMLElement | null {
     if (isQualified(el)) {
       const rect = el.getBoundingClientRect();
       const area = rect.width * rect.height;
-      if (area < bestArea) {
-        best = el;
-        bestArea = area;
-      }
+      if (area < bestArea) { best = el; bestArea = area; }
     }
   }
 
   return best;
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
+type Phase = "hidden" | "entering" | "visible";
+
 export function WhatsAppButton() {
   const [number, setNumber] = useState<string | null>(null);
-  const [style, setStyle] = useState<{ right: number; bottom: number; size: number }>({
+  const [pos, setPos] = useState<{ right: number; bottom: number; size: number }>({
     right: defaultRight(),
     bottom: defaultBottom(),
     size: DEFAULT_SIZE,
   });
+  // "hidden"   → opacity:0 + translateY(20px); invisible before both conditions met
+  // "entering" → .whatsapp-enter CSS animation plays (400 ms, cubicOut, no delay)
+  // "visible"  → animation done; hover/active transitions re-enabled
+  const [phase, setPhase] = useState<Phase>("hidden");
+
   const anchorRef = useRef<HTMLAnchorElement | null>(null);
 
+  // Coordination refs — accessed by stable callbacks so no stale-closure risk
+  const iconReadyRef    = useRef(false);
+  const ssSeenAtRef     = useRef<number | null>(null); // timestamp of first SS detection
+  const enterFiredRef   = useRef(false);               // guard: enter triggered at most once
+
+  /**
+   * Fire the entrance transition, synchronised with Smartsupp's 300 ms fly delay.
+   * Safe to call multiple times — guarded by enterFiredRef.
+   */
+  const tryEnter = useCallback(() => {
+    if (enterFiredRef.current) return;
+    if (!iconReadyRef.current) return;
+    if (ssSeenAtRef.current === null) return;
+
+    enterFiredRef.current = true;
+    const elapsed = Date.now() - ssSeenAtRef.current;
+    const wait = Math.max(0, SS_ENTER_DELAY_MS - elapsed);
+    setTimeout(() => setPhase((p) => (p === "hidden" ? "entering" : p)), wait);
+  }, []); // refs + stable setPhase → no deps needed
+
+  // Preload SVG programmatically — ensures icon is cached before entrance starts.
+  // index.html also has <link rel="preload"> for early browser-level fetch.
+  useEffect(() => {
+    const img = new Image();
+    img.onload = img.onerror = () => {
+      iconReadyRef.current = true;
+      tryEnter();
+    };
+    img.src = "/icons/whatsapp.svg";
+  }, [tryEnter]);
+
+  // Fetch WhatsApp number from API
   useEffect(() => {
     let cancelled = false;
     fetch(`${BASE_URL}/api/settings/public`)
@@ -154,44 +205,51 @@ export function WhatsAppButton() {
         if (!cancelled && data?.whatsappNumber) setNumber(data.whatsappNumber);
       })
       .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
+  // Position tracking + Smartsupp detection + fallback timer
   useEffect(() => {
     if (!number) return;
+
+    // Safety net: if Smartsupp never loads (ad-blocker etc.), enter anyway
+    const fallback = setTimeout(() => {
+      if (!enterFiredRef.current) {
+        enterFiredRef.current = true;
+        setPhase((p) => (p === "hidden" ? "entering" : p));
+      }
+    }, ENTRANCE_FALLBACK_MS);
 
     function sync() {
       const bubble = findSmartsuppBubble(anchorRef.current);
 
       if (!bubble) {
-        // Keep our position in sync with Smartsupp's configured offset even
-        // when we cannot find the actual element (e.g. cross-origin iframe).
         const fb = { right: defaultRight(), bottom: defaultBottom(), size: DEFAULT_SIZE };
-        setStyle((prev) =>
+        setPos((prev) =>
           prev.right === fb.right && prev.bottom === fb.bottom && prev.size === fb.size
-            ? prev
-            : fb
+            ? prev : fb
         );
-        return;
-      }
+      } else {
+        const rect = bubble.getBoundingClientRect();
+        const size  = Math.round(Math.max(rect.width, rect.height));
+        const right = Math.round(window.innerWidth  - rect.right);
+        const bottom = Math.round(window.innerHeight - rect.bottom + size + STACK_GAP);
+        setPos((prev) =>
+          prev.right === right && prev.bottom === bottom && prev.size === size
+            ? prev : { right, bottom, size }
+        );
 
-      const rect = bubble.getBoundingClientRect();
-      const size = Math.round(Math.max(rect.width, rect.height));
-      const right = Math.round(window.innerWidth - rect.right);
-      const bottom = Math.round(window.innerHeight - rect.bottom + size + STACK_GAP);
-      setStyle((prev) =>
-        prev.right === right && prev.bottom === bottom && prev.size === size
-          ? prev
-          : { right, bottom, size }
-      );
+        // First detection — record timestamp and attempt to trigger entrance
+        if (ssSeenAtRef.current === null) {
+          ssSeenAtRef.current = Date.now();
+          tryEnter();
+        }
+      }
     }
 
     sync();
     const interval = window.setInterval(sync, 1000);
     window.addEventListener("resize", sync);
-
     const observer = new MutationObserver(sync);
     observer.observe(document.body, { childList: true, subtree: true });
 
@@ -199,13 +257,24 @@ export function WhatsAppButton() {
       window.clearInterval(interval);
       window.removeEventListener("resize", sync);
       observer.disconnect();
+      clearTimeout(fallback);
     };
-  }, [number]);
+  }, [number, tryEnter]);
 
   if (!number) return null;
 
   const href = `https://wa.me/${digitsOnly(number)}`;
-  const iconSize = Math.round(style.size * 0.5);
+  const iconSize = Math.round(pos.size * 0.5);
+
+  // Inline style — position is always set; opacity/transform only while hidden
+  // so that once visible the CSS animation (and later hover transforms) apply cleanly.
+  const inlineStyle: CSSProperties = {
+    right:  pos.right,
+    bottom: pos.bottom,
+    width:  pos.size,
+    height: pos.size,
+    ...(phase === "hidden" ? { opacity: 0, transform: "translateY(20px)" } : {}),
+  };
 
   return (
     <a
@@ -214,8 +283,18 @@ export function WhatsAppButton() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with us on WhatsApp"
-      style={{ right: style.right, bottom: style.bottom, width: style.size, height: style.size }}
-      className="fixed z-[60] flex items-center justify-center rounded-full bg-[#1FAF54] shadow-[0_6px_20px_rgba(0,0,0,0.25)] hover:scale-105 active:scale-95 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#25D366]"
+      style={inlineStyle}
+      onAnimationEnd={() => setPhase((p) => (p === "entering" ? "visible" : p))}
+      className={[
+        // Base — always present
+        "fixed z-[60] flex items-center justify-center rounded-full bg-[#1FAF54]",
+        "shadow-[0_6px_20px_rgba(0,0,0,0.25)]",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#25D366]",
+        // Entrance animation (keyframe defined in animations.css)
+        phase === "entering" && "whatsapp-enter",
+        // Hover/active only re-enabled after animation so transform doesn't conflict
+        phase === "visible" && "hover:scale-105 active:scale-95 transition-transform",
+      ].filter(Boolean).join(" ")}
     >
       <img
         src="/icons/whatsapp.svg"
