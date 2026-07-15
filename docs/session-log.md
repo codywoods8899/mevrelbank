@@ -394,6 +394,32 @@ Homepage now contains 9 distinct sections (Navbar, Hero, TrustBar, Features, App
 ---
 
 <a id="s-05"></a>
+## S-15 · 2026-07-15T02:00–02:45Z · Admin Mailbox — IMAP read + send fully working
+
+### Goal
+Get the Admin Mailboxes feature (IMAP read + SMTP send) working end-to-end with the backend deployed on Railway.
+
+### Problems solved (in order)
+
+| # | Error | Root cause | Fix |
+|---|-------|-----------|-----|
+| 1 | "Password not configured" | Railway env vars not set (Replit secrets don't transfer) | User manually added `*_EMAIL_PASSWORD` + `SPACEMAIL_*` vars in Railway dashboard |
+| 2 | `conn.fetch is not a function` | `imap-simple` has no standalone `.fetch()` — all fetching goes through `conn.search(criteria, fetchOptions)` | Replaced `conn.fetch()` with `conn.search([['UID', ...]], opts)` |
+| 3 | `input.once is not a function` | `mailparser` v3 requires a `Buffer` or stream, not a plain string | Wrapped header body in `Buffer.from()` before passing to `simpleParser` |
+| 4 | `Buffer.from()` — "Received an instance of Object" | `imap-simple` already parses `HEADER.FIELDS` into a JS object; `Buffer.from(object)` throws | Dropped `simpleParser` for header listing; read fields directly from the parsed object (`hdr.from[0]`, `hdr.subject[0]`, etc.) |
+| 5 | Only 1 of 6 messages shown | Two-step UID search unreliable with `imap-simple` | Switched to single `conn.search(['ALL'], { bodies: ['HEADER.FIELDS ...'] })` returning all messages, paginated in JS |
+| 6 | Send hangs indefinitely | Railway blocks outbound SMTP (ports 465/587) at network level | Added `connectionTimeout`/`socketTimeout` to surface the error; then switched send from nodemailer/SMTP to **Resend API** (HTTPS port 443, already used by the backend) |
+
+### Files changed
+| File | Change |
+|------|--------|
+| `mevrelbank/backend/src/routes/mailboxes.js` | All six fixes above; removed `nodemailer`, added `Resend` for outbound send |
+
+### Outcome
+All 6 inboxes load their full message list. Individual messages open correctly. Compose/send works via Resend API. Feature is fully operational on Railway.
+
+---
+
 ## S-05 · 2026-07-09T04:52–04:53Z · Phase 1 inner pages (7 routes)
 
 **Branch:** `copilot/database-hosting-query`  
