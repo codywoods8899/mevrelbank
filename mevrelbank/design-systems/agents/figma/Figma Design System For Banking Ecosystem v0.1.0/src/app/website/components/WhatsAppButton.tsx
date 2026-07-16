@@ -4,27 +4,31 @@ import { widgetCoordinator } from "../../../lib/widgetCoordinator";
 // Global floating WhatsApp contact bubble, shown on every page.
 // Icon: /public/icons/whatsapp.svg  (preloaded in index.html <head>)
 //
-// Entrance animation:
-//   Measured from Smartsupp widget-v3 source (assets/main-t6WxLABA.js):
-//     fly({ y: 20, delay: 300, duration: 400 })   ← Svelte transition directive
-//   Easing: Svelte's default cubicOut (t => --t*t*t+1)
-//         ≡ CSS cubic-bezier(0.215, 0.61, 0.355, 1)
-//   Opacity: 0 → 1  (Svelte fly always animates opacity)
-//   Translation: translateY(20px) → translateY(0)
-//
 // Coordinated reveal:
-//   widgetCoordinator (widgetCoordinator.ts) holds both widgets hidden until
-//   BOTH are ready, then reveals them simultaneously with the same animation.
-//   This component signals 'whatsapp' when the icon is cached AND the phone
-//   number is fetched. It signals 'smartsupp' when Smartsupp's DOM element
-//   is first detected. The coordinator fires onReveal → entrance plays.
-//   Fallback: coordinator reveals after 5 s if one widget never loads.
+//   widgetCoordinator listens for smartsupp('on', 'ready', ...) — the official
+//   signal that Smartsupp has finished loading all its assets.  At that moment
+//   it "seizes" the widget (Smartsupp is held invisible by hold CSS injected at
+//   module-eval time) and checks whether WhatsApp is also ready.
+//
+//   WhatsApp is considered ready once BOTH:
+//     • the SVG icon is cached (no bare-circle flash), AND
+//     • the phone number has been fetched (needed to render the <a> at all).
+//
+//   When both sides are ready the coordinator fires reveal():
+//     • hold CSS is removed
+//     • the same whatsapp-enter keyframe is applied to the Smartsupp container
+//     • onReveal callbacks fire for WhatsApp
+//   Both animations start in the same JS tick — identical visual timing.
+//
+//   Fallbacks ensure nothing stays hidden forever:
+//     • Smartsupp ready but WhatsApp slow  → 2 s then reveal
+//     • WhatsApp ready but Smartsupp blocked → 6 s then reveal
 //
 // SVG flash prevention:
 //   The SVG is preloaded via <link rel="preload"> in index.html AND via
-//   new Image() here. The button stays in phase "hidden" (opacity:0,
-//   translateY(20px)) until the coordinator calls onReveal, so the user
-//   always sees background + icon together — never a bare green circle.
+//   new Image() here.  The button stays phase "hidden" (opacity:0,
+//   translateY(20px)) until the coordinator fires, so the user always
+//   sees background + icon together — never a bare green circle.
 
 const BASE_URL = import.meta.env.DEV
   ? ""
@@ -48,10 +52,10 @@ function getSmartsuppOffset(): { x: number; y: number } {
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
-const DEFAULT_SIZE = 56;     // px — Smartsupp standard closed-chat button size
-const STACK_GAP = 12;        // px — gap between our bubble and Smartsupp's
-const MAX_BUBBLE_SIZE = 160; // px — above this we assume Smartsupp is open/expanded
-const EDGE_THRESHOLD = 100;  // px — proximity to viewport corner counts as "corner widget"
+const DEFAULT_SIZE    = 56;  // px — Smartsupp standard closed-chat button size
+const STACK_GAP       = 12;  // px — gap between our bubble and Smartsupp's
+const MAX_BUBBLE_SIZE = 160; // px — above this assume Smartsupp is open/expanded
+const EDGE_THRESHOLD  = 100; // px — proximity to viewport corner = "corner widget"
 
 function defaultBottom(): number {
   return getSmartsuppOffset().y + DEFAULT_SIZE + STACK_GAP;
@@ -60,7 +64,7 @@ function defaultRight(): number {
   return getSmartsuppOffset().x;
 }
 
-// ─── Smartsupp bubble detection ───────────────────────────────────────────────
+// ─── Smartsupp bubble detection (position tracking only) ─────────────────────
 
 function digitsOnly(value: string) {
   return value.replace(/[^0-9]/g, "");
@@ -68,6 +72,7 @@ function digitsOnly(value: string) {
 
 /**
  * Returns the element representing Smartsupp's closed-chat button.
+ * Used only for position tracking after reveal — not for entrance timing.
  *
  * Smartsupp v5 renders inside a full-screen transparent iframe overlay,
  * so we also walk direct children of any large Smartsupp-tagged container
@@ -107,7 +112,6 @@ function findSmartsuppBubble(ownEl: HTMLElement | null): HTMLElement | null {
     return vw - rect.right < EDGE_THRESHOLD && vh - rect.bottom < EDGE_THRESHOLD;
   }
 
-  // Collect large Smartsupp containers to walk their children.
   for (const el of candidates) {
     if (!el || el === ownEl || (ownEl && ownEl.contains(el))) continue;
     const s = window.getComputedStyle(el);
@@ -149,41 +153,39 @@ export function WhatsAppButton() {
     bottom: defaultBottom(),
     size: DEFAULT_SIZE,
   });
-  // "hidden"   → opacity:0 + translateY(20px); invisible until coordinator fires
+  // "hidden"   → opacity:0 + translateY(20px); stays here until coordinator fires
   // "entering" → .whatsapp-enter CSS animation plays (400 ms, cubicOut, no delay)
   // "visible"  → animation done; hover/active transitions re-enabled
   const [phase, setPhase] = useState<Phase>("hidden");
 
   const anchorRef = useRef<HTMLAnchorElement | null>(null);
 
-  // Readiness refs — both must be true before we signal 'whatsapp' to coordinator
+  // Both must be true before we signal the coordinator.
   const iconReadyRef   = useRef(false);
   const numberReadyRef = useRef(false);
+  // Guard: entrance fires at most once.
+  const enterFiredRef  = useRef(false);
 
-  // Guard: entrance triggered at most once (coordinator also guards, belt+suspenders)
-  const enterFiredRef = useRef(false);
-
-  // Fired by coordinator once both widgets are ready (or fallback fires).
+  // Triggered by coordinator when both widgets are ready (or fallback fires).
   const triggerEntrance = useCallback(() => {
     if (enterFiredRef.current) return;
     enterFiredRef.current = true;
     setPhase((p) => (p === "hidden" ? "entering" : p));
   }, []);
 
-  // Subscribe to coordinator reveal exactly once on mount.
+  // Subscribe to coordinator reveal once on mount.
   useEffect(() => {
     widgetCoordinator.onReveal(triggerEntrance);
   }, [triggerEntrance]);
 
-  // Signal coordinator once both icon and phone number are ready.
+  // Signal coordinator once BOTH icon and phone number are ready.
   const trySignalWhatsapp = useCallback(() => {
     if (iconReadyRef.current && numberReadyRef.current) {
-      widgetCoordinator.signal("whatsapp");
+      widgetCoordinator.signalWhatsapp();
     }
   }, []);
 
-  // Preload SVG programmatically — ensures icon is cached before entrance starts.
-  // index.html also has <link rel="preload"> for early browser-level fetch.
+  // Preload SVG — keeps icon cached so background + icon animate in together.
   useEffect(() => {
     const img = new Image();
     img.onload = img.onerror = () => {
@@ -209,13 +211,11 @@ export function WhatsAppButton() {
     return () => { cancelled = true; };
   }, [trySignalWhatsapp]);
 
-  // Position tracking + Smartsupp detection.
-  // Signals coordinator once ('smartsupp') on first detection;
-  // continues polling for position updates thereafter.
+  // Position tracking — runs after number is available.
+  // Polls for Smartsupp's bubble to keep the WhatsApp button stacked above it.
+  // This is purely for layout; entrance timing is owned by the coordinator.
   useEffect(() => {
     if (!number) return;
-
-    let ssSeen = false; // local flag — signal coordinator only on first detection
 
     function sync() {
       const bubble = findSmartsuppBubble(anchorRef.current);
@@ -235,12 +235,6 @@ export function WhatsAppButton() {
           prev.right === right && prev.bottom === bottom && prev.size === size
             ? prev : { right, bottom, size }
         );
-
-        // First detection — signal coordinator. Position polling continues.
-        if (!ssSeen) {
-          ssSeen = true;
-          widgetCoordinator.signal("smartsupp");
-        }
       }
     }
 
@@ -259,11 +253,9 @@ export function WhatsAppButton() {
 
   if (!number) return null;
 
-  const href = `https://wa.me/${digitsOnly(number)}`;
+  const href     = `https://wa.me/${digitsOnly(number)}`;
   const iconSize = Math.round(pos.size * 0.5);
 
-  // Inline style — position is always set; opacity/transform only while hidden
-  // so that once visible the CSS animation (and later hover transforms) apply cleanly.
   const inlineStyle: CSSProperties = {
     right:  pos.right,
     bottom: pos.bottom,
@@ -282,14 +274,11 @@ export function WhatsAppButton() {
       style={inlineStyle}
       onAnimationEnd={() => setPhase((p) => (p === "entering" ? "visible" : p))}
       className={[
-        // Base — always present
         "fixed z-[60] flex items-center justify-center rounded-full bg-[#1FAF54]",
         "shadow-[0_6px_20px_rgba(0,0,0,0.25)]",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#25D366]",
-        // Entrance animation (keyframe defined in animations.css)
         phase === "entering" && "whatsapp-enter",
-        // Hover/active only re-enabled after animation so transform doesn't conflict
-        phase === "visible" && "hover:scale-105 active:scale-95 transition-transform",
+        phase === "visible"  && "hover:scale-105 active:scale-95 transition-transform",
       ].filter(Boolean).join(" ")}
     >
       <img
