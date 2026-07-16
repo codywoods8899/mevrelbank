@@ -98,6 +98,7 @@ export default function AdminCustomerDetailPage() {
   const [editForm, setEditForm] = useState({ name: "", email: "", phone: "", address: "", accountType: "personal" });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
+  const [editReAuthOpen, setEditReAuthOpen] = useState(false);
 
   // Archive state
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -146,22 +147,30 @@ export default function AdminCustomerDetailPage() {
     }
   };
 
-  const saveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setEditError("");
+  const profilePayload = () => ({
+    name: editForm.name.trim() || undefined,
+    email: editForm.email.trim() || undefined,
+    phone: editForm.phone.trim() || undefined,
+    address: editForm.address.trim() || undefined,
+    accountType: editForm.accountType || undefined,
+  });
+
+  const hasEmailChanged = () => {
+    if (!data) return false;
+    return editForm.email.trim().toLowerCase() !== (data.user.email ?? "").trim().toLowerCase();
+  };
+
+  const submitProfileUpdate = async (confirmToken?: string) => {
+    if (confirmToken) setEditReAuthOpen(false);
     setEditLoading(true);
     try {
       await authedJson(`/admin/users/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({
-          name: editForm.name.trim() || undefined,
-          email: editForm.email.trim() || undefined,
-          phone: editForm.phone.trim() || undefined,
-          address: editForm.address.trim() || undefined,
-          accountType: editForm.accountType || undefined,
-        }),
+        ...(confirmToken ? { headers: { "X-Admin-Confirm-Token": confirmToken } } : {}),
+        body: JSON.stringify(profilePayload()),
       });
       setEditOpen(false);
+      setEditReAuthOpen(false);
       showToast("Customer profile updated.", "success");
       load();
     } catch (err: any) {
@@ -169,6 +178,16 @@ export default function AdminCustomerDetailPage() {
     } finally {
       setEditLoading(false);
     }
+  };
+
+  const saveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditError("");
+    if (hasEmailChanged()) {
+      setEditReAuthOpen(true);
+      return;
+    }
+    await submitProfileUpdate();
   };
 
   const doArchive = async () => {
@@ -198,6 +217,18 @@ export default function AdminCustomerDetailPage() {
   return (
     <>
       <PageMeta title="Customer detail — Admin — MevrelBank" description="Customer account detail for MevrelBank support staff." />
+
+      {editReAuthOpen && (
+        <AdminReAuthModal
+          title="Change customer email"
+          description="Changing a customer's email revokes active sessions and marks the email as unverified. Confirm your admin identity to save this change."
+          onClose={() => {
+            setEditReAuthOpen(false);
+            setEditLoading(false);
+          }}
+          onConfirm={(token) => submitProfileUpdate(token)}
+        />
+      )}
 
       {toast && (
         <div className={`fixed top-5 right-5 z-50 px-5 py-3 rounded-[10px] text-[13px] font-semibold shadow-lg text-white flex items-center gap-2 ${toast.type === "success" ? "bg-[#0E7C4D]" : "bg-[#C52B2B]"}`}>
@@ -331,7 +362,7 @@ export default function AdminCustomerDetailPage() {
             <form onSubmit={saveProfile} className="rounded-[16px] border border-[#0B3270] border-opacity-20 bg-[#F7F9FD] p-5 mb-6 space-y-4">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-[14px] font-bold text-[#0D1829]">Edit customer profile</h3>
-                <button type="button" onClick={() => { setEditOpen(false); setEditError(""); }} className="text-[#9AAABF] hover:text-[#5E6E8E]"><X size={15} /></button>
+                <button type="button" onClick={() => { setEditOpen(false); setEditError(""); setEditReAuthOpen(false); }} className="text-[#9AAABF] hover:text-[#5E6E8E]"><X size={15} /></button>
               </div>
               {editError && (
                 <div className="rounded-[8px] bg-[#FEF2F2] border border-[rgba(197,43,43,0.2)] px-3 py-2 text-[12px] text-[#C52B2B]">{editError}</div>
@@ -368,7 +399,7 @@ export default function AdminCustomerDetailPage() {
                 </div>
               </div>
               <div className="flex gap-3 pt-1">
-                <button type="button" onClick={() => { setEditOpen(false); setEditError(""); }}
+                <button type="button" onClick={() => { setEditOpen(false); setEditError(""); setEditReAuthOpen(false); }}
                   className="px-5 py-2.5 rounded-[10px] border border-[rgba(11,50,112,0.15)] text-[13px] font-semibold text-[#5E6E8E] hover:bg-white transition-colors">
                   Cancel
                 </button>
