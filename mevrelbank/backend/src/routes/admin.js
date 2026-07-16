@@ -364,7 +364,7 @@ router.get('/accounts', async (req, res) => {
      LEFT JOIN users cb ON cb.id = a.closed_by
      ${where}
      ORDER BY u.name ASC, a.created_at ASC
-     LIMIT ${params.length - 1} OFFSET ${params.length}`,
+     LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );
 
@@ -474,7 +474,7 @@ router.get('/transactions', async (req, res) => {
        LEFT JOIN users au ON au.id = t.admin_id
        ${where}
        ORDER BY t.occurred_at DESC
-       LIMIT ${params.length - 1} OFFSET ${params.length}`,
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params
     ),
     pool.query(
