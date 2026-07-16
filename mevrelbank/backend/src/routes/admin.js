@@ -228,12 +228,23 @@ router.get('/users', async (req, res) => {
 // ─── GET /api/admin/users/:id — customer detail ───────────────────────────────
 
 router.get('/users/:id', async (req, res) => {
-  const { rows } = await pool.query(`SELECT * FROM users WHERE id = $1 AND role = 'customer'`, [req.params.id]);
+  // Fetch user + archiving admin name in one query
+  const { rows } = await pool.query(
+    `SELECT u.*, ab.name AS archived_by_name
+     FROM users u
+     LEFT JOIN users ab ON ab.id = u.archived_by
+     WHERE u.id = $1 AND u.role = 'customer'`,
+    [req.params.id]
+  );
   if (rows.length === 0) return res.status(404).json({ error: 'User not found.' });
   const user = rows[0];
 
+  // Fetch accounts + closing admin name
   const { rows: accounts } = await pool.query(
-    `SELECT * FROM accounts WHERE user_id = $1 ORDER BY created_at ASC`,
+    `SELECT a.*, cb.name AS closed_by_name
+     FROM accounts a
+     LEFT JOIN users cb ON cb.id = a.closed_by
+     WHERE a.user_id = $1 ORDER BY a.created_at ASC`,
     [user.id]
   );
 
@@ -241,8 +252,10 @@ router.get('/users/:id', async (req, res) => {
   let transactions = [];
   if (accountIds.length > 0) {
     const { rows: txns } = await pool.query(
-      `SELECT t.*, a.name AS account_name FROM transactions t
+      `SELECT t.*, a.name AS account_name, au.name AS admin_name
+       FROM transactions t
        JOIN accounts a ON a.id = t.account_id
+       LEFT JOIN users au ON au.id = t.admin_id
        WHERE t.account_id = ANY($1::uuid[])
        ORDER BY t.occurred_at DESC LIMIT 50`,
       [accountIds]
@@ -263,6 +276,8 @@ router.get('/users/:id', async (req, res) => {
       isActive: user.is_active,
       archivedAt: user.archived_at ?? null,
       archiveReason: user.archive_reason ?? null,
+      archivedById: user.archived_by ?? null,
+      archivedByName: user.archived_by_name ?? null,
       createdAt: user.created_at,
     },
     accounts: accounts.map(a => ({
@@ -274,6 +289,10 @@ router.get('/users/:id', async (req, res) => {
       balance: Number(a.balance),
       available: Number(a.available),
       status: a.status ?? 'active',
+      closeReason: a.close_reason ?? null,
+      closedAt: a.closed_at ?? null,
+      closedById: a.closed_by ?? null,
+      closedByName: a.closed_by_name ?? null,
     })),
     transactions: transactions.map(t => ({
       id: t.id,
@@ -284,6 +303,9 @@ router.get('/users/:id', async (req, res) => {
       amount: Number(t.amount),
       status: t.status,
       initiatedBy: t.initiated_by,
+      adminReason: t.admin_reason ?? null,
+      adminId: t.admin_id ?? null,
+      adminName: t.admin_name ?? null,
       reversalOf: t.reversal_of ?? null,
       reversedBy: t.reversed_by ?? null,
       date: t.occurred_at,
@@ -335,8 +357,11 @@ router.get('/accounts', async (req, res) => {
 
   params.push(pageSize, offset);
   const { rows } = await pool.query(
-    `SELECT a.*, u.name AS user_name, u.email AS user_email
-     FROM accounts a JOIN users u ON u.id = a.user_id
+    `SELECT a.*, u.name AS user_name, u.email AS user_email,
+            cb.name AS closed_by_name
+     FROM accounts a
+     JOIN users u ON u.id = a.user_id
+     LEFT JOIN users cb ON cb.id = a.closed_by
      ${where}
      ORDER BY u.name ASC, a.created_at ASC
      LIMIT ${params.length - 1} OFFSET ${params.length}`,
@@ -361,6 +386,10 @@ router.get('/accounts', async (req, res) => {
       balance: Number(a.balance),
       available: Number(a.available),
       status: a.status ?? 'active',
+      closeReason: a.close_reason ?? null,
+      closedAt: a.closed_at ?? null,
+      closedById: a.closed_by ?? null,
+      closedByName: a.closed_by_name ?? null,
       userName: a.user_name,
       userEmail: a.user_email,
       userId: a.user_id,
@@ -377,10 +406,12 @@ router.get('/pending', async (req, res) => {
 
   const [{ rows }, { rows: countRows }] = await Promise.all([
     pool.query(
-      `SELECT t.*, a.name AS account_name, u.name AS user_name, u.email AS user_email
+      `SELECT t.*, a.name AS account_name, u.name AS user_name, u.email AS user_email,
+              au.name AS admin_name
        FROM transactions t
        JOIN accounts a ON a.id = t.account_id
        JOIN users u ON u.id = a.user_id
+       LEFT JOIN users au ON au.id = t.admin_id
        WHERE t.status = 'pending'
        ORDER BY t.occurred_at DESC
        LIMIT $1 OFFSET $2`,
@@ -405,6 +436,9 @@ router.get('/pending', async (req, res) => {
       amount: Number(t.amount),
       status: t.status,
       initiatedBy: t.initiated_by,
+      adminReason: t.admin_reason ?? null,
+      adminId: t.admin_id ?? null,
+      adminName: t.admin_name ?? null,
       reversalOf: t.reversal_of ?? null,
       reversedBy: t.reversed_by ?? null,
       metadata: t.metadata,
@@ -432,13 +466,15 @@ router.get('/transactions', async (req, res) => {
 
   const [{ rows }, { rows: countRows }] = await Promise.all([
     pool.query(
-      `SELECT t.*, a.name AS account_name, u.name AS user_name, u.email AS user_email
+      `SELECT t.*, a.name AS account_name, u.name AS user_name, u.email AS user_email,
+              au.name AS admin_name
        FROM transactions t
        JOIN accounts a ON a.id = t.account_id
        JOIN users u ON u.id = a.user_id
+       LEFT JOIN users au ON au.id = t.admin_id
        ${where}
        ORDER BY t.occurred_at DESC
-       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+       LIMIT ${params.length - 1} OFFSET ${params.length}`,
       params
     ),
     pool.query(
@@ -466,6 +502,9 @@ router.get('/transactions', async (req, res) => {
       amount: Number(t.amount),
       status: t.status,
       initiatedBy: t.initiated_by,
+      adminReason: t.admin_reason ?? null,
+      adminId: t.admin_id ?? null,
+      adminName: t.admin_name ?? null,
       reversalOf: t.reversal_of ?? null,
       reversedBy: t.reversed_by ?? null,
       metadata: t.metadata,
@@ -662,8 +701,8 @@ router.post('/users/:id/archive', requireConfirmToken, async (req, res) => {
 
     // Archive the customer.
     await client.query(
-      `UPDATE users SET is_active = false, archived_at = NOW(), archive_reason = $1, updated_at = NOW() WHERE id = $2`,
-      [reason.trim(), user.id]
+      `UPDATE users SET is_active = false, archived_at = NOW(), archive_reason = $1, archived_by = $2, updated_at = NOW() WHERE id = $3`,
+      [reason.trim(), req.user.sub, user.id]
     );
 
     // Revoke all active sessions.
@@ -760,10 +799,15 @@ router.post('/accounts/:id/close', requireConfirmToken, async (req, res) => {
     });
   }
 
+  // ── Guard: reason is mandatory ────────────────────────────────────────────────
+  if (!reason?.trim()) {
+    return res.status(400).json({ error: 'A reason is required to close an account.' });
+  }
+
   // ── All conditions satisfied — proceed with soft-close ───────────────────────
   await pool.query(
-    `UPDATE accounts SET status = 'closed', closed_at = NOW(), close_reason = $1, updated_at = NOW() WHERE id = $2`,
-    [reason?.trim() || null, account.id]
+    `UPDATE accounts SET status = 'closed', closed_at = NOW(), close_reason = $1, closed_by = $2, updated_at = NOW() WHERE id = $3`,
+    [reason.trim(), req.user.sub, account.id]
   );
 
   await pool.query(
@@ -778,10 +822,11 @@ router.post('/accounts/:id/close', requireConfirmToken, async (req, res) => {
 // ─── PATCH /api/admin/transactions/:id/description — edit description/category
 
 router.patch('/transactions/:id/description', async (req, res) => {
-  const { name, category } = req.body ?? {};
-  if (!name?.trim()) return res.status(400).json({ error: 'Description (name) is required.' });
+  const { name, category, reason } = req.body ?? {};
+  if (!name?.trim())   return res.status(400).json({ error: 'Description (name) is required.' });
+  if (!reason?.trim()) return res.status(400).json({ error: 'Reason is required for description edits.' });
 
-  // Fetch the transaction to determine its period for statement invalidation
+  // Fetch the transaction (captures old values for the audit entry)
   const { rows: txRows } = await pool.query(
     `SELECT t.*, a.user_id FROM transactions t JOIN accounts a ON a.id = t.account_id WHERE t.id = $1`,
     [req.params.id]
@@ -789,19 +834,24 @@ router.patch('/transactions/:id/description', async (req, res) => {
   if (txRows.length === 0) return res.status(404).json({ error: 'Transaction not found.' });
   const tx = txRows[0];
 
-  const updates = [`name = $1`];
-  const params  = [name.trim()];
+  const newName     = name.trim();
+  const newCategory = (category !== undefined && category.trim()) ? category.trim() : tx.category;
 
-  if (category !== undefined && category.trim()) {
-    params.push(category.trim());
-    updates.push(`category = ${params.length}`);
-  }
+  // Update the transaction
+  await pool.query(
+    `UPDATE transactions SET name = $1, category = $2 WHERE id = $3`,
+    [newName, newCategory, tx.id]
+  );
 
-  params.push(tx.id);
-  await pool.query(`UPDATE transactions SET ${updates.join(', ')} WHERE id = ${params.length}`, params);
+  // Write the immutable audit entry
+  await pool.query(
+    `INSERT INTO transaction_edits
+       (transaction_id, admin_id, old_name, new_name, old_category, new_category, reason)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [tx.id, req.user.sub, tx.name, newName, tx.category ?? null, newCategory, reason.trim()]
+  );
 
-  // Invalidate any already-generated statement PDF that covers this transaction's period
-  // so it regenerates with the updated description on next access.
+  // Invalidate any already-generated statement PDF covering this period
   const d = new Date(tx.occurred_at);
   const periodLabel = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
   await pool.query(
@@ -809,7 +859,34 @@ router.patch('/transactions/:id/description', async (req, res) => {
     [tx.account_id, periodLabel]
   );
 
-  return res.json({ id: tx.id, name: name.trim() });
+  return res.json({ id: tx.id, name: newName, category: newCategory });
+});
+
+// ─── GET /api/admin/transactions/:id/edits — description/category edit history ─
+
+router.get('/transactions/:id/edits', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT e.*, u.name AS admin_name, u.email AS admin_email
+     FROM transaction_edits e
+     LEFT JOIN users u ON u.id = e.admin_id
+     WHERE e.transaction_id = $1
+     ORDER BY e.edited_at ASC`,
+    [req.params.id]
+  );
+  return res.json({
+    edits: rows.map(e => ({
+      id: e.id,
+      oldName: e.old_name,
+      newName: e.new_name,
+      oldCategory: e.old_category ?? null,
+      newCategory: e.new_category ?? null,
+      reason: e.reason,
+      adminId: e.admin_id ?? null,
+      adminName: e.admin_name ?? null,
+      adminEmail: e.admin_email ?? null,
+      editedAt: e.edited_at,
+    })),
+  });
 });
 
 // ─── POST /api/admin/transactions/:id/void — void with explicit reversal ──────
@@ -852,14 +929,15 @@ router.post('/transactions/:id/void', requireConfirmToken, async (req, res) => {
     // Post the void-reversal transaction
     const { rows: reversalRows } = await client.query(
       `INSERT INTO transactions
-         (account_id, name, category, amount, status, initiated_by, tx_type, admin_reason, reversal_of, occurred_at)
-       VALUES ($1, $2, $3, $4, 'completed', 'admin', 'void_reversal', $5, $6, NOW()) RETURNING id`,
+         (account_id, name, category, amount, status, initiated_by, tx_type, admin_reason, admin_id, reversal_of, occurred_at)
+       VALUES ($1, $2, $3, $4, 'completed', 'admin', 'void_reversal', $5, $6, $7, NOW()) RETURNING id`,
       [
         tx.account_id,
         `Void: ${tx.name}`,
         tx.category,
         reversalAmount,
         reason.trim(),
+        req.user.sub,
         tx.id,
       ]
     );
@@ -933,9 +1011,9 @@ router.post('/accounts/:id/credit', async (req, res) => {
     const label = description.trim();
     const cat = category?.trim() || 'Credit';
     const { rows: creditTxRows } = await client.query(
-      `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, tx_type, admin_reason, occurred_at)
-       VALUES ($1, $2, $3, $4, 'completed', 'admin', 'adjustment', $5, NOW()) RETURNING id`,
-      [account.id, label, cat, value, reason.trim()]
+      `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, tx_type, admin_reason, admin_id, occurred_at)
+       VALUES ($1, $2, $3, $4, 'completed', 'admin', 'adjustment', $5, $6, NOW()) RETURNING id`,
+      [account.id, label, cat, value, reason.trim(), req.user.sub]
     );
     await client.query(
       `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)
@@ -1000,9 +1078,9 @@ router.post('/accounts/:id/debit', async (req, res) => {
     const label = description.trim();
     const cat = category?.trim() || 'Debit';
     const { rows: debitTxRows } = await client.query(
-      `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, tx_type, admin_reason, occurred_at)
-       VALUES ($1, $2, $3, $4, 'completed', 'admin', 'adjustment', $5, NOW()) RETURNING id`,
-      [account.id, label, cat, -value, reason.trim()]
+      `INSERT INTO transactions (account_id, name, category, amount, status, initiated_by, tx_type, admin_reason, admin_id, occurred_at)
+       VALUES ($1, $2, $3, $4, 'completed', 'admin', 'adjustment', $5, $6, NOW()) RETURNING id`,
+      [account.id, label, cat, -value, reason.trim(), req.user.sub]
     );
     await client.query(
       `INSERT INTO notifications (user_id, title, body, kind, entity_type, entity_id)

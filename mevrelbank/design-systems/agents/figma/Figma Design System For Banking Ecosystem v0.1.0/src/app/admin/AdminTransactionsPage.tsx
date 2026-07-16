@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   CheckCircle2, XCircle, Clock, RefreshCw, AlertTriangle,
-  Pencil, Ban, X, Check,
+  Pencil, Ban, X, Check, History,
 } from "lucide-react";
 import { PageMeta } from "../website/components/PageMeta";
 import { useAdminAuth } from "../context/AdminAuthContext";
@@ -19,10 +19,26 @@ interface Tx {
   amount: number;
   status: string;
   initiatedBy: string;
+  adminReason: string | null;
+  adminId: string | null;
+  adminName: string | null;
   reversalOf: string | null;
   reversedBy: string | null;
   metadata: Record<string, any> | null;
   date: string;
+}
+
+interface TxEdit {
+  id: string;
+  oldName: string;
+  newName: string;
+  oldCategory: string | null;
+  newCategory: string | null;
+  reason: string;
+  adminId: string | null;
+  adminName: string | null;
+  adminEmail: string | null;
+  editedAt: string;
 }
 
 const currency = (n: number) =>
@@ -85,17 +101,19 @@ function RejectModal({ tx, onClose, onConfirm }: { tx: Tx; onClose: () => void; 
 function EditDescriptionModal({ tx, onClose, onSuccess, authedJson }: { tx: Tx; onClose: () => void; onSuccess: (msg: string) => void; authedJson: any; }) {
   const [name, setName]         = useState(tx.name);
   const [category, setCategory] = useState(tx.category);
+  const [reason, setReason]     = useState("");
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) { setError("Description is required."); return; }
+    if (!name.trim())   { setError("Description is required."); return; }
+    if (!reason.trim()) { setError("Reason is required — it is stored as an immutable audit record."); return; }
     setError(""); setLoading(true);
     try {
       await authedJson(`/admin/transactions/${tx.id}/description`, {
         method: "PATCH",
-        body: JSON.stringify({ name: name.trim(), category: category.trim() || undefined }),
+        body: JSON.stringify({ name: name.trim(), category: category.trim() || undefined, reason: reason.trim() }),
       });
       onSuccess("Transaction description updated.");
     } catch (err: any) {
@@ -131,13 +149,95 @@ function EditDescriptionModal({ tx, onClose, onSuccess, authedJson }: { tx: Tx; 
             <input type="text" value={category} onChange={(e) => setCategory(e.target.value)}
               className="w-full px-3 py-2 rounded-[8px] border border-[rgba(11,50,112,0.15)] text-[13px] outline-none focus:border-[#0B3270]" />
           </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">
+              Reason for change <span className="text-[#C52B2B]">*</span>
+            </label>
+            <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g. Corrected merchant name per customer request"
+              className="w-full px-3 py-2 rounded-[8px] border border-[rgba(11,50,112,0.15)] text-[13px] outline-none focus:border-[#0B3270]" />
+            <p className="text-[10px] text-[#9AAABF] mt-0.5">Stored as an immutable audit record — not shown to the customer.</p>
+          </div>
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-[10px] border border-[rgba(11,50,112,0.15)] text-[13px] font-semibold text-[#5E6E8E] hover:bg-[#F4F7FB] transition-colors">Cancel</button>
-            <button type="submit" disabled={loading} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[10px] bg-[#0B3270] text-white text-[13px] font-semibold hover:bg-[#0d3d8a] disabled:opacity-60 transition-colors">
+            <button type="submit" disabled={loading || !name.trim() || !reason.trim()} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[10px] bg-[#0B3270] text-white text-[13px] font-semibold hover:bg-[#0d3d8a] disabled:opacity-60 transition-colors">
               <Check size={13} />{loading ? "Saving…" : "Save"}
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Edit history modal ───────────────────────────────────────────────────────
+
+function EditHistoryModal({ tx, onClose, authedJson }: { tx: Tx; onClose: () => void; authedJson: any; }) {
+  const [edits, setEdits] = useState<TxEdit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]   = useState("");
+
+  useEffect(() => {
+    authedJson(`/admin/transactions/${tx.id}/edits`)
+      .then((d: any) => setEdits(d.edits ?? []))
+      .catch((err: any) => setError(err.message ?? "Failed to load edit history."))
+      .finally(() => setLoading(false));
+  }, [tx.id]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-[16px] shadow-xl w-full max-w-lg mx-4 p-6 max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <History size={15} className="text-[#0B3270]" />
+            <h3 className="text-[17px] font-bold text-[#0D1829]" style={{ fontFamily: "Figtree, sans-serif" }}>Edit history</h3>
+          </div>
+          <button onClick={onClose} className="text-[#9AAABF] hover:text-[#5E6E8E]"><X size={16} /></button>
+        </div>
+        <div className="bg-[#F4F7FB] rounded-[10px] px-4 py-3 mb-4 flex-shrink-0">
+          <div className="text-[11px] text-[#8A9BBE]">{tx.userName} · {tx.accountName}</div>
+          <div className="text-[12px] font-semibold text-[#0D1829] mt-0.5">{tx.name} · {currency(tx.amount)}</div>
+        </div>
+        <div className="overflow-y-auto flex-1">
+          {loading ? (
+            <p className="text-[13px] text-[#8A9BBE] text-center py-6">Loading…</p>
+          ) : error ? (
+            <p className="text-[12px] text-[#C52B2B] text-center py-6">{error}</p>
+          ) : edits.length === 0 ? (
+            <p className="text-[13px] text-[#5E6E8E] text-center py-6">No edit history for this transaction.</p>
+          ) : (
+            <div className="space-y-3">
+              {edits.map((e) => (
+                <div key={e.id} className="rounded-[10px] border border-[rgba(11,50,112,0.08)] bg-[#F8FAFD] p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-semibold text-[#0B3270]">{e.adminName ?? "Administrator"}</span>
+                    <span className="text-[10px] text-[#9AAABF]">{new Date(e.editedAt).toLocaleString()}</span>
+                  </div>
+                  <div className="space-y-1.5 text-[12px]">
+                    {e.oldName !== e.newName && (
+                      <div className="flex gap-2 items-start">
+                        <span className="text-[#9AAABF] w-16 flex-shrink-0">Name</span>
+                        <span className="line-through text-[#C52B2B]">{e.oldName}</span>
+                        <span className="text-[#0E7C4D]">→ {e.newName}</span>
+                      </div>
+                    )}
+                    {e.oldCategory !== e.newCategory && (
+                      <div className="flex gap-2 items-start">
+                        <span className="text-[#9AAABF] w-16 flex-shrink-0">Category</span>
+                        <span className="line-through text-[#C52B2B]">{e.oldCategory ?? "—"}</span>
+                        <span className="text-[#0E7C4D]">→ {e.newCategory ?? "—"}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-[rgba(11,50,112,0.06)]">
+                    <span className="text-[10px] text-[#9AAABF]">Reason: </span>
+                    <span className="text-[11px] text-[#5E6E8E]">{e.reason}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

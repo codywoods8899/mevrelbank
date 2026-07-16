@@ -20,6 +20,8 @@ interface UserProfile {
   isActive: boolean;
   archivedAt: string | null;
   archiveReason: string | null;
+  archivedById: string | null;
+  archivedByName: string | null;
   createdAt: string;
 }
 
@@ -32,6 +34,9 @@ interface AccountRow {
   balance: number;
   available: number;
   status: string;
+  closeReason: string | null;
+  closedAt: string | null;
+  closedByName: string | null;
 }
 
 interface TxRow {
@@ -42,6 +47,8 @@ interface TxRow {
   txType: string;
   amount: number;
   status: string;
+  adminReason: string | null;
+  adminName: string | null;
   date: string;
 }
 
@@ -279,6 +286,9 @@ export default function AdminCustomerDetailPage() {
               {data.user.phone && <p className="text-[13px] text-[#9AAABF] mt-0.5">{data.user.phone}</p>}
               {isArchived && data.user.archiveReason && (
                 <p className="text-[12px] text-[#C52B2B] mt-1">Reason: {data.user.archiveReason}</p>
+              )}
+              {isArchived && data.user.archivedByName && (
+                <p className="text-[11px] text-[#9AAABF] mt-0.5">Archived by {data.user.archivedByName}</p>
               )}
             </div>
             <div className="flex items-center gap-2 flex-wrap">

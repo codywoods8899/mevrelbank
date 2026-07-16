@@ -16,6 +16,10 @@ interface Account {
   balance: number;
   available: number;
   status: string;
+  closeReason: string | null;
+  closedAt: string | null;
+  closedById: string | null;
+  closedByName: string | null;
   userName: string;
   userEmail: string;
   userId: string;
@@ -270,21 +274,21 @@ function CloseAccountModal({ account, confirmToken, onClose, onSuccess, authedJs
           <h3 className="text-[17px] font-bold text-[#0D1829]" style={{ fontFamily: "Figtree, sans-serif" }}>Close account</h3>
           <button onClick={onClose} className="text-[#9AAABF] hover:text-[#5E6E8E]"><X size={16} /></button>
         </div>
-        <div className="rounded-[10px] bg-[#FDF5E6] border border-[rgba(180,106,10,0.2)] px-4 py-3 mb-4">
-          <p className="text-[12px] font-semibold text-[#B46A0A]">Account: {account.name} — {currency(account.balance)}</p>
-          <p className="text-[11px] text-[#8A5C0A] mt-0.5">
-            {Number(account.balance) !== 0
-              ? "⚠ Balance is not zero. The account will be closed but funds remain. Transfer them first if needed."
-              : "Balance is zero. Safe to close."}
+        <div className="rounded-[10px] bg-[#EBF0FA] border border-[rgba(11,50,112,0.12)] px-4 py-3 mb-4">
+          <p className="text-[12px] font-semibold text-[#0B3270]">Account: {account.name} — {currency(account.balance)}</p>
+          <p className="text-[11px] text-[#5E6E8E] mt-0.5">
+            Balance, available balance, held funds, and pending transactions must all be zero before closure can proceed. The backend will reject the request if any condition is unmet.
           </p>
         </div>
         {error && <div className="rounded-[8px] bg-[#FEF2F2] border border-[rgba(197,43,43,0.18)] px-3 py-2 text-[12px] text-[#C52B2B] mb-3">{error}</div>}
-        <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Reason (optional)</label>
+        <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">
+          Reason <span className="text-[#C52B2B]">*</span>
+        </label>
         <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="e.g. Customer requested closure."
           className="w-full px-3 py-2 rounded-[8px] border border-[rgba(11,50,112,0.15)] text-[13px] outline-none focus:border-[#0B3270] resize-none mb-4" />
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-[10px] border border-[rgba(11,50,112,0.15)] text-[13px] font-semibold text-[#5E6E8E] hover:bg-[#F4F7FB] transition-colors">Cancel</button>
-          <button onClick={handleClose} disabled={loading} className="flex-1 px-4 py-2.5 rounded-[10px] bg-[#C52B2B] text-white text-[13px] font-semibold hover:bg-[#a82424] disabled:opacity-60 transition-colors">
+          <button onClick={handleClose} disabled={loading || !reason.trim()} className="flex-1 px-4 py-2.5 rounded-[10px] bg-[#C52B2B] text-white text-[13px] font-semibold hover:bg-[#a82424] disabled:opacity-60 transition-colors">
             {loading ? "Closing…" : "Close account"}
           </button>
         </div>
@@ -436,7 +440,18 @@ export default function AdminAccountsPage() {
                   <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{currency(a.available)}</td>
                   <td className="px-5 py-4">
                     {a.status === "closed" ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#F4F7FB] text-[#9AAABF]">Closed</span>
+                      <div>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#F4F7FB] text-[#9AAABF]">Closed</span>
+                        {a.closedAt && (
+                          <p className="text-[10px] text-[#9AAABF] mt-0.5">{new Date(a.closedAt).toLocaleDateString()}</p>
+                        )}
+                        {a.closedByName && (
+                          <p className="text-[10px] text-[#9AAABF]">by {a.closedByName}</p>
+                        )}
+                        {a.closeReason && (
+                          <p className="text-[10px] text-[#5E6E8E] mt-0.5 max-w-[160px] truncate" title={a.closeReason}>"{a.closeReason}"</p>
+                        )}
+                      </div>
                     ) : (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#D6F0E6] text-[#0E7C4D]">Active</span>
                     )}

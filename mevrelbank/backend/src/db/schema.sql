@@ -220,3 +220,28 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_at    TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS archive_reason TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_users_archived_at ON users(archived_at);
+
+-- Phase 9 — Admin identity tracking + description-edit audit log
+-- Store which administrator performed each admin-originated financial action.
+-- ON DELETE SET NULL preserves history even if the admin account is ever removed.
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS admin_id UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE accounts    ADD COLUMN IF NOT EXISTS closed_by UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE users       ADD COLUMN IF NOT EXISTS archived_by UUID REFERENCES users(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_transactions_admin_id ON transactions(admin_id);
+
+-- Append-only audit log for transaction description/category edits.
+-- One row per PATCH /transactions/:id/description call.
+CREATE TABLE IF NOT EXISTS transaction_edits (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  transaction_id UUID NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+  admin_id       UUID REFERENCES users(id) ON DELETE SET NULL,
+  old_name       TEXT NOT NULL,
+  new_name       TEXT NOT NULL,
+  old_category   TEXT,
+  new_category   TEXT,
+  reason         TEXT NOT NULL,
+  edited_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_transaction_edits_tx ON transaction_edits(transaction_id);
