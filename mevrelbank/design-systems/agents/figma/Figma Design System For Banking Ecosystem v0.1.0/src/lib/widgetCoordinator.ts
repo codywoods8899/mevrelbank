@@ -172,9 +172,9 @@ function snapEq(a: Snapshot, b: Snapshot): boolean {
 }
 
 function waitForStability(el: HTMLElement, onStable: () => void): void {
-  const POLL_MS   = 80;
-  const REQUIRED  = 6;      // 6 × 80 ms = 480 ms of no change at full opacity
-  const MAX_MS    = 3_000;
+  const POLL_MS   = 60;
+  const REQUIRED  = 3;      // 3 × 60 ms = 180 ms of no change at full opacity
+  const MAX_MS    = 2_000;
 
   let streak = 0;
   let last: Snapshot | null = null;
@@ -480,8 +480,10 @@ function _startWhatsappPolling(): void {
 // ─── Smartsupp API-ready pipeline ────────────────────────────────────────────
 
 function _onSmartsuppApiReady(): void {
-  // Brief wait: Smartsupp fires 'ready' just before mounting its DOM elements.
-  setTimeout(() => {
+  // Smartsupp fires widget_init just before mounting its DOM elements.
+  // We yield one rAF rather than a fixed setTimeout so the browser can paint
+  // the Smartsupp button before we try to locate it — no arbitrary delay.
+  requestAnimationFrame(() => {
     const btn = findSmartsuppButton();
 
     if (!btn) {
@@ -500,7 +502,7 @@ function _onSmartsuppApiReady(): void {
       _smartsuppReady = true;
       _checkBothReady();
     });
-  }, 300);
+  });
 }
 
 function _checkBothReady(): void {
