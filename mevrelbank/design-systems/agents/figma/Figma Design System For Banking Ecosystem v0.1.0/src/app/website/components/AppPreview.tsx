@@ -37,7 +37,7 @@ export function AppPreview() {
       className="py-24 bg-[#F4F7FB]"
       aria-labelledby="preview-heading"
     >
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Section header */}
         <div className="text-center mb-14">
           <div className="text-[10px] font-semibold tracking-[0.22em] uppercase text-[#1764C0] mb-3">
@@ -45,7 +45,7 @@ export function AppPreview() {
           </div>
           <h2
             id="preview-heading"
-            className="text-[38px] font-bold text-[#0D1829] leading-tight mb-4"
+            className="text-[26px] sm:text-[34px] md:text-[38px] font-bold text-[#0D1829] leading-tight mb-4"
             style={{ fontFamily: "Figtree, sans-serif" }}
           >
             Your finances, at a glance.
@@ -56,12 +56,19 @@ export function AppPreview() {
           </p>
         </div>
 
-        {/* Browser chrome frame */}
+        {/*
+          Browser chrome frame — the inner app layout is a miniature UI with
+          fixed pixel sizes. On narrow viewports we let it scroll horizontally
+          so the preview stays intact and readable rather than crushing columns.
+        */}
         <div
-          className="rounded-[14px] overflow-hidden shadow-[0_24px_64px_rgba(11,50,112,0.18)] border border-[rgba(11,50,112,0.10)]"
+          className="rounded-[14px] overflow-x-auto shadow-[0_24px_64px_rgba(11,50,112,0.18)] border border-[rgba(11,50,112,0.10)]"
           aria-label="MevrelBank app preview"
           role="img"
         >
+          {/* Inner min-width keeps the mock layout intact at every viewport */}
+          <div className="min-w-[640px]">
+
           {/* Chrome bar */}
           <div className="h-9 bg-[#F0F4F8] flex items-center px-4 gap-2 border-b border-[rgba(11,50,112,0.07)]">
             <div className="flex gap-1.5">
@@ -256,6 +263,7 @@ export function AppPreview() {
               </main>
             </div>
           </div>
+          </div>{/* /min-w-[640px] */}
         </div>
 
         {/* Caption */}

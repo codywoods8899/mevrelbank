@@ -44,7 +44,7 @@ export function Footer() {
 
   return (
     <footer className="bg-[#0D1829] py-14" role="contentinfo">
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex flex-wrap gap-10 justify-between mb-10">
           <div className="max-w-[280px]">
             <Logo variant="dark" heightClass="h-7" className="mb-5" />

@@ -180,7 +180,7 @@ export function Hero() {
           </div>
 
           {/* Floating dashboard card — desktop only */}
-          <div className="hero-card">
+          <div className="hero-card hidden lg:block">
             <FloatingCard />
           </div>
         </div>
