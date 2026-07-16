@@ -575,6 +575,18 @@ router.patch('/users/:id', async (req, res) => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) return res.status(400).json({ error: 'Email cannot be empty.' });
     if (normalizedEmail !== user.email) {
+      // Email address change is a security-sensitive action — require confirmToken.
+      const emailConfirmToken = req.headers['x-admin-confirm-token'];
+      if (!emailConfirmToken) {
+        return res.status(403).json({ error: 'Changing a customer\'s email address requires re-authentication. Please confirm your admin password.' });
+      }
+      try {
+        const emailConfirmPayload = verifyConfirm(emailConfirmToken);
+        if (emailConfirmPayload.sub !== req.user.sub) throw new Error('Token subject mismatch.');
+      } catch {
+        return res.status(403).json({ error: 'Confirmation token is invalid or expired. Please re-authenticate.' });
+      }
+
       // Check uniqueness
       const { rows: existing } = await pool.query(`SELECT id FROM users WHERE email = $1 AND id <> $2`, [normalizedEmail, user.id]);
       if (existing.length > 0) return res.status(409).json({ error: 'That email address is already in use.' });
@@ -749,7 +761,7 @@ router.post('/accounts/:id/close', requireConfirmToken, async (req, res) => {
   // Fetch the account and a count of its pending transactions in one round-trip.
   const [{ rows: acctRows }, { rows: pendingRows }] = await Promise.all([
     pool.query(
-      `SELECT a.*, u.id AS user_id FROM accounts a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
+      `SELECT a.*, u.id AS user_id, u.role AS user_role FROM accounts a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
       [req.params.id]
     ),
     pool.query(
@@ -760,6 +772,11 @@ router.post('/accounts/:id/close', requireConfirmToken, async (req, res) => {
 
   if (acctRows.length === 0) return res.status(404).json({ error: 'Account not found.' });
   const account = acctRows[0];
+
+  // ── Guard: account must belong to a customer, not an administrator ────────────
+  if (account.user_role !== 'customer') {
+    return res.status(403).json({ error: 'Account closure is only permitted for customer-owned accounts.' });
+  }
 
   // ── Guard: already closed ────────────────────────────────────────────────────
   if (account.status === 'closed') {
@@ -984,7 +1001,7 @@ router.post('/transactions/:id/void', requireConfirmToken, async (req, res) => {
 
 // ─── POST /api/admin/accounts/:id/credit — credit any account ────────────────
 
-router.post('/accounts/:id/credit', async (req, res) => {
+router.post('/accounts/:id/credit', requireConfirmToken, async (req, res) => {
   const { amount, description, reason, category } = req.body ?? {};
   const value = Number(amount);
   if (!Number.isFinite(value) || value <= 0) return res.status(400).json({ error: 'Enter a valid positive amount.' });
@@ -1046,7 +1063,7 @@ router.post('/accounts/:id/credit', async (req, res) => {
 
 // ─── POST /api/admin/accounts/:id/debit — debit any account ─────────────────
 
-router.post('/accounts/:id/debit', async (req, res) => {
+router.post('/accounts/:id/debit', requireConfirmToken, async (req, res) => {
   const { amount, description, reason, category, allowNegative } = req.body ?? {};
   const value = Number(amount);
   if (!Number.isFinite(value) || value <= 0) return res.status(400).json({ error: 'Enter a valid positive amount.' });
@@ -1113,7 +1130,7 @@ router.post('/accounts/:id/debit', async (req, res) => {
 
 // ─── POST /api/admin/transfer — transfer between any two accounts ─────────────
 
-router.post('/transfer', async (req, res) => {
+router.post('/transfer', requireConfirmToken, async (req, res) => {
   const { fromAccountId, toAccountId, amount, description } = req.body ?? {};
   const value = Number(amount);
 
@@ -1198,7 +1215,7 @@ router.post('/transfer', async (req, res) => {
 
 // ─── PATCH /api/admin/transactions/:id/confirm — confirm a pending transaction ─
 
-router.patch('/transactions/:id/confirm', async (req, res) => {
+router.patch('/transactions/:id/confirm', requireConfirmToken, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1274,7 +1291,7 @@ router.patch('/transactions/:id/confirm', async (req, res) => {
 
 // ─── PATCH /api/admin/transactions/:id/reject — reject a pending transaction ──
 
-router.patch('/transactions/:id/reject', async (req, res) => {
+router.patch('/transactions/:id/reject', requireConfirmToken, async (req, res) => {
   const { reason } = req.body ?? {};
 
   const client = await pool.connect();

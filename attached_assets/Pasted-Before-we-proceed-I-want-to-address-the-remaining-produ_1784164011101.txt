@@ -1,0 +1,109 @@
+Before we proceed, I want to address the remaining production security gaps identified in Item #5.
+
+This is an implementation task.
+
+Do not commit until I explicitly approve.
+
+---
+
+# MevrelBank AI Agent Protocol
+
+Begin your response with:
+
+## Files to Modify
+
+## Files to Observe Only
+
+Read the relevant backend, middleware, authentication, and admin route files before making any changes.
+
+Implement each change according to existing project architecture.
+
+Do not introduce duplicate logic.
+
+---
+
+# Phase A — Security Hardening
+
+Implement the following improvements.
+
+## 1. Require re-authentication for ALL financial mutations
+
+The following routes must require a valid confirmToken in addition to normal admin authentication:
+
+- POST /admin/accounts/:id/credit
+- POST /admin/accounts/:id/debit
+- POST /admin/transfer
+- PATCH /admin/transactions/:id/confirm
+- PATCH /admin/transactions/:id/reject
+
+Use the existing requireConfirmToken middleware.
+
+The user experience should remain consistent with Account Closure, Customer Archival, and Transaction Void.
+
+---
+
+## 2. Require re-authentication before customer email changes
+
+Changing a customer's email address is a security-sensitive operation.
+
+Editing ordinary profile fields may continue without re-authentication.
+
+However, if the email field changes:
+
+- require confirmToken
+- reject the request if confirmToken is missing
+- preserve existing behaviour for unchanged email addresses
+
+---
+
+## 3. Separate confirm-token signing secret
+
+Currently both access tokens and confirmTokens use JWT_SECRET.
+
+Introduce:
+
+JWT_CONFIRM_SECRET
+
+Requirements:
+
+- signConfirm() uses JWT_CONFIRM_SECRET
+- verifyConfirm() uses JWT_CONFIRM_SECRET
+- existing access tokens continue using JWT_SECRET
+- startup should fail with a clear error if JWT_CONFIRM_SECRET is missing
+
+Do not break existing authentication architecture.
+
+---
+
+## 4. Explicit customer-role validation for account closure
+
+Do not rely on assumptions that administrators never own accounts.
+
+Modify account closure so that the account being closed must belong to a user whose role is 'customer'.
+
+Reject otherwise.
+
+---
+
+# Verification
+
+After implementation provide a verification report.
+
+For each item specify:
+
+✅ Implemented
+
+or
+
+❌ Not Implemented
+
+Include:
+
+- affected files
+- routes
+- middleware
+- verification performed
+
+Do not commit.
+
+Wait for my approval.

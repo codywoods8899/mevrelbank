@@ -30,11 +30,15 @@ function verifyMfa(token) {
 }
 
 function signConfirm(payload) {
-  return jwt.sign({ ...payload, purpose: 'destructive' }, process.env.JWT_SECRET, { expiresIn: CONFIRM_TTL });
+  const secret = process.env.JWT_CONFIRM_SECRET;
+  if (!secret) throw new Error('JWT_CONFIRM_SECRET is not configured.');
+  return jwt.sign({ ...payload, purpose: 'destructive' }, secret, { expiresIn: CONFIRM_TTL });
 }
 
 function verifyConfirm(token) {
-  const payload = jwt.verify(token, process.env.JWT_SECRET);
+  const secret = process.env.JWT_CONFIRM_SECRET;
+  if (!secret) throw new Error('JWT_CONFIRM_SECRET is not configured.');
+  const payload = jwt.verify(token, secret);
   if (payload.purpose !== 'destructive') throw new Error('Invalid token purpose.');
   return payload;
 }
