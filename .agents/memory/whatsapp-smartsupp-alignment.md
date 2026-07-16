@@ -1,48 +1,61 @@
 ---
 name: WhatsApp / Smartsupp alignment
-description: How the WhatsApp floating button is positioned relative to the Smartsupp chat widget, and the root cause of variable spacing across viewport sizes.
+description: How the WhatsApp floating button and Smartsupp clone are coordinated — positioning, entrance animation, and the correct Smartsupp API event names.
 ---
 
-# WhatsApp / Smartsupp Alignment
+# WhatsApp / Smartsupp Alignment — v2 (observe-only coordinator)
 
-## The rule
-The WhatsApp bubble must always sit exactly `STACK_GAP = 12 px` above the Smartsupp closed-chat button, on every supported layout (mobile <640 px, sm 640 px, md 768 px, lg 1024 px+). Both the dynamic detection path and the fallback path must use the same 12 px gap — inconsistent gap values are the main way this breaks.
+## Architecture overview
 
-**Why:** Smartsupp v5 renders its closed-chat button inside a full-screen transparent overlay iframe (`position: fixed; inset: 0`). The outer iframe is viewport-sized and gets filtered by `MAX_BUBBLE_SIZE`; detection falls back to hardcoded defaults. If those defaults imply a different gap than `STACK_GAP`, the spacing shifts depending on whether detection succeeds or fails at a given viewport width.
+`widgetCoordinator.ts` is the single source of truth. It observes Smartsupp, never mutates it.
 
-## How to apply
-- `DEFAULT_BOTTOM` must equal `getSmartsuppOffset().y + DEFAULT_SIZE + STACK_GAP` (currently 20 + 56 + 12 = 88 px). Do not hard-code 96 or any other value that implies a different gap.
-- `getSmartsuppOffset()` reads `window._smartsupp.offsetX/offsetY` at runtime, falling back to 20 px — this mirrors any custom Smartsupp position config.
-- `findSmartsuppBubble()` walks direct children of large Smartsupp-tagged containers so it can discover the actual button div sitting inside the full-screen overlay.
-- `MAX_BUBBLE_SIZE = 160` and `EDGE_THRESHOLD = 100 px` — raised from 110/60 to handle larger mobile iframes.
-- No breakpoint-specific offsets — all positioning is derived from the live Smartsupp element or its configured defaults.
+**Pipeline:**
+1. `smartsupp('on', 'widget_init', cb)` — the only valid Smartsupp init event  
+   (**NOT** `'ready'` — that event does not exist and produces a console warning)
+2. 300 ms DOM-mount pause → `findSmartsuppButton()` scans for corner-positioned button
+3. Stability loop (80 ms × 6 = 480 ms of unchanged rect + opacity === '1', cap 3 000 ms)
+4. `captureAppearance()` — rect, computed styles, icon clone attempt
+5. Poll WhatsApp readiness (check immediately, then every 1 500 ms)
+6. `buildClone()` → `animateBothIn()` — same `whatsapp-enter` keyframe, same JS tick
+7. Clone click → `smartsupp('chat', 'open')` + `watchForChatOpen()` → fade/remove clone
 
-## Entrance animation (measured from Smartsupp widget-v3)
-Smartsupp's entrance is a Svelte `fly({ y: 20, delay: 300, duration: 400 })` transition:
-- `translateY(20px) → translateY(0)`, `opacity: 0 → 1`
-- Easing: Svelte `cubicOut` = CSS `cubic-bezier(0.215, 0.61, 0.355, 1)`
-- 300 ms delay from when Svelte component mounts (element appears in DOM)
-- 400 ms animation duration → fully visible at T+700 ms
+## Smartsupp API — correct event names
+Documented events (from https://docs.smartsupp.com/chat-box/javascript-api/events/):
+- `widget_init` — fires when widget is initialized ✅ USE THIS for readiness detection
+- `message_sent`, `message_received`, `messenger_close` — runtime events
+- ~~`ready`~~ — **does not exist**, produces `[Smartsupp] Unknown event` warning
 
-Source: `https://widget-v3.smartsuppcdn.com/assets/main-t6WxLABA.js` manifest at `https://widget-v3.smartsuppcdn.com/manifest.json`
+## Clone lifecycle
+- ID: `mevrel-ss-clone`
+- z-index: `max(capturedZIndex, 9999)`
+- WhatsApp z-index: `10001` (inline) — always above the clone
+- Clone click → `smartsupp('chat', 'open')` official API
+- `watchForChatOpen()` polls every 150 ms: if real button grows >160 px or a panel >260×300 px appears → fade clone out (300 ms transition), remove on transitionend
+- Hard fallback: remove after 3 000 ms regardless
 
-### Synchronisation approach
-- MutationObserver fires when Smartsupp element appears in DOM (T+0).
-- We wait `max(0, 300 - elapsed)` ms from detection before setting `phase = "entering"`.
-- `@keyframes whatsapp-enter` in `animations.css` runs the 400 ms keyframe.
-- Both bubbles begin and finish animating together.
-- Fallback: 3 000 ms after `number` loads if Smartsupp never appears.
+## Icon cloning priority
+1. `el.querySelector('svg')` → `cloneNode(true)` → `outerHTML`
+2. `el.querySelector('img')` → re-emit as `<img src="...">` 
+3. First child containing svg/img or with short text
+4. Fallback: generic chat-bubble outline SVG in white
 
-### SVG flash fix
-- `<link rel="preload" as="image" href="/icons/whatsapp.svg">` in `index.html`.
-- `new Image()` in `useEffect` tracks when SVG is actually cached (`iconReadyRef`).
-- Button stays `phase = "hidden"` (opacity:0, translateY(20px)) until BOTH `iconReady` AND Smartsupp signal fire — no bare green circle ever shown.
+## Position tracking (WhatsAppButton)
+`findReferenceButton()` prefers `#mevrel-ss-clone` (coordinator's presentation layer),
+falls back to scanning real Smartsupp DOM. WhatsApp stacks `STACK_GAP = 12 px` above it.
+`DEFAULT_BOTTOM = getSmartsuppOffset().y + DEFAULT_SIZE + STACK_GAP` (20 + 56 + 12 = 88 px).
 
-### Phase state machine
-`hidden → entering → visible` (transitions via `tryEnter()` + `onAnimationEnd`).
-`hover:scale-105 / active:scale-95` only re-applied in `visible` phase to avoid transform conflicts with the CSS animation.
+## Fallbacks
+- Smartsupp settles, WhatsApp slow → 2 000 ms then reveal
+- WhatsApp ready, Smartsupp blocked → 6 000 ms then reveal alone (no clone built)
+
+## Key invariants
+- NEVER modify Smartsupp DOM, classes, animations, or styles
+- NEVER inject CSS targeting Smartsupp elements
+- NEVER use generated/internal Smartsupp IDs (only `[id*="smartsupp" i]` attribute selectors)
 
 ## Relevant files
-- `src/app/website/components/WhatsAppButton.tsx`
-- `src/styles/animations.css` — `@keyframes whatsapp-enter` + `.whatsapp-enter`
-- `index.html` — SVG preload link
+- `src/lib/widgetCoordinator.ts` — full coordinator, clone builder, lifecycle
+- `src/app/website/components/WhatsAppButton.tsx` — entrance phase, position tracking
+- `src/styles/animations.css` — `@keyframes whatsapp-enter` (shared by both)
+- `public/icons/whatsapp.svg` — WhatsApp icon (free SVG, static asset)
+- `index.html` — Smartsupp loader script + SVG preload link
