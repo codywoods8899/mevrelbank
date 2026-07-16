@@ -1,0 +1,111 @@
+# MevrelBank AI Agent Protocol (Mandatory)
+
+Before doing anything else:
+
+- Read and obey the MevrelBank AI Agent Protocol.
+- Treat this as a new development session.
+
+Begin your response with:
+
+## Files to Modify
+
+## Files to Observe Only
+
+Do not commit until I explicitly approve.
+
+---
+
+# Task: Immediate Suspension Enforcement
+
+The Customer Suspension Financial Restriction Audit has been completed and approved.
+
+Implement ONLY Phase 1 and Phase 2.
+
+---
+
+## Phase 1
+
+Create a reusable middleware that runs AFTER requireAuth.
+
+Responsibilities:
+
+- Load the current user from the database.
+- Verify:
+  - user exists
+  - role = customer
+  - is_active = true
+  - archived_at IS NULL
+
+If any check fails:
+
+Return HTTP 403 with an appropriate error.
+
+Do NOT duplicate this logic inside every route.
+
+---
+
+## Apply the middleware
+
+Apply it to the customer banking routes so protected customer operations cannot proceed when the customer is suspended or archived.
+
+---
+
+## Phase 2
+
+Harden outgoing financial operations.
+
+For every outgoing money movement verify:
+
+- source account status = active
+- destination account status = active (where applicable)
+
+Apply this to:
+
+- transfer
+- beneficiary payment
+- every route that debits customer funds
+
+Also prevent suspended customers from:
+
+- creating beneficiaries
+- deleting beneficiaries
+- opening new accounts
+
+---
+
+## Do NOT implement yet
+
+- pending transaction auto-rejection
+- suspension reason
+- suspension workflow redesign
+- new status model
+
+Those belong to later phases.
+
+---
+
+## Verification
+
+Before finishing verify:
+
+1. Active customer:
+   - transfers work
+   - payments work
+
+2. Suspended customer:
+   - transfer → 403
+   - payment → 403
+   - beneficiary create → 403
+   - beneficiary delete → 403
+   - account creation → 403
+
+3. Archived customer:
+   - same restrictions
+
+4. Closed accounts:
+   - cannot be used as source
+   - cannot be used as destination
+
+Report every file modified.
+
+Wait for my approval before committing.

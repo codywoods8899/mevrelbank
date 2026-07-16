@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const pool = require('../db/pool');
 const requireAuth = require('../middleware/requireAuth');
+const requireActiveCustomer = require('../middleware/requireActiveCustomer');
 const { generateAccountNumber } = require('../lib/accountNumber');
 const { ensureStatementsForUser } = require('../lib/generateStatements');
 const { STORAGE_DIR } = require('../lib/statementPdf');
@@ -12,6 +13,7 @@ const {
 
 const router = express.Router();
 router.use(requireAuth);
+router.use(requireActiveCustomer);
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -277,6 +279,14 @@ router.post('/transfer', async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Account not found.' });
     }
+    if (from.status !== 'active') {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'The source account is closed and cannot be used for transfers.' });
+    }
+    if (to.status !== 'active') {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'The destination account is closed and cannot receive transfers.' });
+    }
     if (Number(from.available) < value) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Insufficient available balance.' });
@@ -361,6 +371,10 @@ router.post('/pay', async (req, res) => {
       return res.status(404).json({ error: 'Account not found.' });
     }
     const account = acctRows[0];
+    if (account.status !== 'active') {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'The source account is closed and cannot be used for payments.' });
+    }
     if (Number(account.available) < value) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Insufficient available balance.' });
