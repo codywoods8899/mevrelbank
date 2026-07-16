@@ -37,12 +37,14 @@ interface ActiveModal { mode: ActionMode; account: Account; }
 function FinanceModal({
   modal,
   allAccounts,
+  confirmToken,
   onClose,
   onSuccess,
   authedJson,
 }: {
   modal: ActiveModal;
   allAccounts: Account[];
+  confirmToken: string;
   onClose: () => void;
   onSuccess: (msg: string) => void;
   authedJson: any;
@@ -69,12 +71,14 @@ function FinanceModal({
         if (!toAccountId) throw new Error("Select a destination account.");
         await authedJson("/admin/transfer", {
           method: "POST",
+          headers: { "X-Admin-Confirm-Token": confirmToken },
           body: JSON.stringify({ fromAccountId: account.id, toAccountId, amount: parseFloat(amount), description: description.trim() || undefined }),
         });
         onSuccess(`Transfer of ${currency(parseFloat(amount))} completed.`);
       } else {
         await authedJson(`/admin/accounts/${account.id}/${mode}`, {
           method: "POST",
+          headers: { "X-Admin-Confirm-Token": confirmToken },
           body: JSON.stringify({
             amount: parseFloat(amount),
             description: description.trim(),
@@ -311,6 +315,9 @@ export default function AdminAccountsPage() {
   const [modal, setModal]       = useState<ActiveModal | null>(null);
   const [toast, setToast]       = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
+  // Finance actions (credit / debit / transfer) 2-step: re-auth → form modal
+  const [financeConfirmToken, setFinanceConfirmToken] = useState<string | null>(null);
+
   // Close account 2-step: re-auth → confirm modal
   const [closeTarget, setCloseTarget]         = useState<Account | null>(null);
   const [closeConfirmToken, setCloseConfirmToken] = useState<string | null>(null);
@@ -332,6 +339,7 @@ export default function AdminAccountsPage() {
 
   const handleSuccess = (msg: string) => {
     setModal(null);
+    setFinanceConfirmToken(null);
     setCloseTarget(null);
     setCloseConfirmToken(null);
     showToast(msg, "success");
@@ -352,9 +360,26 @@ export default function AdminAccountsPage() {
         </div>
       )}
 
-      {/* Finance action modal */}
-      {modal && modal.mode !== "rename" && modal.mode !== "close" && (
-        <FinanceModal modal={modal} allAccounts={accounts} onClose={() => setModal(null)} onSuccess={handleSuccess} authedJson={authedJson} />
+      {/* Finance: step 1 — re-auth */}
+      {modal && modal.mode !== "rename" && modal.mode !== "close" && !financeConfirmToken && (
+        <AdminReAuthModal
+          title={modal.mode === "credit" ? "Credit account" : modal.mode === "debit" ? "Debit account" : "Transfer funds"}
+          description="This operation directly modifies account balances and creates permanent ledger entries. Confirm your identity to continue."
+          onClose={() => setModal(null)}
+          onConfirm={(token) => setFinanceConfirmToken(token)}
+        />
+      )}
+
+      {/* Finance: step 2 — form */}
+      {modal && modal.mode !== "rename" && modal.mode !== "close" && financeConfirmToken && (
+        <FinanceModal
+          modal={modal}
+          allAccounts={accounts}
+          confirmToken={financeConfirmToken}
+          onClose={() => { setModal(null); setFinanceConfirmToken(null); }}
+          onSuccess={handleSuccess}
+          authedJson={authedJson}
+        />
       )}
 
       {/* Rename modal */}

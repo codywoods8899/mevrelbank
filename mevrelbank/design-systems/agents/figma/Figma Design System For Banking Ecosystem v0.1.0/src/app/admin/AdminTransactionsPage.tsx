@@ -307,6 +307,8 @@ export default function AdminTransactionsPage() {
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState("");
   const [rejectTarget, setRejectTarget] = useState<Tx | null>(null);
+  const [rejectToken, setRejectToken]   = useState<string | null>(null);
+  const [confirmTxTarget, setConfirmTxTarget] = useState<Tx | null>(null);
   const [editTarget, setEditTarget]     = useState<Tx | null>(null);
   const [historyTx, setHistoryTx]       = useState<Tx | null>(null);
   const [voidTarget, setVoidTarget]     = useState<Tx | null>(null);
@@ -332,10 +334,13 @@ export default function AdminTransactionsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const confirm = async (tx: Tx) => {
+  const confirm = async (tx: Tx, token: string) => {
     setProcessing(tx.id);
     try {
-      await authedJson(`/admin/transactions/${tx.id}/confirm`, { method: "PATCH" });
+      await authedJson(`/admin/transactions/${tx.id}/confirm`, {
+        method: "PATCH",
+        headers: { "X-Admin-Confirm-Token": token },
+      });
       showToast("Transaction confirmed and completed.", "success");
       load();
     } catch (err: any) {
@@ -345,11 +350,16 @@ export default function AdminTransactionsPage() {
     }
   };
 
-  const reject = async (tx: Tx, reason: string) => {
+  const reject = async (tx: Tx, reason: string, token: string) => {
     setRejectTarget(null);
+    setRejectToken(null);
     setProcessing(tx.id);
     try {
-      await authedJson(`/admin/transactions/${tx.id}/reject`, { method: "PATCH", body: JSON.stringify({ reason }) });
+      await authedJson(`/admin/transactions/${tx.id}/reject`, {
+        method: "PATCH",
+        headers: { "X-Admin-Confirm-Token": token },
+        body: JSON.stringify({ reason }),
+      });
       showToast("Transaction rejected. Funds returned to customer.", "success");
       load();
     } catch (err: any) {
@@ -377,9 +387,37 @@ export default function AdminTransactionsPage() {
         </div>
       )}
 
-      {/* Reject modal */}
-      {rejectTarget && (
-        <RejectModal tx={rejectTarget} onClose={() => setRejectTarget(null)} onConfirm={(r) => reject(rejectTarget, r)} />
+      {/* Confirm: step 1 — re-auth, then execute immediately */}
+      {confirmTxTarget && (
+        <AdminReAuthModal
+          title="Confirm transaction"
+          description="Confirming this transaction settles the funds and cannot be undone. Confirm your identity to continue."
+          onClose={() => setConfirmTxTarget(null)}
+          onConfirm={async (token) => {
+            const tx = confirmTxTarget;
+            setConfirmTxTarget(null);
+            await confirm(tx, token);
+          }}
+        />
+      )}
+
+      {/* Reject: step 1 — re-auth */}
+      {rejectTarget && !rejectToken && (
+        <AdminReAuthModal
+          title="Reject transaction"
+          description="This will mark the transaction as unsuccessful and return held funds to the customer. Confirm your identity to continue."
+          onClose={() => setRejectTarget(null)}
+          onConfirm={(token) => setRejectToken(token)}
+        />
+      )}
+
+      {/* Reject: step 2 — reason */}
+      {rejectTarget && rejectToken && (
+        <RejectModal
+          tx={rejectTarget}
+          onClose={() => { setRejectTarget(null); setRejectToken(null); }}
+          onConfirm={(r) => reject(rejectTarget, r, rejectToken)}
+        />
       )}
 
       {/* Edit description modal */}
@@ -505,7 +543,7 @@ export default function AdminTransactionsPage() {
                       {/* Pending actions */}
                       {tx.status === "pending" && tab === "pending" && (
                         <>
-                          <button onClick={() => confirm(tx)} disabled={!!processing}
+                          <button onClick={() => setConfirmTxTarget(tx)} disabled={!!processing}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#D6F0E6] text-[#0E7C4D] text-[12px] font-semibold hover:bg-[#c2e8d7] disabled:opacity-50 transition-colors">
                             <CheckCircle2 size={13} />{processing === tx.id ? "…" : "Confirm"}
                           </button>
