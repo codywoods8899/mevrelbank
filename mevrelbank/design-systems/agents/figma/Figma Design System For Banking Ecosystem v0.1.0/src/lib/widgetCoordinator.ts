@@ -524,13 +524,24 @@ function _checkBothReady(): void {
   }
 }
 
-// ─── Register Smartsupp 'widget_init' listener via official queue function ────
-// 'widget_init' is the correct event name per Smartsupp's documented API:
+// ─── Bootstrap — fire-and-forget async IIFE ──────────────────────────────────
+//
+// Running as an async IIFE means:
+//   • The module exports resolve immediately — nothing in this file blocks the
+//     normal JS execution queue waiting for Smartsupp.
+//   • The entire coordinator pipeline runs on its own async track, fully
+//     decoupled from page-load sequencing.
+//
+// 'widget_init' is the correct Smartsupp event name:
 //   https://docs.smartsupp.com/chat-box/javascript-api/events/
-// ('ready' is not a valid Smartsupp event and will produce a console warning.)
+// ('ready' does not exist in Smartsupp's API and produces a console warning.)
+//
+// ES modules are always deferred — readyState is never 'loading' here.
+// If the Smartsupp snippet queue hasn't initialised by the time this module
+// runs (extremely unlikely), one queueMicrotask yield is all that's needed.
 
-(function registerSmartsuppListener() {
-  function attach() {
+void (async function bootstrapCoordinator() {
+  const attach = (): boolean => {
     const ss = (window as Record<string, unknown>).smartsupp as
       ((...args: unknown[]) => void) | undefined;
     if (typeof ss === 'function') {
@@ -538,15 +549,13 @@ function _checkBothReady(): void {
       return true;
     }
     return false;
-  }
+  };
 
   if (!attach()) {
-    // Snippet hasn't run yet (edge case: module evaluated before <head>).
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', attach, { once: true });
-    } else {
-      attach();
-    }
+    // Yield one microtask tick so the Smartsupp snippet queue can initialise,
+    // then try once more. Never anchors on DOMContentLoaded or page-load.
+    await new Promise<void>(resolve => queueMicrotask(resolve));
+    attach();
   }
 })();
 
