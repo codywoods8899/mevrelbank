@@ -689,13 +689,14 @@ router.post('/users/:id/archive', requireConfirmToken, async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // Close every active account.
+    // Close every active account, recording the responsible administrator.
     for (const acct of accounts) {
       await client.query(
         `UPDATE accounts SET status = 'closed', closed_at = NOW(),
-         close_reason = 'Closed automatically during customer archival.', updated_at = NOW()
+         close_reason = 'Closed automatically during customer archival.',
+         closed_by = $2, updated_at = NOW()
          WHERE id = $1`,
-        [acct.id]
+        [acct.id, req.user.sub]
       );
     }
 

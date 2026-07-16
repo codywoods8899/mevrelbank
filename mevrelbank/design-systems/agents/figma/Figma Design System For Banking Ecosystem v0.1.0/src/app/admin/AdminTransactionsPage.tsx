@@ -308,6 +308,7 @@ export default function AdminTransactionsPage() {
   const [error, setError]         = useState("");
   const [rejectTarget, setRejectTarget] = useState<Tx | null>(null);
   const [editTarget, setEditTarget]     = useState<Tx | null>(null);
+  const [historyTx, setHistoryTx]       = useState<Tx | null>(null);
   const [voidTarget, setVoidTarget]     = useState<Tx | null>(null);
   const [voidToken, setVoidToken]       = useState<string | null>(null);
   const [processing, setProcessing]     = useState<string | null>(null);
@@ -387,6 +388,15 @@ export default function AdminTransactionsPage() {
           tx={editTarget}
           onClose={() => setEditTarget(null)}
           onSuccess={(msg) => { setEditTarget(null); showToast(msg, "success"); load(); }}
+          authedJson={authedJson}
+        />
+      )}
+
+      {/* Edit history modal */}
+      {historyTx && (
+        <EditHistoryModal
+          tx={historyTx}
+          onClose={() => setHistoryTx(null)}
           authedJson={authedJson}
         />
       )}
@@ -473,6 +483,12 @@ export default function AdminTransactionsPage() {
                   <td className="px-5 py-4">
                     <div className="text-[13px] text-[#0D1829]">{tx.name}</div>
                     <div className="text-[11px] text-[#9AAABF] capitalize">{tx.category}</div>
+                    {tx.adminReason && (
+                      <div className="text-[10px] text-[#5E6E8E] mt-0.5 italic max-w-[200px] truncate"
+                           title={`${tx.adminReason}${tx.adminName ? ` — ${tx.adminName}` : ""}`}>
+                        ↳ {tx.adminReason}{tx.adminName ? ` — ${tx.adminName}` : ""}
+                      </div>
+                    )}
                   </td>
                   <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{tx.accountName}</td>
                   <td className="px-5 py-4"><TxTypeBadge type={tx.txType} /></td>
@@ -505,6 +521,14 @@ export default function AdminTransactionsPage() {
                         <button onClick={() => setEditTarget(tx)}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#EBF0FA] text-[#0B3270] text-[12px] font-semibold hover:bg-[#dce5f5] transition-colors">
                           <Pencil size={12} />Edit
+                        </button>
+                      )}
+
+                      {/* All-tab: edit history */}
+                      {tab === "all" && tx.txType === "transaction" && (
+                        <button onClick={() => setHistoryTx(tx)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#F4F7FB] text-[#5E6E8E] text-[12px] font-semibold hover:bg-[#e8edf5] transition-colors">
+                          <History size={12} />History
                         </button>
                       )}
 

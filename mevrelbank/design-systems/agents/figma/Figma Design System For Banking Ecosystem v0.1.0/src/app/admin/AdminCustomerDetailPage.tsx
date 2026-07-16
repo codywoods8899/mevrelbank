@@ -420,7 +420,18 @@ export default function AdminCustomerDetailPage() {
                       <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{currency(a.available)}</td>
                       <td className="px-5 py-4">
                         {a.status === "closed" ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#F4F7FB] text-[#9AAABF]">Closed</span>
+                          <div>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#F4F7FB] text-[#9AAABF]">Closed</span>
+                            {a.closedAt && (
+                              <p className="text-[10px] text-[#9AAABF] mt-0.5">{new Date(a.closedAt).toLocaleDateString()}</p>
+                            )}
+                            {a.closedByName && (
+                              <p className="text-[10px] text-[#9AAABF]">by {a.closedByName}</p>
+                            )}
+                            {a.closeReason && (
+                              <p className="text-[10px] text-[#5E6E8E] mt-0.5 max-w-[180px] truncate" title={a.closeReason}>"{a.closeReason}"</p>
+                            )}
+                          </div>
                         ) : (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#D6F0E6] text-[#0E7C4D]">Active</span>
                         )}
@@ -452,7 +463,15 @@ export default function AdminCustomerDetailPage() {
                 <tbody>
                   {data.transactions.map((t) => (
                     <tr key={t.id} className="border-b border-[rgba(11,50,112,0.05)] last:border-0">
-                      <td className="px-5 py-4 text-[14px] text-[#0D1829]">{t.name}</td>
+                      <td className="px-5 py-4">
+                        <div className="text-[14px] text-[#0D1829]">{t.name}</div>
+                        {t.adminReason && (
+                          <div className="text-[10px] text-[#5E6E8E] mt-0.5 italic max-w-[200px] truncate"
+                               title={`${t.adminReason}${t.adminName ? ` — ${t.adminName}` : ""}`}>
+                            ↳ {t.adminReason}{t.adminName ? ` — ${t.adminName}` : ""}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{t.account}</td>
                       <td className="px-5 py-4"><TxTypeBadge type={t.txType} /></td>
                       <td className={`px-5 py-4 text-[13px] font-semibold ${t.amount < 0 ? "text-[#C52B2B]" : "text-[#0E7C4D]"}`}>
