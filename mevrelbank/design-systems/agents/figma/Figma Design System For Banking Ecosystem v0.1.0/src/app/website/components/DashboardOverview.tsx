@@ -124,7 +124,7 @@ export function DashboardOverview({ userName = "James Chen" }: { userName?: stri
 
       {/* FX Rates Panel */}
       {!loading && accounts.length > 0 && (
-        <FXPanel accounts={accounts} />
+        <FXPanel accounts={accounts} authedFetch={authedFetch} />
       )}
 
       {/* Quick Actions */}

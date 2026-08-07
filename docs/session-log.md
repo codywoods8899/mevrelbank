@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-23](#s-23) | 2026-08-07T05:42Z | (current) | Fix FX rates "Could not load" in production | Copilot Coding Agent |
 | [S-22](#s-22) | 2026-08-07T05:27Z | (current) | Multi-currency accounts + FX dashboard panel | Copilot Coding Agent |
 | [S-21](#s-21) | 2026-08-07T04:43Z | (current) | Reduce TransactionsPage limit from 100 to 40 | Copilot Coding Agent |
 | [S-20](#s-20) | 2026-08-07T04:27Z | (current) | Fix seedTrustFund: 100 fixed transactions, £987,436.18 balance, 1999–2016 only | Copilot Coding Agent |
@@ -31,6 +32,30 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-23"></a>
+## S-23 · 2026-08-07T05:42Z · Fix FX rates "Could not load" in production
+
+**Agent:** Copilot Coding Agent  
+**Branch:** `feat: multi-currency`  
+**PR:** (current)  
+**Trigger:** Dashboard showed "Could not load FX rates." on production (mevrelbank.com).
+
+### Objective
+`fxApi.getRates()` used a plain `fetch("/api/fx/rates")` call without the `VITE_API_BASE_URL` prefix, causing 404s on Cloudflare Pages in production where no proxy exists. Fix it to use the same `authedFetch` helper (which applies the base URL) as every other API call.
+
+### Files Changed
+| File | Status | +Lines | −Lines | Notes |
+|------|--------|--------|--------|-------|
+| `mevrelbank/design-systems/.../shared/bankingApi.ts` | modified | ~2 | ~2 | `fxApi.getRates` now accepts `authedFetch` and uses `json()` helper |
+| `mevrelbank/design-systems/.../components/FXPanel.tsx` | modified | ~5 | ~4 | Added `authedFetch` prop; passes it to `fxApi.getRates` |
+| `mevrelbank/design-systems/.../components/DashboardOverview.tsx` | modified | ~1 | ~1 | Passes `authedFetch` to `<FXPanel>` |
+| `docs/session-log.md` | modified | ~28 | 0 | This entry |
+
+### Outcome
+FX rates now correctly call the Render backend via `authedFetch`, resolving the production 404 / JSON parse failure that caused the "Could not load FX rates." error.
 
 ---
 
