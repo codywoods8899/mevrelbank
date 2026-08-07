@@ -252,7 +252,7 @@ router.get('/users/:id', async (req, res) => {
   let transactions = [];
   if (accountIds.length > 0) {
     const { rows: txns } = await pool.query(
-      `SELECT t.*, a.name AS account_name, au.name AS admin_name
+      `SELECT t.*, a.name AS account_name, a.currency AS account_currency, au.name AS admin_name
        FROM transactions t
        JOIN accounts a ON a.id = t.account_id
        LEFT JOIN users au ON au.id = t.admin_id
@@ -284,6 +284,7 @@ router.get('/users/:id', async (req, res) => {
       id: a.id,
       name: a.name,
       type: a.type,
+      currency: a.currency ?? 'USD',
       routingNumber: a.routing_number,
       accountNumber: a.account_number,
       balance: Number(a.balance),
@@ -299,6 +300,7 @@ router.get('/users/:id', async (req, res) => {
       account: t.account_name,
       name: t.name,
       category: t.category,
+      currency: t.account_currency ?? 'USD',
       txType: t.tx_type ?? 'transaction',
       amount: Number(t.amount),
       status: t.status,
@@ -381,6 +383,7 @@ router.get('/accounts', async (req, res) => {
       id: a.id,
       name: a.name,
       type: a.type,
+      currency: a.currency ?? 'USD',
       routingNumber: a.routing_number,
       accountNumber: a.account_number,
       balance: Number(a.balance),
@@ -406,7 +409,7 @@ router.get('/pending', async (req, res) => {
 
   const [{ rows }, { rows: countRows }] = await Promise.all([
     pool.query(
-      `SELECT t.*, a.name AS account_name, u.name AS user_name, u.email AS user_email,
+      `SELECT t.*, a.name AS account_name, a.currency AS account_currency, u.name AS user_name, u.email AS user_email,
               au.name AS admin_name
        FROM transactions t
        JOIN accounts a ON a.id = t.account_id
@@ -432,6 +435,7 @@ router.get('/pending', async (req, res) => {
       userEmail: t.user_email,
       name: t.name,
       category: t.category,
+      currency: t.account_currency ?? 'USD',
       txType: t.tx_type ?? 'transaction',
       amount: Number(t.amount),
       status: t.status,
@@ -466,7 +470,7 @@ router.get('/transactions', async (req, res) => {
 
   const [{ rows }, { rows: countRows }] = await Promise.all([
     pool.query(
-      `SELECT t.*, a.name AS account_name, u.name AS user_name, u.email AS user_email,
+      `SELECT t.*, a.name AS account_name, a.currency AS account_currency, u.name AS user_name, u.email AS user_email,
               au.name AS admin_name
        FROM transactions t
        JOIN accounts a ON a.id = t.account_id
@@ -498,6 +502,7 @@ router.get('/transactions', async (req, res) => {
       userEmail: t.user_email,
       name: t.name,
       category: t.category,
+      currency: t.account_currency ?? 'USD',
       txType: t.tx_type ?? 'transaction',
       amount: Number(t.amount),
       status: t.status,

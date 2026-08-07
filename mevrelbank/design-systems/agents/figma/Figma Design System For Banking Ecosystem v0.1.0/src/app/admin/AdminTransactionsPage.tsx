@@ -6,6 +6,7 @@ import {
 import { PageMeta } from "../website/components/PageMeta";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import AdminReAuthModal from "./AdminReAuthModal";
+import { formatAmount } from "../website/shared/currencyUtils";
 
 interface Tx {
   id: string;
@@ -15,6 +16,7 @@ interface Tx {
   userEmail: string;
   name: string;
   category: string;
+  currency: string;
   txType: string;
   amount: number;
   status: string;
@@ -41,8 +43,7 @@ interface TxEdit {
   editedAt: string;
 }
 
-const currency = (n: number) =>
-  Math.abs(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
+const currency = (n: number, code = "USD") => formatAmount(Math.abs(n), code);
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string; label: string }> = {
@@ -135,7 +136,7 @@ function EditDescriptionModal({ tx, onClose, onSuccess, authedJson }: { tx: Tx; 
         </div>
         <div className="bg-[#F4F7FB] rounded-[10px] px-4 py-3 mb-4">
           <div className="text-[11px] text-[#8A9BBE]">{tx.userName} · {tx.accountName}</div>
-          <div className="text-[12px] font-semibold text-[#0D1829] mt-0.5">{currency(tx.amount)} · {new Date(tx.date).toLocaleDateString()}</div>
+          <div className="text-[12px] font-semibold text-[#0D1829] mt-0.5">{currency(tx.amount, tx.currency)} · {new Date(tx.date).toLocaleDateString()}</div>
         </div>
         {error && <div className="rounded-[8px] bg-[#FEF2F2] border border-[rgba(197,43,43,0.18)] px-3 py-2 text-[12px] text-[#C52B2B] mb-3">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -196,7 +197,7 @@ function EditHistoryModal({ tx, onClose, authedJson }: { tx: Tx; onClose: () => 
         </div>
         <div className="bg-[#F4F7FB] rounded-[10px] px-4 py-3 mb-4 flex-shrink-0">
           <div className="text-[11px] text-[#8A9BBE]">{tx.userName} · {tx.accountName}</div>
-          <div className="text-[12px] font-semibold text-[#0D1829] mt-0.5">{tx.name} · {currency(tx.amount)}</div>
+          <div className="text-[12px] font-semibold text-[#0D1829] mt-0.5">{tx.name} · {currency(tx.amount, tx.currency)}</div>
         </div>
         <div className="overflow-y-auto flex-1">
           {loading ? (
@@ -278,7 +279,7 @@ function VoidModal({ tx, confirmToken, onClose, onSuccess, authedJson }: { tx: T
           <button onClick={onClose} className="text-[#9AAABF] hover:text-[#5E6E8E]"><X size={16} /></button>
         </div>
         <div className="rounded-[10px] bg-[#FDF5E6] border border-[rgba(180,106,10,0.2)] px-4 py-3 mb-4">
-          <p className="text-[12px] font-semibold text-[#B46A0A]">{tx.name} — {tx.amount < 0 ? "-" : "+"}{currency(tx.amount)}</p>
+          <p className="text-[12px] font-semibold text-[#B46A0A]">{tx.name} — {tx.amount < 0 ? "-" : "+"}{currency(tx.amount, tx.currency)}</p>
           <p className="text-[11px] text-[#8A5C0A] mt-0.5">A reversal transaction of the opposite sign will be posted. The original transaction will be marked as reversed.</p>
         </div>
         {error && <div className="rounded-[8px] bg-[#FEF2F2] border border-[rgba(197,43,43,0.18)] px-3 py-2 text-[12px] text-[#C52B2B] mb-3">{error}</div>}
@@ -531,7 +532,7 @@ export default function AdminTransactionsPage() {
                   <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{tx.accountName}</td>
                   <td className="px-5 py-4"><TxTypeBadge type={tx.txType} /></td>
                   <td className="px-5 py-4 text-[13px] font-semibold" style={{ color: tx.amount < 0 ? "#C52B2B" : "#0E7C4D" }}>
-                    {tx.amount < 0 ? "-" : "+"}{currency(tx.amount)}
+                    {tx.amount < 0 ? "-" : "+"}{currency(tx.amount, tx.currency)}
                   </td>
                   <td className="px-5 py-4"><StatusBadge status={tx.status} /></td>
                   <td className="px-5 py-4 text-[12px] text-[#9AAABF]">

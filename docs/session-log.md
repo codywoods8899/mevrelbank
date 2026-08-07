@@ -11,6 +11,7 @@
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
 | [S-24](#s-24) | 2026-08-07T05:54Z | — | Fix Sarah Brent July 2026 statement balances | Copilot Coding Agent |
+| [S-24](#s-24) | 2026-08-07T05:49Z | (current) | Fix admin account currency formatting | Copilot Coding Agent |
 | [S-23](#s-23) | 2026-08-07T05:42Z | (current) | Fix FX rates "Could not load" in production | Copilot Coding Agent |
 | [S-22](#s-22) | 2026-08-07T05:27Z | (current) | Multi-currency accounts + FX dashboard panel | Copilot Coding Agent |
 | [S-21](#s-21) | 2026-08-07T04:43Z | (current) | Reduce TransactionsPage limit from 100 to 40 | Copilot Coding Agent |
@@ -46,6 +47,15 @@
 
 ### Objective
 Identify and correct incorrect `opening_balance` and `closing_balance` values on Sarah Brent's July 2026 statement. The statement had fabricated balances (987,598.18 / 987,436.18) that did not match the account's actual balance (973,519.00) and implied a −162.00 movement despite zero transactions in July 2026.
+## S-24 · 2026-08-07T05:49Z · Fix admin account currency formatting
+
+**Agent:** Copilot Coding Agent  
+**Branch:** `copilot/fix-currency-symbol-issue`  
+**PR:** (current)  
+**Trigger:** User reported that the admin dashboard still showed dollar symbols for euro-denominated accounts.
+
+### Objective
+Make the admin account-specific views respect each account's configured currency instead of hardcoding USD. Ensure the admin backend returns currency metadata wherever those views need to format balances or transaction amounts.
 
 ### Files Changed
 | File | Status | +Lines | −Lines | Notes |
@@ -54,6 +64,14 @@ Identify and correct incorrect `opening_balance` and `closing_balance` values on
 
 ### Outcome
 The July 2026 statement for account `ebc1e5d7` (Brent Family Trust) now correctly shows opening and closing balances of 973,519.00 EUR, consistent with the live account balance and the absence of any July 2026 transactions.
+| `mevrelbank/backend/src/routes/admin.js` | modified | ~10 | ~4 | Added account currency to admin account and transaction API payloads |
+| `mevrelbank/design-systems/.../src/app/admin/AdminAccountsPage.tsx` | modified | ~12 | ~8 | Switched account actions and balances to currency-aware formatting and dynamic amount label |
+| `mevrelbank/design-systems/.../src/app/admin/AdminCustomerDetailPage.tsx` | modified | ~7 | ~4 | Used each account/transaction currency in customer detail tables |
+| `mevrelbank/design-systems/.../src/app/admin/AdminTransactionsPage.tsx` | modified | ~8 | ~5 | Used transaction account currency across admin transaction modals and table rows |
+| `docs/session-log.md` | modified | ~28 | 0 | This entry |
+
+### Outcome
+Admin account pages, customer detail views, and transaction views now format amounts with the correct per-account currency, so EUR accounts no longer render with a dollar symbol in those flows.
 
 ---
 
