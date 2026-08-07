@@ -25,7 +25,7 @@ const fxRoutes        = require('./src/routes/fx');
 
 const app  = express();
 const PORT = process.env.PORT ?? process.env.BACKEND_PORT ?? 3001;
-const JSON_BODY_LIMIT = '4mb';
+const JSON_BODY_LIMIT = '3mb';
 
 const allowedOrigins = (process.env.CORS_ORIGIN ?? '')
   .split(',')
@@ -82,8 +82,8 @@ app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
 // ─── Error handler ────────────────────────────────────────────────────────────
 
 app.use((err, req, res, _next) => {
-  if (err?.type === 'entity.too.large') {
-    return res.status(413).json({ error: 'Request payload too large. Profile photos must stay under 2 MB.' });
+  if (err?.type === 'entity.too.large' || err?.status === 413) {
+    return res.status(413).json({ error: 'Uploaded image is too large. Please choose an image under 2 MB.' });
   }
   console.error('[error]', err.message);
   res.status(500).json({ error: 'Internal server error.' });
