@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-24](#s-24) | 2026-08-07T05:49Z | (current) | Fix admin account currency formatting | Copilot Coding Agent |
 | [S-23](#s-23) | 2026-08-07T05:42Z | (current) | Fix FX rates "Could not load" in production | Copilot Coding Agent |
 | [S-22](#s-22) | 2026-08-07T05:27Z | (current) | Multi-currency accounts + FX dashboard panel | Copilot Coding Agent |
 | [S-21](#s-21) | 2026-08-07T04:43Z | (current) | Reduce TransactionsPage limit from 100 to 40 | Copilot Coding Agent |
@@ -32,6 +33,31 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-24"></a>
+## S-24 · 2026-08-07T05:49Z · Fix admin account currency formatting
+
+**Agent:** Copilot Coding Agent  
+**Branch:** `copilot/fix-currency-symbol-issue`  
+**PR:** (current)  
+**Trigger:** User reported that the admin dashboard still showed dollar symbols for euro-denominated accounts.
+
+### Objective
+Make the admin account-specific views respect each account's configured currency instead of hardcoding USD. Ensure the admin backend returns currency metadata wherever those views need to format balances or transaction amounts.
+
+### Files Changed
+| File | Status | +Lines | −Lines | Notes |
+|------|--------|--------|--------|-------|
+| `mevrelbank/backend/src/routes/admin.js` | modified | ~10 | ~4 | Added account currency to admin account and transaction API payloads |
+| `mevrelbank/design-systems/.../src/app/admin/AdminAccountsPage.tsx` | modified | ~12 | ~8 | Switched account actions and balances to currency-aware formatting and dynamic amount label |
+| `mevrelbank/design-systems/.../src/app/admin/AdminCustomerDetailPage.tsx` | modified | ~7 | ~4 | Used each account/transaction currency in customer detail tables |
+| `mevrelbank/design-systems/.../src/app/admin/AdminTransactionsPage.tsx` | modified | ~8 | ~5 | Used transaction account currency across admin transaction modals and table rows |
+| `docs/session-log.md` | modified | ~28 | 0 | This entry |
+
+### Outcome
+Admin account pages, customer detail views, and transaction views now format amounts with the correct per-account currency, so EUR accounts no longer render with a dollar symbol in those flows.
 
 ---
 
