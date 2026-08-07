@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ShieldCheck, ShieldOff, Mail, Phone, KeyRound, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ShieldCheck, ShieldOff, Mail, Phone, KeyRound, Loader2, CheckCircle2, AlertCircle, Camera } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { Btn } from "../shared/Btn";
 import { useAuth } from "../../context/AuthContext";
@@ -265,6 +265,120 @@ function EditDetailsModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── Avatar Upload ────────────────────────────────────────────────────────────
+
+function initialsFor(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function AvatarUpload() {
+  const { user, updateProfile } = useAuth();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file.");
+      return;
+    }
+    if (file.size > 2_000_000) {
+      setError("Image must be under 2 MB.");
+      return;
+    }
+    setError(null);
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const dataUrl = e.target?.result as string;
+      const result = await updateProfile({
+        name: user?.name ?? "",
+        phone: user?.phone ?? "",
+        address: user?.address ?? "",
+        avatarUrl: dataUrl,
+      });
+      setUploading(false);
+      if (!result.success) setError(result.error ?? "Could not save photo.");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemove = async () => {
+    setError(null);
+    setUploading(true);
+    await updateProfile({
+      name: user?.name ?? "",
+      phone: user?.phone ?? "",
+      address: user?.address ?? "",
+      avatarUrl: null,
+    });
+    setUploading(false);
+  };
+
+  return (
+    <div className="flex items-center gap-4 mb-5">
+      <div className="relative flex-shrink-0">
+        {user?.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt="Profile photo"
+            className="w-16 h-16 rounded-full object-cover border-2 border-[rgba(11,50,112,0.12)]"
+          />
+        ) : (
+          <div className="w-16 h-16 rounded-full bg-[#1764C0] flex items-center justify-center text-white text-[20px] font-semibold border-2 border-[rgba(11,50,112,0.12)]">
+            {initialsFor(user?.name ?? "?")}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          aria-label="Upload profile photo"
+          className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#0B3270] text-white flex items-center justify-center shadow-md hover:bg-[#0E3E8C] transition-colors"
+        >
+          {uploading ? <Loader2 size={11} className="animate-spin" /> : <Camera size={11} />}
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+        />
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-[12px] font-semibold text-[#0D1829]">{user?.name ?? "—"}</span>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="text-[11px] text-[#0B3270] hover:text-[#0E3E8C] font-medium transition-colors"
+            disabled={uploading}
+          >
+            {user?.avatarUrl ? "Change photo" : "Upload photo"}
+          </button>
+          {user?.avatarUrl && (
+            <>
+              <span className="text-[11px] text-[#D0D8E8]">·</span>
+              <button
+                type="button"
+                onClick={handleRemove}
+                className="text-[11px] text-[#C52B2B] hover:text-[#A82222] font-medium transition-colors"
+                disabled={uploading}
+              >
+                Remove
+              </button>
+            </>
+          )}
+        </div>
+        {error && <p className="text-[11px] text-[#C52B2B]">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
 // ─── Profile Page ─────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -289,11 +403,8 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="p-5 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)]">
           <div className="text-[13px] font-semibold text-[#0D1829] mb-4" style={{ fontFamily: "Figtree, sans-serif" }}>Personal Details</div>
+          <AvatarUpload />
           <div className="space-y-3 text-[12px]">
-            <div className="flex items-center gap-2.5">
-              <span className="text-[11px] font-semibold text-[#8A9BBE] w-16">Name</span>
-              <span className="text-[#0D1829]">{user?.name ?? "—"}</span>
-            </div>
             <div className="flex items-center gap-2.5">
               <span className="text-[11px] font-semibold text-[#8A9BBE] w-16">Email</span>
               <span className="text-[#0D1829]">{user?.email ?? "—"}</span>

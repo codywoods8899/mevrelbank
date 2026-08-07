@@ -90,7 +90,8 @@ Build MevrelBank into a secure, modern, scalable digital banking ecosystem that 
 - [x] Statements (`/dashboard/statements`) — reads real `statements` rows; "Download" is disabled until PDF generation exists (table has no rows yet — nothing generates statements)
 - [x] Beneficiaries (`/dashboard/beneficiaries`) — add/list/delete real payees; "Pay" is intentionally disabled — no transfer/payment rails yet (that's Phase 4)
 - [x] Notifications (`/dashboard/notifications`) — real notifications, mark-as-read wired to the backend
-- [x] Profile (`/dashboard/profile`) — "Edit details" now a real modal (name/phone/address), backed by `PATCH /api/user/me`; avatar and richer security-status widgets still future work
+- [x] Profile (`/dashboard/profile`) — "Edit details" modal (name/phone/address) backed by `PATCH /api/user/me`; profile photo upload added (base64 data URL stored in `avatar_url` DB column, rendered in profile card and sidebar)
+- [x] Demo trust fund seed — `src/db/seedTrustFund.js` converts a customer's first account into a named trust fund account with ~50 historical transactions (1999–2016) attributed to the account holder's father
 - [x] Statement generation — lazily generated on `GET /api/banking/statements`: the previous calendar month is rendered to a real PDF (`pdfkit`) per account (if missing) with opening/closing balances computed from the ledger, streamed back via an auth-protected `GET /api/banking/statements/:id/file` route. There's no cron in this environment, so "monthly" means "next time anyone opens Statements after month-end," not a scheduled job — acceptable for now, worth revisiting if exact-date generation matters later.
 - [x] CSV export for Transaction History — client-side export of the currently filtered transaction list, no backend change needed
 

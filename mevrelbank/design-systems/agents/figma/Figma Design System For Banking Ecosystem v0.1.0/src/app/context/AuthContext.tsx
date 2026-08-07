@@ -21,6 +21,7 @@ export interface AuthUser {
   totpEnabled: boolean;
   phone?: string | null;
   address?: string | null;
+  avatarUrl?: string | null;
 }
 
 interface AuthResult {
@@ -48,7 +49,7 @@ interface AuthContextValue {
   enableTotp: (secret: string, code: string) => Promise<AuthResult>;
   disableTotp: (code: string) => Promise<AuthResult>;
   refreshUser: () => Promise<void>;
-  updateProfile: (fields: { name: string; phone?: string; address?: string }) => Promise<AuthResult>;
+  updateProfile: (fields: { name: string; phone?: string; address?: string; avatarUrl?: string | null }) => Promise<AuthResult>;
   authedFetch: (path: string, options?: RequestInit) => Promise<Response>;
 }
 
@@ -340,7 +341,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { /* silent */ }
   };
 
-  const updateProfile = async (fields: { name: string; phone?: string; address?: string }): Promise<AuthResult> => {
+  const updateProfile = async (fields: { name: string; phone?: string; address?: string; avatarUrl?: string | null }): Promise<AuthResult> => {
     try {
       const data = await authedJson("/user/me", {
         method: "PATCH",
