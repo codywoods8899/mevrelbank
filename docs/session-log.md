@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-20](#s-20) | 2026-08-07T04:27Z | (current) | Fix seedTrustFund: 100 fixed transactions, £987,436.18 balance, 1999–2016 only | Copilot Coding Agent |
 | [S-19](#s-19) | 2026-08-07T04:03Z | (current) | Trust fund account seed + profile photo upload | Copilot Coding Agent |
 | [S-18](#s-18) | 2026-08-07T01:34Z | — | GitHub synchronization, secret configuration audit, and repository consistency pass | Replit Agent |
 | [S-17](#s-17) | 2026-07-15T05:00Z | — | Brand asset audit: logo sizing, variant usage, email URL fix | Replit Agent |
@@ -28,6 +29,28 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-20"></a>
+## S-20 · 2026-08-07T04:27Z · Fix seedTrustFund: 100 fixed transactions, £987,436.18 balance, 1999–2016 only
+
+**Agent:** Copilot Coding Agent  
+**Branch:** `main`  
+**PR:** (current)  
+**Trigger:** Previous seed ran with random amounts yielding a wrong balance (£1,652,757.53) and variable transaction count (~44); transactions also appeared after 2016.
+
+### Objective
+Rewrite `seedTrustFund.js` to use exactly 100 deterministic (fixed-amount) transactions all dated within 1999-01-01 – 2016-12-31, with the account balance set to exactly £987,436.18 (the original pre-seed balance).
+
+### Files Changed
+| File | Status | +Lines | −Lines | Notes |
+|------|--------|--------|--------|-------|
+| `mevrelbank/backend/src/db/seedTrustFund.js` | modified | ~120 | ~140 | Replaced random-amount loop-based builder with 100 fixed transactions; balance now set to TARGET_BALANCE constant instead of recalculated from all account transactions |
+| `docs/session-log.md` | modified | ~22 | 0 | Added S-20 entry |
+
+### Outcome
+Seed script now produces exactly 100 transactions (1999–2016) totalling £987,436.18. Running it again clears and re-seeds cleanly. Account balance is set to the fixed target, not recalculated from all transactions.
 
 ---
 
