@@ -22,7 +22,7 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     let active = true;
-    bankingApi.getTransactions(authedFetch, { limit: 100 })
+    bankingApi.getTransactions(authedFetch, { limit: 40 })
       .then((r) => {
         if (!active) return;
         setTransactions(r.transactions);

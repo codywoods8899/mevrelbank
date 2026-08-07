@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-21](#s-21) | 2026-08-07T04:43Z | (current) | Reduce TransactionsPage limit from 100 to 40 | Copilot Coding Agent |
 | [S-20](#s-20) | 2026-08-07T04:27Z | (current) | Fix seedTrustFund: 100 fixed transactions, £987,436.18 balance, 1999–2016 only | Copilot Coding Agent |
 | [S-19](#s-19) | 2026-08-07T04:03Z | (current) | Trust fund account seed + profile photo upload | Copilot Coding Agent |
 | [S-18](#s-18) | 2026-08-07T01:34Z | — | GitHub synchronization, secret configuration audit, and repository consistency pass | Replit Agent |
@@ -29,6 +30,28 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-21"></a>
+## S-21 · 2026-08-07T04:43Z · Reduce TransactionsPage limit from 100 to 40
+
+**Agent:** Copilot Coding Agent  
+**Branch:** `main`  
+**PR:** (current)  
+**Trigger:** User reported 100 entries was too many and wanted fewer than 45.
+
+### Objective
+Lower the default transaction fetch limit on the Transactions page from 100 to 40.
+
+### Files Changed
+| File | Status | +Lines | −Lines | Notes |
+|------|--------|--------|--------|-------|
+| `mevrelbank/design-systems/agents/figma/Figma Design System For Banking Ecosystem v0.1.0/src/app/website/pages/TransactionsPage.tsx` | modified | 1 | 1 | `limit: 100` → `limit: 40` |
+| `docs/session-log.md` | modified | ~22 | 0 | Added S-21 entry |
+
+### Outcome
+Transactions page now fetches at most 40 entries by default, down from 100.
 
 ---
 
