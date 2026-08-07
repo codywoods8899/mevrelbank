@@ -69,35 +69,48 @@ Build MevrelBank into a secure, modern, scalable digital banking ecosystem that 
 - [x] Forgot Password page (`/forgot-password`) — email input, success/inbox state
 - [x] Reset Password page (`/reset-password`) — new password form, strength indicator, success state
 - [x] MFA page (`/mfa`) — TOTP input, SMS fallback toggle, resend countdown
-- [ ] Backend auth API (Railway / Node.js)
-- [ ] JWT strategy (short-lived access token + refresh token)
-- [ ] Email service integration (verification + reset emails)
-- [ ] MFA TOTP provisioning (QR code setup flow)
-- [ ] Protected route wrapper (redirect unauthenticated users)
+- [x] Client-side auth flow wired end-to-end (register → verify-email → login → MFA → session) — now backed by real Railway backend + Neon PostgreSQL
+- [x] Protected route wrapper (redirect unauthenticated users away from `/dashboard`; redirect authenticated users away from `/login`/`/register`)
+- [x] Backend auth API (Railway / Node.js) — Node.js/Express on Replit dev (port 3001), deploys to Railway
+- [x] JWT strategy (short-lived access token + refresh token) — access 15min, refresh 7d, MFA temp 5min
+- [x] Email service integration (verification + reset emails) — Resend via noreply@mevrelbank.com
+- [x] MFA TOTP provisioning (QR code setup flow) — otplib + qrcode, setup in /dashboard/profile
 
 ---
 
 ## Phase 3 — Customer Banking
 
-- Dashboard
-- Accounts
-- Transaction History
-- Statements
-- Beneficiaries
-- Profile
-- Notifications
+### In Progress
+
+- [x] Neon banking schema (`accounts`, `transactions`, `statements`, `beneficiaries`, `notifications`) + `/api/banking/*` REST routes, auth-scoped per user
+- [x] New customers get two real zero-balance accounts (Current + Savings) auto-created on email verification, plus a welcome notification
+- [x] Dashboard (`/dashboard`) — account summary cards + recent transactions now read from the real backend (balance-trend chart removed — no historical data source yet)
+- [x] Accounts (`/dashboard/accounts`) — real account cards + cross-account activity feed from the database
+- [x] Transaction History (`/dashboard/transactions`) — real transactions, filterable by account; CSV export button still UI-only
+- [x] Statements (`/dashboard/statements`) — reads real `statements` rows; "Download" is disabled until PDF generation exists (table has no rows yet — nothing generates statements)
+- [x] Beneficiaries (`/dashboard/beneficiaries`) — add/list/delete real payees; "Pay" is intentionally disabled — no transfer/payment rails yet (that's Phase 4)
+- [x] Notifications (`/dashboard/notifications`) — real notifications, mark-as-read wired to the backend
+- [x] Profile (`/dashboard/profile`) — "Edit details" now a real modal (name/phone/address), backed by `PATCH /api/user/me`; avatar and richer security-status widgets still future work
+- [x] Statement generation — lazily generated on `GET /api/banking/statements`: the previous calendar month is rendered to a real PDF (`pdfkit`) per account (if missing) with opening/closing balances computed from the ledger, streamed back via an auth-protected `GET /api/banking/statements/:id/file` route. There's no cron in this environment, so "monthly" means "next time anyone opens Statements after month-end," not a scheduled job — acceptable for now, worth revisiting if exact-date generation matters later.
+- [x] CSV export for Transaction History — client-side export of the currently filtered transaction list, no backend change needed
+
+Every dashboard page shares one `DashboardShell` layout (sidebar + top bar) with real routing and now talks to the real backend. Transaction seeding is naturally handled by Phase 4 below (transfers/payments now create real transaction rows); no synthetic data is seeded.
 
 ---
 
 ## Phase 4 — Payments
 
-- Internal Transfers
-- Local Transfers
-- Scheduled Transfers
-- Bill Payments
-- Airtime
-- Data Purchase
-- QR Payments
+### In Progress
+
+- [x] Internal Transfers — `POST /api/banking/transfer` moves real money between a signed-in user's own accounts inside our ledger (row-locked, atomic, generates a paired debit/credit transaction + notification). Wired into `/dashboard/accounts` via a "Transfer" button/modal.
+- [x] Bill Payments (to saved beneficiaries) — `POST /api/banking/pay` debits the chosen account and records a payment transaction. Wired into `/dashboard/beneficiaries`'s "Pay" button (previously disabled).
+  - **Important caveat:** this is a real balance change *within MevrelBank's own database only*. MevrelBank has no licensed Banking-as-a-Service / payment-rail partner yet, so a "payment" to a beneficiary does not reach an external bank — the beneficiary's real-world account balance is unaffected. This was an explicit, autonomous scope decision: implementing genuine Faster Payments/BACS settlement requires business/legal/compliance onboarding with a BaaS provider that can't be done unattended. Treat current payments as an internal ledger feature, not a live money-transmission feature, until a real settlement rail is integrated.
+- [ ] Local Transfers (to other MevrelBank customers by account number) — not yet built
+- [ ] Scheduled Transfers
+- [ ] Airtime
+- [ ] Data Purchase
+- [ ] QR Payments
+- [ ] Real external settlement rail (Faster Payments/BACS via a licensed BaaS partner) — required before "Pay" can move real money outside MevrelBank; needs a human to select and contract a provider
 
 ---
 
@@ -177,7 +190,9 @@ Build MevrelBank into a secure, modern, scalable digital banking ecosystem that 
 | Logo System Completed | ✅ |
 | Design System | ✅ |
 | Public Website (homepage) | ✅ |
-| Customer Banking | ⬜ |
+| Customer Banking | ✅ |
+| Internal Payments (ledger-only) | ✅ |
+| External Settlement Rail | ⬜ |
 | Production Launch | ⬜ |
 
 ---
@@ -194,7 +209,13 @@ Backend
 
 Database
 - Cloudflare D1 (SQLite at the edge via Pages Functions — active, `waitlist_submissions`)
-- Neon PostgreSQL (planned for Phase 2+ backend — auth, customer data)
+- Neon PostgreSQL — active, backing Phase 2 auth (`users` incl. `phone`/`address`, `otp_codes`, `refresh_tokens`) and Phase 3/4 banking data (`accounts`, `transactions`, `statements` incl. balances, `beneficiaries`, `notifications`). Account balances are a denormalized running total kept in sync by every transaction-writing endpoint (transfer, pay); statement opening/closing balances are derived from summing `transactions` up to a point in time, so the ledger is internally self-consistent.
+
+Payments
+- No external payment/settlement rail is connected. Internal transfers and beneficiary payments are real ledger operations inside our own Neon database, not real money movement to other banks. This was a deliberate scope decision — see Phase 4 notes — since selecting and contracting a licensed Banking-as-a-Service provider requires human/business decisions that can't be made autonomously.
+
+Statement generation
+- No cron/scheduler exists in this environment. Statements for the prior calendar month are generated lazily the next time `GET /api/banking/statements` is called for a user, and cached (one row per account+period) so they're not regenerated. Revisit if a real scheduled job is needed later.
 
 Storage
 - Cloudflare R2

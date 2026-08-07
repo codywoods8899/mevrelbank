@@ -1,0 +1,42 @@
+The schema makes the mapping clear:
+
+balance = total funds on the account
+available = spendable funds (reduced when funds are held/reserved)
+balance − available = held/reserved funds (a positive gap means holds exist)
+status = 'pending' on transactions = in-progress operations
+All five conditions can be checked from these two columns plus one count query. Implementing now.
+
+
+2 actions
+Done. Here is exactly where each validation lives, for your review.
+
+File: mevrelbank/backend/src/routes/admin.js Route: POST /api/admin/accounts/:id/close
+
+Pre-fetch (runs before any guard)
+A single Promise.all fetches the account row and the pending transaction count simultaneously, so no extra round-trips are added:
+
+pool.query  → accounts JOIN users WHERE id = $1
+pool.query  → COUNT(*) FROM transactions WHERE account_id = $1 AND status = 'pending'
+
+Guard sequence — in order of evaluation
+#	Condition checked	Variable / expression	HTTP	Error message returned
+—	Account exists	acctRows.length === 0	404	"Account not found."
+—	Not already closed	account.status === 'closed'	409	"Account is already closed."
+1	Balance is zero	Number(account.balance) !== 0	409	"Account cannot be closed because the balance is not zero."
+2	Available balance is zero	Number(account.available) !== 0	409	"Account cannot be closed because the available balance is not zero."
+3 & 4	No held / reserved funds	held !== 0 where held = balance − available	409	"Account cannot be closed because funds are currently reserved."
+5	No in-progress operations	pendingRows[0].count > 0	409	"Account cannot be closed because there are N pending transactions. Resolve or cancel them first." (N is the exact count)
+Guard 3 & 4 uses the gap between balance and available. A positive gap means funds are reserved but not yet spendable. A negative gap would indicate a data integrity issue. Both cases are blocked — held !== 0 catches both directions.
+
+The UPDATE only executes if all six guards pass
+UPDATE accounts
+SET status = 'closed', closed_at = NOW(), close_reason = $1, updated_at = NOW()
+WHERE id = $2
+
+No balance check or pending-transaction check happens in the frontend — these are enforced entirely on the backend, and the route will reject the request regardless of what any client sends.
+
+
+Checkpoint made
+1 minute ago
+
+Worked for 1 minute

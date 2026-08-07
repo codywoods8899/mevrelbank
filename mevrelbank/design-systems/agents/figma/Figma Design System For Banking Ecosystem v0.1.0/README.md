@@ -67,3 +67,9 @@
 
   ### 2026-07-10 — Copilot Coding Agent — Cloudflare D1 waitlist backend (S-10)
   `wrangler.toml`, `migrations/0001_waitlist.sql`, and `functions/api/waitlist.ts` added. `/waitlist` now submits to `POST /api/waitlist` stored in D1.
+
+  ### 2026-07-11 — Replit Agent — Phase 2 auth wiring + dashboard (S-12)
+  Added `AuthContext` (localStorage-backed mock auth: register/login/verifyOTP/verifyMFA/logout) and `ProtectedRoute`/`PublicOnlyRoute` guards. `LoginPage`, `RegisterPage`, `VerifyEmailPage`, `MFAPage` now call real context methods instead of mock timeouts. Extracted `BankingPortalView` out of the `/ds` design-system demo into a shared component and added a real, protected `/dashboard` route (`DashboardPage`) using it. No backend yet — see `mevrelbank/roadmap.md` Phase 2 backend items.
+
+  ### 2026-07-11 — Replit Agent — Phase 3 customer banking scaffold (S-13)
+  Split the dashboard UI into a reusable `DashboardShell` (sidebar/top bar, real `NavLink` routing) + `DashboardOverview` (dashboard home content), replacing the old combined `BankingPortalView`. Added a `DashboardLayout` layout route and six new protected pages sharing that shell: `AccountsPage`, `TransactionsPage`, `StatementsPage`, `BeneficiariesPage`, `ProfilePage`, `NotificationsPage`, all under `/dashboard/*`. All content is mock data (`shared/mockBankingData.ts`); no action that would move money or edit account state is wired to a real backend yet.

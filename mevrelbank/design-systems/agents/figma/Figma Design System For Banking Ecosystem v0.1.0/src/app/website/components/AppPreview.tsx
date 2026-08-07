@@ -17,9 +17,9 @@ const NAV_ITEMS = [
 ];
 
 const ACCOUNTS = [
-  { label: "Current Account", amount: "38,240.00", sub: "Available balance", change: "+£1,240 this month", positive: true  },
-  { label: "Savings Account", amount: "12,500.00", sub: "Instant Access",    change: "+£500 this month",  positive: true  },
-  { label: "Monthly Budget",  amount: "5,200.00",  sub: "of £7,000 spent",   change: "£1,800 remaining",  positive: null  },
+  { label: "Current Account", amount: "38,240.00", sub: "Available balance", change: "+$1,240 this month", positive: true  },
+  { label: "Savings Account", amount: "12,500.00", sub: "Instant Access",    change: "+$500 this month",  positive: true  },
+  { label: "Monthly Budget",  amount: "5,200.00",  sub: "of $7,000 spent",   change: "$1,800 remaining",  positive: null  },
 ];
 
 const TRANSACTIONS = [
@@ -37,7 +37,7 @@ export function AppPreview() {
       className="py-24 bg-[#F4F7FB]"
       aria-labelledby="preview-heading"
     >
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Section header */}
         <div className="text-center mb-14">
           <div className="text-[10px] font-semibold tracking-[0.22em] uppercase text-[#1764C0] mb-3">
@@ -45,7 +45,7 @@ export function AppPreview() {
           </div>
           <h2
             id="preview-heading"
-            className="text-[38px] font-bold text-[#0D1829] leading-tight mb-4"
+            className="text-[26px] sm:text-[34px] md:text-[38px] font-bold text-[#0D1829] leading-tight mb-4"
             style={{ fontFamily: "Figtree, sans-serif" }}
           >
             Your finances, at a glance.
@@ -56,12 +56,19 @@ export function AppPreview() {
           </p>
         </div>
 
-        {/* Browser chrome frame */}
+        {/*
+          Browser chrome frame — the inner app layout is a miniature UI with
+          fixed pixel sizes. On narrow viewports we let it scroll horizontally
+          so the preview stays intact and readable rather than crushing columns.
+        */}
         <div
-          className="rounded-[14px] overflow-hidden shadow-[0_24px_64px_rgba(11,50,112,0.18)] border border-[rgba(11,50,112,0.10)]"
+          className="rounded-[14px] overflow-x-auto shadow-[0_24px_64px_rgba(11,50,112,0.18)] border border-[rgba(11,50,112,0.10)]"
           aria-label="MevrelBank app preview"
           role="img"
         >
+          {/* Inner min-width keeps the mock layout intact at every viewport */}
+          <div className="min-w-[640px]">
+
           {/* Chrome bar */}
           <div className="h-9 bg-[#F0F4F8] flex items-center px-4 gap-2 border-b border-[rgba(11,50,112,0.07)]">
             <div className="flex gap-1.5">
@@ -184,7 +191,7 @@ export function AppPreview() {
                         className="text-[17px] font-bold text-[#0D1829] leading-none mb-0.5"
                         style={{ fontFamily: "'DM Mono', monospace" }}
                       >
-                        £{c.amount}
+                        ${c.amount}
                       </div>
                       <div className="text-[9px] text-[#8A9BBE] mb-2">{c.sub}</div>
                       {c.positive !== null ? (
@@ -247,7 +254,7 @@ export function AppPreview() {
                           color: tx.amount > 0 ? "#0E7C4D" : "#0D1829",
                         }}
                       >
-                        {tx.amount > 0 ? "+" : ""}£
+                        {tx.amount > 0 ? "+" : ""}$
                         {Math.abs(tx.amount).toFixed(2)}
                       </div>
                     </div>
@@ -256,6 +263,7 @@ export function AppPreview() {
               </main>
             </div>
           </div>
+          </div>{/* /min-w-[640px] */}
         </div>
 
         {/* Caption */}

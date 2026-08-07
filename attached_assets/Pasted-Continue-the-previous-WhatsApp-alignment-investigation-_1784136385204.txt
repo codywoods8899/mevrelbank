@@ -1,0 +1,46 @@
+Continue the previous WhatsApp alignment investigation. Do NOT restart it.
+
+The previous agent already:
+- investigated the Smartsupp loader
+- inspected the live page with Playwright
+- captured screenshots
+- measured both widgets
+- compared their dimensions
+- concluded there was "a real, measurable misalignment"
+- began editing WhatsAppButton.tsx before running out of credits.
+
+Do not repeat those investigations.
+
+I also noticed something important while testing:
+
+I manually resized Chrome DevTools to random widths (they were NOT intentional breakpoints). As the viewport changed, the spacing between the WhatsApp button and the Smartsupp widget also changed.
+
+Therefore, do NOT optimise for those random widths.
+
+Instead:
+
+1. Inspect the app's own responsive system (Tailwind/custom CSS/etc.) and determine the layouts the application officially supports.
+2. Inspect the LIVE rendered Smartsupp widget across those layouts.
+3. Compare the computed styles of BOTH the Smartsupp widget and our WhatsApp button, including:
+   - width
+   - height
+   - border radius
+   - bottom
+   - right
+   - transform
+   - padding
+   - margin
+   - flex alignment
+   - SVG size
+   - icon alignment
+   - box shadow
+   - z-index
+   - animation
+4. Produce a table showing every mismatch.
+5. Fix ONLY the remaining mismatches.
+6. Do NOT use hardcoded viewport-specific values or random breakpoint hacks.
+7. Do NOT redraw or replace the WhatsApp SVG. Use the existing SVG in public/icons.
+8. Verify the final result on the app's supported layouts (mobile, tablet, desktop or the project's own breakpoints), ensuring the visual spacing between WhatsApp and Smartsupp remains consistent.
+9. Commit only after confirming the WhatsApp button matches the Smartsupp widget's positioning and appearance across all supported layouts.
+
+Do not stop after one screen size. The solution must be responsive and based on the application's own layout system, not arbitrary viewport widths.

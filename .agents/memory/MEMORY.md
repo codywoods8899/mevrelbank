@@ -1,1 +1,9 @@
-- [MevrelBank banking portal structure](mevrelbank-banking-portal.md) — /app/* routes live in the Figma design system src dir; AppShell + ProtectedRoute pattern established in Phase 1.5
+[MevrelBank banking portal structure](mevrelbank-banking-portal.md) — /app/* routes live in the Figma design system src dir; AppShell + ProtectedRoute pattern established in Phase 1.5
+- [MevrelBank repo layout](mevrelbank-layout.md) — repo root has two independent apps (aicg/, mevrelbank/); the real MevrelBank frontend is nested deep under mevrelbank/design-systems/agents/figma/.
+- [MevrelBank backend architecture](mevrelbank-backend.md) — Phase 2 backend on port 3001, JWT auth, Resend email, TOTP MFA, Neon PostgreSQL; frontend proxies /api/* via Vite.
+- [MevrelBank payments and statements](mevrelbank-payments-and-statements.md) — transfers/payments are ledger-only (no external bank rail); statements generate lazily, no cron.
+- [MevrelBank auth sessions & admin access](mevrelbank-auth-sessions.md) — opaque refresh tokens via httpOnly cookies, remember-me TTL branching, role+email admin gating, dev must use relative /api not VITE_API_BASE_URL.
+- [MevrelBank account numbers](mevrelbank-account-numbers.md) — account numbers used to be generated already-masked at creation; check generation site (backend), not frontend, if display issues resurface.
+- [Fresh import restores](fresh-import-restores.md) — after a GitHub import node_modules are absent; run npm install in aicg/, mevrelbank/backend/, and the frontend dir before restarting workflows.
+- [WhatsApp / Smartsupp alignment](whatsapp-smartsupp-alignment.md) — STACK_GAP=12px must apply on both dynamic and fallback paths; DEFAULT_BOTTOM derives from getSmartsuppOffset().y + size + gap, not a hardcoded constant.
+- [Notification action resolver](notification-action-resolver.md) — routing lives in notificationActionResolver.ts; entity_type+entity_id on notifications table; never text-match; all creation sites documented.

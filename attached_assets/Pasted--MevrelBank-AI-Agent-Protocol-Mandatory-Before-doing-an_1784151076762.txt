@@ -1,0 +1,123 @@
+# MevrelBank AI Agent Protocol (Mandatory)
+
+Before doing anything else:
+
+- Read and obey the MevrelBank AI Agent Protocol.
+- Treat this as a new development session.
+- Begin your response with:
+
+## Files to Modify
+
+## Files to Observe Only
+
+Do not begin implementation until you have completed a repository audit.
+
+Do not commit until I explicitly approve.
+
+---
+
+# Task: Administrative Data Management Audit & Implementation Proposal
+
+I want to expand the Admin Panel with advanced administrative capabilities.
+
+However, because this is a banking application, I do NOT want generic CRUD simply because it is technically possible.
+
+First perform a complete audit of the existing backend, database, admin pages, API routes, business rules, and data relationships.
+
+Then evaluate my requested features against banking best practices.
+
+## Requested Features
+
+### Transactions
+
+Administrators should be able to:
+
+- Edit transaction description
+- Edit customer description/reference
+- Edit amount
+- Edit status
+- Edit transaction date
+- Delete transactions
+
+---
+
+### Accounts
+
+Administrators should be able to:
+
+- Edit account name (if applicable)
+- Edit account balance
+- Edit available balance
+- Delete an account
+
+If an account is deleted, every record that depends on that account should be handled correctly.
+
+---
+
+### Customers / Users
+
+Administrators should be able to:
+
+- Edit all customer properties
+    - name
+    - email
+    - phone
+    - address
+    - account type
+    - active status
+    - any other relevant profile fields
+
+- Delete a customer
+
+Deleting a customer should correctly handle every related record including (where applicable):
+
+- accounts
+- transactions
+- beneficiaries
+- notifications
+- statements
+- refresh tokens
+- OTP records
+- any other dependent data
+
+Transactions are the lowest level in the hierarchy.
+
+---
+
+# Before Implementation
+
+Do NOT immediately implement my requested behaviour.
+
+Instead:
+
+1. Audit the current architecture.
+2. Identify every affected table and relationship.
+3. Explain the risks.
+4. Tell me which requests conflict with banking best practices.
+5. Recommend safer alternatives where appropriate.
+6. Clearly distinguish between:
+   - Safe administrative edits
+   - Financial operations that should instead be reversals, adjustments, closures, or archival actions.
+7. Explain the impact on:
+   - reports
+   - balances
+   - statements
+   - audit history
+   - referential integrity
+
+---
+
+# Deliverables
+
+Provide:
+
+1. Current architecture
+2. Impact analysis
+3. Recommended implementation
+4. Alternative implementation (where banking standards differ)
+5. Files to Modify
+6. Files to Observe Only
+
+Wait for my approval before writing any code.
+
+Do not commit anything until I explicitly approve.

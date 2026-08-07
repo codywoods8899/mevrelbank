@@ -3,30 +3,34 @@ import { MailCheck } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { AuthShell, AuthCard, AuthField, AuthInput, AuthError } from "../components/AuthShell";
 import { Btn } from "../shared/Btn";
+import { useAuth } from "../../context/AuthContext";
 
 export default function ForgotPasswordPage() {
+  const { forgotPassword } = useAuth();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (!email.trim()) return;
     setLoading(true);
-    // TODO: wire to auth API
-    setTimeout(() => {
-      setLoading(false);
-      setSent(true);
-    }, 600);
+    const result = await forgotPassword(email.trim());
+    setLoading(false);
+    if (!result.success) {
+      setError(result.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+    setSent(true);
   };
 
   return (
     <>
       <PageMeta
         title="Reset Your Password — MevrelBank"
-        description="Forgotten your MevrelBank password? Enter your email and we will send you a reset link."
+        description="Forgotten your MevrelBank password? Enter your email and we'll send you a reset code."
       />
       <AuthShell>
         <AuthCard>
@@ -42,13 +46,21 @@ export default function ForgotPasswordPage() {
                 </h1>
                 <p className="text-[14px] text-[#5E6E8E] mt-2 max-w-sm mx-auto">
                   If an account exists for{" "}
-                  <span className="font-semibold text-[#0D1829]">{email}</span>, you will receive
-                  a password reset link shortly.
+                  <span className="font-semibold text-[#0D1829]">{email}</span>, you'll receive a
+                  6-digit reset code shortly.
                 </p>
               </div>
               <p className="text-[12px] text-[#9AAABF]">
-                Check your spam folder if you don't see it within a few minutes.
+                Check your spam folder if you don't see it in a few minutes.
               </p>
+              <Btn
+                variant="primary"
+                size="lg"
+                href={`/reset-password?email=${encodeURIComponent(email)}`}
+                className="w-full justify-center"
+              >
+                Enter reset code
+              </Btn>
               <Btn variant="outline" size="md" href="/login" className="w-full justify-center">
                 Back to sign in
               </Btn>
@@ -63,7 +75,7 @@ export default function ForgotPasswordPage() {
                   Forgot your password?
                 </h1>
                 <p className="text-[14px] text-[#5E6E8E] mt-1.5">
-                  Enter the email address linked to your account and we'll send you a reset link.
+                  Enter the email linked to your account and we'll send you a reset code.
                 </p>
               </div>
 
@@ -87,7 +99,7 @@ export default function ForgotPasswordPage() {
                   disabled={!email.trim() || loading}
                   className="w-full justify-center"
                 >
-                  {loading ? "Sending…" : "Send reset link"}
+                  {loading ? "Sending…" : "Send reset code"}
                 </Btn>
               </form>
 

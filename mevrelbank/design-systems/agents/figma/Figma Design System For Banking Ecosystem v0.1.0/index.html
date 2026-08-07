@@ -7,14 +7,36 @@
     <title>MevrelBank — Smarter Banking for a Modern Life</title>
     <meta name="description" content="MevrelBank brings clarity, speed, and intelligence to your finances. A modern digital banking platform built for the way you live." />
     <link rel="icon" type="image/png" href="/brand/mevrelbank-symbol-favicon-v1.png" />
+    <!-- Preload WhatsApp icon so background + icon are ready together on first render -->
+    <link rel="preload" as="image" href="/icons/whatsapp.svg" type="image/svg+xml" />
+    <!--
+      Pre-warm the connection to Smartsupp's CDN *before* the snippet runs.
+      preconnect opens the DNS + TCP + TLS pipeline during HTML parsing so that
+      when the snippet injects <script async src="loader.js">, the pipe is
+      already warm — removes 0.5–1.5 s of cold-connection overhead on first load.
+      dns-prefetch is the fallback for browsers that don't support preconnect.
+    -->
+    <link rel="preconnect" href="https://www.smartsuppchat.com" crossorigin />
+    <link rel="dns-prefetch" href="https://www.smartsuppchat.com" />
     <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
+
+    <!-- Smartsupp Live Chat script -->
+    <script type="text/javascript">
+    var _smartsupp = _smartsupp || {};
+    _smartsupp.key = '663e11d700db028ccc8ecea778c999bc0d3a5a12';
+    window.smartsupp||(function(d) {
+      var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
+      s=d.getElementsByTagName('script')[0];c=d.createElement('script');
+      c.type='text/javascript';c.charset='utf-8';c.async=true;
+      c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);
+    })(document);
+    </script>
   </head>
 
-    <body>
-      
-      <div id="root"></div>
-      <script type="module" src="/src/main.tsx"></script>
-      
-    </body>
-  </html>
+  <body>
+    <noscript>Powered by <a href="https://www.smartsupp.com" target="_blank">Smartsupp</a></noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
   

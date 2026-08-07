@@ -1,0 +1,108 @@
+Before we proceed, I want to completely verify Item #5.
+
+This is verification only.
+
+Do not modify anything.
+Do not commit anything.
+
+I want a complete authorization and permissions audit for everything implemented in this feature.
+
+Please answer the following.
+
+1. Customer Isolation
+
+Confirm that a normal customer cannot access ANY of the following routes directly, even if they manually call the API using Postman or browser developer tools:
+
+- POST /admin/re-auth
+- POST /admin/users/:id/archive
+- PATCH /admin/users/:id
+- POST /admin/accounts/:id/close
+- PATCH /admin/accounts/:id/name
+- POST /admin/transactions/:id/void
+- PATCH /admin/transactions/:id/description
+- GET /admin/transactions/:id/edits
+
+For each route specify:
+
+- authentication middleware
+- authorization middleware
+- where it is enforced
+- whether it is backend-enforced or frontend-only
+
+2. Administrator Permissions
+
+Confirm whether every admin currently has identical permissions.
+
+If yes:
+
+- explain how permissions are currently determined.
+
+If no:
+
+- list every permission level that exists.
+
+3. Administrator Protection
+
+Can one administrator:
+
+- archive another administrator?
+- suspend another administrator?
+- edit another administrator?
+- close another administrator's accounts?
+
+Explain exactly why or why not.
+
+4. Re-authentication Coverage
+
+Verify that every destructive operation requires the confirmToken.
+
+Specifically verify:
+
+- archive customer
+- close account
+- void transaction
+
+If any destructive action does NOT require re-authentication, identify it.
+
+5. Privilege Escalation
+
+Can an attacker:
+
+- forge admin_id in requests?
+- choose another administrator's UUID?
+- bypass req.user.sub?
+- modify closed_by?
+- modify archived_by?
+
+Explain exactly how these values are assigned.
+
+6. Sensitive Fields
+
+Confirm whether the following fields can ever be modified by an API after they are initially written:
+
+- admin_reason
+- close_reason
+- archive_reason
+- admin_id
+- closed_by
+- archived_by
+- reversal_of
+- reversed_by
+
+For each field specify:
+
+- immutable
+- editable
+- indirectly changeable
+
+7. Production Readiness
+
+Based on the entire implementation, do you believe the authorization model is suitable for production banking software?
+
+If not, list every remaining security gap, ordered from highest to lowest priority.
+
+Do not change any code.
+
+Do not commit anything.
+
+I only want the security and authorization audit.

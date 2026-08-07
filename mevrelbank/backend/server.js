@@ -1,0 +1,98 @@
+require('dotenv').config();
+
+// ─── Fail fast if required secrets are absent ─────────────────────────────────
+const REQUIRED_ENV = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'JWT_CONFIRM_SECRET', 'SESSION_SECRET'];
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    console.error(`[startup] FATAL: Required environment variable "${key}" is not set. Exiting.`);
+    process.exit(1);
+  }
+}
+
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
+
+const authRoutes      = require('./src/routes/auth');
+const mfaRoutes       = require('./src/routes/mfa');
+const userRoutes      = require('./src/routes/user');
+const bankingRoutes   = require('./src/routes/banking');
+const adminRoutes     = require('./src/routes/admin');
+const settingsRoutes  = require('./src/routes/settings');
+const mailboxRoutes   = require('./src/routes/mailboxes');
+
+const app  = express();
+const PORT = process.env.PORT ?? process.env.BACKEND_PORT ?? 3001;
+
+const allowedOrigins = (process.env.CORS_ORIGIN ?? '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+app.set('trust proxy', 1);
+
+app.use(helmet());
+
+const corsOptions = {
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
+};
+
+app.options('/{*splat}', cors(corsOptions));
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '16kb' }));
+app.use(cookieParser());
+
+console.log('[cors] allowed origins:', allowedOrigins.length ? allowedOrigins : '(all — CORS_ORIGIN not set)');
+
+// ─── Health ───────────────────────────────────────────────────────────────────
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', service: 'mevrelbank-backend', version: '1.0.0', timestamp: new Date().toISOString() });
+});
+
+// ─── Routes ───────────────────────────────────────────────────────────────────
+
+app.use('/api/auth',             authRoutes);
+app.use('/api/mfa',              mfaRoutes);
+app.use('/api/user',             userRoutes);
+app.use('/api/banking',          bankingRoutes);
+app.use('/api/admin',            adminRoutes);
+app.use('/api/admin/mailboxes',  mailboxRoutes);
+app.use('/api/settings',         settingsRoutes);
+
+// ─── Static brand assets (used in emails) ────────────────────────────────────
+
+app.use('/brand', express.static(require('path').join(__dirname, 'public/brand'), {
+  maxAge: '7d',
+  immutable: true,
+}));
+
+// ─── 404 ──────────────────────────────────────────────────────────────────────
+
+app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
+
+// ─── Error handler ────────────────────────────────────────────────────────────
+
+app.use((err, req, res, _next) => {
+  console.error('[error]', err.message);
+  res.status(500).json({ error: 'Internal server error.' });
+});
+
+// ─── Start ────────────────────────────────────────────────────────────────────
+
+const pool = require('./src/db/pool');
+
+app.listen(PORT, '0.0.0.0', async () => {
+  console.log(`MevrelBank Backend running on port ${PORT}`);
+  try {
+    await pool.query('SELECT 1');
+    console.log('[DB] Connected to Neon successfully.');
+  } catch (err) {
+    console.error('[DB] Connection failed:', err?.message || String(err));
+  }
+});

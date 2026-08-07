@@ -1,0 +1,199 @@
+# MevrelBank AI Agent Protocol (Mandatory)
+
+Before doing anything else, read and obey the project's MevrelBank AI Agent Protocol and all repository documentation governing agent behavior.
+
+The protocol is mandatory.
+
+Key requirements include (but are not limited to):
+
+• Every task you perform is a development session.
+• Every session MUST be documented.
+• Update the session log before finishing.
+• Update the memory/index files if applicable.
+• Maintain architectural consistency.
+• Never introduce duplicate implementations.
+• Never make assumptions where the repository already contains an implementation.
+• Always perform a repository audit before building something new.
+• Preserve the existing design system and coding standards.
+• Never commit until instructed.
+• If you discover existing functionality that already satisfies part of the request, extend it instead of rebuilding it.
+
+At the beginning of EVERY response, include these two sections:
+
+## Files to Modify
+(List every file you expect to modify.)
+
+## Files to Observe Only
+(List every file you will inspect but do not currently expect to modify.)
+
+If this changes during implementation, immediately update me before proceeding.
+
+---
+
+# Task: Upgrade the Notification System into an Actionable Notification Center
+
+Before writing a single line of code, perform a complete repository audit of the notification system.
+
+Inspect everything related to notifications, including:
+
+- backend routes
+- notification services
+- database schema
+- notification creation logic
+- APIs
+- frontend pages
+- contexts
+- hooks
+- routing
+- shared components
+- admin-generated notifications
+- customer-generated notifications
+
+Determine exactly what already exists before proposing changes.
+
+## Objective
+
+Transform notifications from passive informational messages into actionable notifications.
+
+A user should never click a notification and have nothing happen.
+
+---
+
+## Requirements
+
+### 1. Do NOT hardcode actions
+
+Do not determine actions by matching notification text.
+
+Instead, use proper underlying data such as:
+
+- transaction ID
+- account ID
+- beneficiary ID
+- statement ID
+- user ID
+- metadata
+- references
+
+If these are missing, extend the backend properly.
+
+---
+
+### 2. Audit the database
+
+Determine whether the notifications table already stores enough information for deep-linking.
+
+If not, design the smallest scalable improvement.
+
+Prefer structured metadata over string parsing.
+
+---
+
+### 3. Every notification must perform an action
+
+Examples include:
+
+• Account credited
+→ Open the related transaction/details.
+
+• Account debited
+→ Open that transaction.
+
+• Transfer completed
+→ Open transfer details.
+
+• Transfer rejected
+→ Open the failed transaction and display the rejection reason.
+
+• Payment submitted
+→ Open payment status.
+
+• Beneficiary added
+→ Open beneficiary details.
+
+• Statement generated
+→ Open statement viewer/download.
+
+• New account opened
+→ Open that account.
+
+• Security notification
+→ Open the appropriate Security/Profile section.
+
+• General notification
+→ Open a notification detail page if no destination exists.
+
+---
+
+### 4. Click behavior
+
+Clicking a notification should:
+
+• mark it as read
+• perform its action
+• avoid unnecessary reloads
+• preserve smooth UX
+
+---
+
+### 5. Future-proof the architecture
+
+Design the notification model so future notification types only need to specify metadata and destination.
+
+Avoid frontend-specific mappings.
+
+The backend should describe where a notification leads.
+
+---
+
+### 6. Verify every existing notification
+
+Audit every notification currently generated anywhere in the application.
+
+Confirm each has:
+
+- proper metadata
+- a valid destination
+- correct routing
+- proper read state handling
+
+Report any gaps.
+
+---
+
+### 7. UI/UX
+
+Do not redesign the UI yet unless required.
+
+Focus on functionality first.
+
+However, identify UI improvements worth making later and include them in your report.
+
+---
+
+### Deliverables before implementation
+
+After your audit, provide:
+
+1. Current architecture
+2. Missing pieces
+3. Proposed implementation plan
+4. Files to modify
+5. Database/API changes (if any)
+6. Expected user flow after completion
+
+Wait for my approval before making changes.
+
+---
+
+## Completion Requirements
+
+When implementation is complete:
+
+- Update the session log.
+- Update the memory/index files.
+- Document every file changed.
+- Document every database change.
+- Document every API change.
+- Document any architectural changes.
+- Do NOT commit until I explicitly approve.

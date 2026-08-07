@@ -1,17 +1,19 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import {
-  Search, Bell, Settings, User, CreditCard, ArrowUpRight, ArrowDownLeft,
+  Search, CreditCard,
   TrendingUp, Shield, Lock, Eye, EyeOff, Check, X, AlertTriangle, Info,
   ChevronDown, ChevronRight, ChevronLeft, Download, Filter, Plus,
-  MoreHorizontal, Home, FileText, SendHorizontal, CheckCircle, XCircle,
-  Loader2, LogOut, Wallet, Activity, RefreshCw, Star, Globe,
+  MoreHorizontal, FileText, CheckCircle, XCircle,
+  Loader2, Wallet, Activity, RefreshCw, Star, Globe,
   Zap, ArrowRight, Users
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar
 } from "recharts";
+import { DashboardShell } from "./website/components/DashboardShell";
+import { DashboardOverview } from "./website/components/DashboardOverview";
 
 // ─── LOGO MARK ───────────────────────────────────────────────────────────────
 
@@ -329,7 +331,7 @@ function DesignSystemView() {
             {[
               { name: "Figtree", role: "Display / UI / Headings", sample: "Banking, built for life", size: "26px", weight: 700, family: "Figtree, sans-serif", note: "Geometric sans — confident, modern, premium. Used for all headings, wordmark, hero copy, and primary UI labels." },
               { name: "Inter",   role: "Body / Forms / Prose",    sample: "Manage your finances with clarity.", size: "17px", weight: 400, family: "Inter, sans-serif", note: "Universally readable sans. Body copy, form labels, help text, navigation, and all secondary UI text." },
-              { name: "DM Mono", role: "Data / Numbers / Code",   sample: "£38,240.00", size: "22px", weight: 500, family: "'DM Mono', monospace", note: "Structured mono for account numbers, sort codes, amounts, IBAN, timestamps, and data tables." },
+              { name: "DM Mono", role: "Data / Numbers / Code",   sample: "$38,240.00", size: "22px", weight: 500, family: "'DM Mono', monospace", note: "Structured mono for account numbers, routing numbers, amounts, IBAN, timestamps, and data tables." },
             ].map((f) => (
               <div key={f.name} className="p-5 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)]">
                 <div className="text-[9px] font-semibold tracking-[0.18em] uppercase text-[#8A9BBE] mb-3">{f.name} — {f.role}</div>
@@ -356,9 +358,9 @@ function DesignSystemView() {
               { name: "Body",        px: "15px", lh: "1.60", wt: 400,  family: "Inter",   sample: "Transfer funds, view statements, and set up direct debits with ease." },
               { name: "Body S",      px: "13px", lh: "1.55", wt: 400,  family: "Inter",   sample: "Last updated 08 Jul 2026 at 14:32" },
               { name: "Caption",     px: "11px", lh: "1.50", wt: 400,  family: "Inter",   sample: "Fields marked with an asterisk (*) are required" },
-              { name: "Label",       px: "10px", lh: "1.40", wt: 600,  family: "Inter",   sample: "ACCOUNT NUMBER · SORT CODE · BIC/SWIFT" },
-              { name: "Mono L",      px: "20px", lh: "1.30", wt: 500,  family: "DM Mono", sample: "£38,240.00" },
-              { name: "Mono",        px: "14px", lh: "1.40", wt: 400,  family: "DM Mono", sample: "40-12-34 · 12345678" },
+              { name: "Label",       px: "10px", lh: "1.40", wt: 600,  family: "Inter",   sample: "ACCOUNT NUMBER · ROUTING NUMBER · BIC/SWIFT" },
+              { name: "Mono L",      px: "20px", lh: "1.30", wt: 500,  family: "DM Mono", sample: "$38,240.00" },
+              { name: "Mono",        px: "14px", lh: "1.40", wt: 400,  family: "DM Mono", sample: "071001245 · 123456789012" },
               { name: "Mono S",      px: "11px", lh: "1.40", wt: 400,  family: "DM Mono", sample: "GB29NWBK60161331926819" },
             ].map((t, i, arr) => (
               <div key={t.name} className={`flex items-baseline gap-5 px-5 py-4 ${i < arr.length - 1 ? "border-b border-[rgba(11,50,112,0.04)]" : ""}`}>
@@ -541,9 +543,9 @@ function DesignSystemView() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#C52B2B] mb-1.5">Sort Code <span className="text-[#C52B2B]">*</span></label>
-                  <input type="text" defaultValue="40-12-3X" className="w-full h-10 px-3.5 rounded-[6px] bg-[#EEF2F9] border border-[#C52B2B] text-[13px] text-[#0D1829] focus:outline-none focus:ring-2 focus:ring-[#C52B2B]/20 transition-all" />
-                  <p className="mt-1 text-[11px] text-[#C52B2B]">Enter a valid sort code (e.g. 40-12-34)</p>
+                  <label className="block text-[12px] font-semibold text-[#C52B2B] mb-1.5">Routing Number <span className="text-[#C52B2B]">*</span></label>
+                  <input type="text" defaultValue="07100124X" className="w-full h-10 px-3.5 rounded-[6px] bg-[#EEF2F9] border border-[#C52B2B] text-[13px] text-[#0D1829] focus:outline-none focus:ring-2 focus:ring-[#C52B2B]/20 transition-all" />
+                  <p className="mt-1 text-[11px] text-[#C52B2B]">Enter a valid 9-digit routing number (e.g. 071001245)</p>
                 </div>
                 <div>
                   <label className="block text-[12px] font-semibold text-[#3A4A62] mb-1.5">Disabled</label>
@@ -590,7 +592,7 @@ function DesignSystemView() {
                       <span className="text-[13px] text-[#3A4A62]">{item.label}</span>
                     </label>
                   ))}
-                  {["Standard transfer (free)", "Priority transfer (£0.50)"].map((label, i) => (
+                  {["Standard transfer (free)", "Priority transfer ($0.50)"].map((label, i) => (
                     <label key={label} className="flex items-center gap-3 cursor-pointer group" onClick={() => setRadioVal(i === 0 ? "standard" : "priority")}>
                       <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
                         radioVal === (i === 0 ? "standard" : "priority") ? "border-[#0B3270]" : "border-[#B8C5DD] group-hover:border-[#0B3270]"
@@ -643,7 +645,7 @@ function DesignSystemView() {
                 <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-[#8A9BBE]">Current Account</div>
                 <CreditCard size={14} className="text-[#8A9BBE]" />
               </div>
-              <div className="text-[28px] font-bold text-[#0D1829] leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>£38,240</div>
+              <div className="text-[28px] font-bold text-[#0D1829] leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>$38,240</div>
               <div className="text-[12px] text-[#8A9BBE] mb-4">.00 available balance</div>
               <div className="flex items-center gap-1.5">
                 <TrendingUp size={11} className="text-[#0E7C4D]" />
@@ -655,12 +657,12 @@ function DesignSystemView() {
             {/* Dark accent card */}
             <div className="p-5 bg-[#0B3270] rounded-[12px] shadow-[0_4px_20px_rgba(11,50,112,0.30)]">
               <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-[rgba(255,255,255,0.45)] mb-4">Monthly Budget</div>
-              <div className="text-[28px] font-bold text-white leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>£5,200</div>
-              <div className="text-[12px] text-[rgba(255,255,255,0.45)] mb-5">of £7,000 spent</div>
+              <div className="text-[28px] font-bold text-white leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>$5,200</div>
+              <div className="text-[12px] text-[rgba(255,255,255,0.45)] mb-5">of $7,000 spent</div>
               <div className="h-1.5 bg-[rgba(255,255,255,0.12)] rounded-full">
                 <div className="h-1.5 bg-white rounded-full" style={{ width: "74%" }} />
               </div>
-              <div className="text-[11px] text-[rgba(255,255,255,0.4)] mt-2">74% · £1,800 remaining</div>
+              <div className="text-[11px] text-[rgba(255,255,255,0.4)] mt-2">74% · $1,800 remaining</div>
             </div>
 
             {/* Goal card */}
@@ -669,8 +671,8 @@ function DesignSystemView() {
                 <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-[#8A9BBE]">Savings Pot</div>
                 <Star size={14} className="text-[#B46A0A]" />
               </div>
-              <div className="text-[28px] font-bold text-[#0D1829] leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>£12,500</div>
-              <div className="text-[12px] text-[#8A9BBE] mb-4">Emergency fund — Goal: £15,000</div>
+              <div className="text-[28px] font-bold text-[#0D1829] leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>$12,500</div>
+              <div className="text-[12px] text-[#8A9BBE] mb-4">Emergency fund — Goal: $15,000</div>
               <div className="h-1.5 bg-[#EBF0FA] rounded-full">
                 <div className="h-1.5 bg-[#1764C0] rounded-full" style={{ width: "83%" }} />
               </div>
@@ -701,7 +703,7 @@ function DesignSystemView() {
           <SubTitle label="Alert / Inline Notification" />
           <div className="space-y-3 mb-10">
             {[
-              { icon: <CheckCircle size={15} />, color: "#0E7C4D", bg: "#D6F0E6", border: "#A4D4BB", title: "Transfer successful", msg: "£500.00 has been sent to James Chen. Reference: HOLIDAY2026. Estimated arrival: instantly." },
+              { icon: <CheckCircle size={15} />, color: "#0E7C4D", bg: "#D6F0E6", border: "#A4D4BB", title: "Transfer successful", msg: "$500.00 has been sent to James Chen. Reference: HOLIDAY2026. Estimated arrival: instantly." },
               { icon: <AlertTriangle size={15} />, color: "#B46A0A", bg: "#FDF0D6", border: "#EAC97A", title: "Action required", msg: "Your ID verification expires in 14 days. Update your documents to maintain full account access." },
               { icon: <XCircle size={15} />, color: "#C52B2B", bg: "#FDE8E8", border: "#F0ADAD", title: "Payment declined", msg: "Insufficient funds to complete this transaction. Please top up your account and try again." },
               { icon: <Info size={15} />, color: "#1155A6", bg: "#D8E7F8", border: "#9BBFE8", title: "Scheduled maintenance", msg: "Platform maintenance is scheduled for Sunday 13 Jul between 02:00–04:00 BST. Some features may be unavailable." },
@@ -762,7 +764,7 @@ function DesignSystemView() {
                       </td>
                       <td className="px-5 py-3.5 text-[12px] text-[#7A8CAA]">{tx.date}</td>
                       <td className="px-5 py-3.5 text-right text-[13px] font-medium" style={{ fontFamily: "'DM Mono', monospace", color: tx.amount > 0 ? "#0E7C4D" : "#0D1829" }}>
-                        {tx.amount > 0 ? "+" : ""}£{Math.abs(tx.amount).toFixed(2)}
+                        {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
                       </td>
                       <td className="px-5 py-3.5">
                         <span className="flex items-center gap-2">
@@ -922,10 +924,10 @@ function DesignSystemView() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(11,50,112,0.05)" />
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} tickFormatter={(v) => `£${(v / 1000).toFixed(0)}k`} width={36} />
+                  <YAxis tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={36} />
                   <Tooltip
                     contentStyle={{ borderRadius: 6, border: "1px solid rgba(11,50,112,0.10)", fontSize: 12, boxShadow: "0 4px 12px rgba(11,50,112,0.08)" }}
-                    formatter={(v: number) => [`£${v.toLocaleString()}`, "Balance"]}
+                    formatter={(v: number) => [`${v.toLocaleString()}`, "Balance"]}
                   />
                   <Area type="monotone" dataKey="balance" stroke="#1764C0" strokeWidth={2} fill="url(#balGrad)" dot={false} activeDot={{ r: 4, fill: "#1764C0" }} />
                 </AreaChart>
@@ -938,10 +940,10 @@ function DesignSystemView() {
                 <BarChart data={spendingData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barGap={3}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(11,50,112,0.05)" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} tickFormatter={(v) => `£${(v / 1000).toFixed(0)}k`} width={32} />
+                  <YAxis tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={32} />
                   <Tooltip
                     contentStyle={{ borderRadius: 6, border: "1px solid rgba(11,50,112,0.10)", fontSize: 12 }}
-                    formatter={(v: number) => [`£${v.toLocaleString()}`]}
+                    formatter={(v: number) => [`${v.toLocaleString()}`]}
                   />
                   <Bar dataKey="income" fill="#D8E7F8" radius={[3, 3, 0, 0]} name="Income" />
                   <Bar dataKey="expenses" fill="#0B3270" radius={[3, 3, 0, 0]} name="Expenses" />
@@ -999,7 +1001,7 @@ function PublicWebsiteView() {
           <div className="max-w-[620px]">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[rgba(74,162,216,0.3)] bg-[rgba(74,162,216,0.08)] mb-8">
               <div className="w-1.5 h-1.5 rounded-full bg-[#4AA2D8]" />
-              <span className="text-[11px] font-semibold text-[#4AA2D8] tracking-[0.08em]">FCA Authorised · FSCS Protected up to £85,000</span>
+              <span className="text-[11px] font-semibold text-[#4AA2D8] tracking-[0.08em]">FDIC Insured · Protected up to $250,000</span>
             </div>
             <h1 className="text-[54px] font-extrabold text-white leading-[1.03] mb-7 tracking-tight" style={{ fontFamily: "Figtree, sans-serif" }}>
               Banking built for the way you live.
@@ -1016,7 +1018,7 @@ function PublicWebsiteView() {
             <div className="mt-12 flex items-stretch gap-8 flex-wrap">
               {[
                 { val: "2.4M+", label: "Active customers" },
-                { val: "£18B+", label: "Assets managed" },
+                { val: "$18B+", label: "Assets managed" },
                 { val: "99.99%", label: "Platform uptime" },
                 { val: "4.9★", label: "App Store rating" },
               ].map((s) => (
@@ -1100,7 +1102,7 @@ function PublicWebsiteView() {
             <div className="max-w-[280px]">
               <MevrelLogo inverted className="mb-5" />
               <p className="text-[12px] text-[rgba(255,255,255,0.35)] leading-relaxed">
-                MevrelBank Ltd is authorised by the Financial Conduct Authority under the Electronic Money Regulations 2011 (Ref: 901234). Deposits protected by FSCS up to £85,000.
+                MevrelBank is a financial technology company, not a bank. Banking services provided by partner institutions. Deposits protected by FDIC up to $250,000.
               </p>
             </div>
             <div className="flex flex-wrap gap-10">
@@ -1132,198 +1134,10 @@ function PublicWebsiteView() {
 
 // ─── SECTION: INTERNET BANKING ────────────────────────────────────────────────
 
-function BankingPortalView() {
-  const [activeNav, setActiveNav] = useState("dashboard");
-
-  const navItems = [
-    { id: "dashboard",    icon: <Home size={15} />,           label: "Dashboard" },
-    { id: "accounts",     icon: <CreditCard size={15} />,     label: "Accounts" },
-    { id: "transactions", icon: <Activity size={15} />,       label: "Transactions" },
-    { id: "transfers",    icon: <SendHorizontal size={15} />, label: "Transfers" },
-    { id: "statements",   icon: <FileText size={15} />,       label: "Statements" },
-    { id: "settings",     icon: <Settings size={15} />,       label: "Settings" },
-  ];
-
-  return (
-    <div className="flex h-[820px] bg-[#F4F7FB] overflow-hidden rounded-[12px] border border-[rgba(11,50,112,0.10)] shadow-[0_12px_40px_rgba(11,50,112,0.12)]">
-      {/* Sidebar */}
-      <aside className="w-[216px] bg-[#081E42] flex flex-col flex-shrink-0">
-        <div className="px-5 py-5 border-b border-[rgba(255,255,255,0.06)]">
-          <MevrelLogo inverted size="sm" />
-        </div>
-        <nav className="flex-1 py-3 overflow-y-auto">
-          <div className="px-4 py-2 mb-1">
-            <span className="text-[9px] font-semibold tracking-[0.20em] uppercase text-[rgba(255,255,255,0.25)]">Main Menu</span>
-          </div>
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveNav(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium transition-all ${
-                activeNav === item.id
-                  ? "bg-[rgba(255,255,255,0.09)] text-white"
-                  : "text-[rgba(255,255,255,0.45)] hover:bg-[rgba(255,255,255,0.05)] hover:text-[rgba(255,255,255,0.75)]"
-              }`}
-            >
-              <span className={activeNav === item.id ? "text-[#4AA2D8]" : ""}>{item.icon}</span>
-              {item.label}
-              {activeNav === item.id && (
-                <div className="ml-auto w-1 h-4 rounded-full bg-[#4AA2D8]" />
-              )}
-            </button>
-          ))}
-        </nav>
-        <div className="p-4 border-t border-[rgba(255,255,255,0.06)]">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-[#1764C0] flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0">JC</div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[12px] font-semibold text-white truncate">James Chen</div>
-              <div className="text-[10px] text-[rgba(255,255,255,0.35)] truncate">Personal · Premium</div>
-            </div>
-            <LogOut size={13} className="text-[rgba(255,255,255,0.25)] flex-shrink-0 cursor-pointer hover:text-[rgba(255,255,255,0.7)] transition-colors" />
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-[6px] bg-[rgba(255,255,255,0.06)]">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#0E7C4D]" />
-            <span className="text-[10px] text-[rgba(255,255,255,0.35)]">Session active · 12:04 remaining</span>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top bar */}
-        <header className="h-14 bg-white border-b border-[rgba(11,50,112,0.07)] flex items-center justify-between px-5 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="text-[13px] text-[#8A9BBE]" style={{ fontFamily: "'DM Mono', monospace" }}>Tuesday, 8 July 2026</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative flex items-center">
-              <Search size={13} className="absolute left-3 text-[#8A9BBE]" />
-              <input type="text" placeholder="Search…" className="h-8 w-44 pl-8 pr-3 rounded-[6px] bg-[#EEF2F9] text-[12px] text-[#0D1829] placeholder-[#8A9BBE] focus:outline-none focus:ring-2 focus:ring-[#1764C0]/20 transition-all" />
-            </div>
-            <button className="relative w-8 h-8 flex items-center justify-center rounded-[6px] hover:bg-[#EEF2F9] transition-colors">
-              <Bell size={15} className="text-[#5E6E8E]" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#C52B2B] rounded-full" />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-[6px] hover:bg-[#EEF2F9] transition-colors">
-              <Settings size={15} className="text-[#5E6E8E]" />
-            </button>
-          </div>
-        </header>
-
-        {/* Dashboard content */}
-        <main className="flex-1 overflow-y-auto p-5">
-          <div className="mb-5">
-            <h1 className="text-[20px] font-bold text-[#0D1829] mb-0.5" style={{ fontFamily: "Figtree, sans-serif" }}>Good morning, James</h1>
-            <div className="text-[12px] text-[#8A9BBE]">Last login: Today at 08:41 · London, UK</div>
-          </div>
-
-          {/* Account summary cards */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            {[
-              { label: "Current Account", amount: "38,240.00", sub: "Available balance", change: "+£1,240 this month", up: true, accent: "#0B3270" },
-              { label: "Savings Account", amount: "12,500.00", sub: "Instant Access",    change: "+£500 this month",  up: true, accent: "#1764C0" },
-              { label: "Monthly Budget",  amount: "5,200.00",  sub: "of £7,000 spent",   change: "£1,800 remaining",  up: null, accent: "#4AA2D8" },
-            ].map((c) => (
-              <div key={c.label} className="p-4 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] shadow-[0_1px_4px_rgba(11,50,112,0.04)] hover:shadow-[0_3px_10px_rgba(11,50,112,0.07)] transition-shadow">
-                <div className="text-[9px] font-semibold tracking-[0.16em] uppercase text-[#8A9BBE] mb-3">{c.label}</div>
-                <div className="text-[22px] font-bold text-[#0D1829] leading-none mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>
-                  £{c.amount}
-                </div>
-                <div className="text-[11px] text-[#8A9BBE] mb-3">{c.sub}</div>
-                <div className="flex items-center gap-1.5">
-                  {c.up !== null ? (
-                    <>
-                      <TrendingUp size={10} className={c.up ? "text-[#0E7C4D]" : "text-[#C52B2B]"} />
-                      <span className={`text-[11px] font-semibold ${c.up ? "text-[#0E7C4D]" : "text-[#C52B2B]"}`}>{c.change}</span>
-                    </>
-                  ) : (
-                    <span className="text-[11px] text-[#8A9BBE]">{c.change}</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Chart + Quick Actions */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="col-span-2 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <div className="text-[13px] font-semibold text-[#0D1829]" style={{ fontFamily: "Figtree, sans-serif" }}>Balance Trend</div>
-                  <div className="text-[11px] text-[#8A9BBE]">Jan–Jul 2026</div>
-                </div>
-                <div className="flex gap-1.5">
-                  {["3M", "6M", "1Y", "All"].map((p) => (
-                    <button key={p} className={`px-2 py-1 rounded-[4px] text-[10px] font-semibold transition-colors ${p === "6M" ? "bg-[#0B3270] text-white" : "text-[#7A8CAA] hover:bg-[#EEF2F9]"}`}>{p}</button>
-                  ))}
-                </div>
-              </div>
-              <ResponsiveContainer width="100%" height={140}>
-                <AreaChart data={balanceTrend} margin={{ top: 2, right: 2, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="bgBalGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#1764C0" stopOpacity={0.12} />
-                      <stop offset="95%" stopColor="#1764C0" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(11,50,112,0.05)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8A9BBE" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 9, fill: "#8A9BBE" }} axisLine={false} tickLine={false} tickFormatter={(v) => `£${(v / 1000).toFixed(0)}k`} width={30} />
-                  <Tooltip contentStyle={{ borderRadius: 6, border: "1px solid rgba(11,50,112,0.10)", fontSize: 11 }} formatter={(v: number) => [`£${v.toLocaleString()}`, "Balance"]} />
-                  <Area type="monotone" dataKey="balance" stroke="#1764C0" strokeWidth={1.5} fill="url(#bgBalGrad)" dot={false} activeDot={{ r: 3 }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] p-4">
-              <div className="text-[13px] font-semibold text-[#0D1829] mb-3" style={{ fontFamily: "Figtree, sans-serif" }}>Quick Actions</div>
-              <div className="space-y-1.5">
-                {[
-                  { label: "Send Money",   icon: <SendHorizontal size={13} />, color: "#0B3270", bg: "#EBF0FA" },
-                  { label: "Pay a Bill",   icon: <FileText size={13} />,       color: "#1764C0", bg: "#EBF0FA" },
-                  { label: "Top Up",       icon: <Plus size={13} />,           color: "#0E7C4D", bg: "#D6F0E6" },
-                  { label: "New Payee",    icon: <Users size={13} />,          color: "#B46A0A", bg: "#FDF0D6" },
-                  { label: "Statements",   icon: <Download size={13} />,       color: "#5E6E8E", bg: "#E8EBF0" },
-                ].map((a) => (
-                  <button key={a.label} className="w-full flex items-center gap-2.5 p-2.5 rounded-[7px] hover:bg-[#F4F7FB] transition-colors text-left group">
-                    <div className="w-7 h-7 rounded-[5px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: a.bg, color: a.color }}>
-                      {a.icon}
-                    </div>
-                    <span className="text-[12px] font-medium text-[#3A4A62] group-hover:text-[#0B3270]">{a.label}</span>
-                    <ChevronRight size={11} className="ml-auto text-[#C8D4E8]" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Transactions */}
-          <div className="bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[rgba(11,50,112,0.05)]">
-              <div className="text-[13px] font-semibold text-[#0D1829]" style={{ fontFamily: "Figtree, sans-serif" }}>Recent Transactions</div>
-              <Btn variant="ghost" size="sm" icon={<ChevronRight size={12} />}>View all</Btn>
-            </div>
-            {transactions.map((tx, i) => (
-              <div key={tx.id} className={`flex items-center gap-3.5 px-5 py-3 ${i < transactions.length - 1 ? "border-b border-[rgba(11,50,112,0.04)]" : ""} hover:bg-[#F8FAFD] transition-colors`}>
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${tx.amount > 0 ? "bg-[#D6F0E6]" : "bg-[#EEF2F9]"}`}>
-                  {tx.amount > 0 ? <ArrowDownLeft size={12} className="text-[#0E7C4D]" /> : <ArrowUpRight size={12} className="text-[#7A8CAA]" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[12px] font-semibold text-[#0D1829] truncate">{tx.name}</div>
-                  <div className="text-[10px] text-[#8A9BBE]">{tx.date}</div>
-                </div>
-                <StatusDot status={tx.status} />
-                <div className="text-[12px] font-medium w-20 text-right" style={{ fontFamily: "'DM Mono', monospace", color: tx.amount > 0 ? "#0E7C4D" : "#0D1829" }}>
-                  {tx.amount > 0 ? "+" : ""}£{Math.abs(tx.amount).toFixed(2)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </main>
-      </div>
-    </div>
-  );
-}
+// The banking portal shell/content now live in website/components/DashboardShell.tsx
+// and DashboardOverview.tsx so they can be reused by both this design-system
+// preview tab and the real, routed /dashboard/* pages. Import them directly
+// rather than redefining the UI here.
 
 // ─── SECTION: AUTH FLOWS ─────────────────────────────────────────────────────
 
@@ -1551,7 +1365,9 @@ export default function App() {
       {activeTab === "banking" && (
         <div className="p-5">
           <div className="max-w-[1100px] mx-auto">
-            <BankingPortalView />
+            <DashboardShell>
+              <DashboardOverview />
+            </DashboardShell>
           </div>
         </div>
       )}

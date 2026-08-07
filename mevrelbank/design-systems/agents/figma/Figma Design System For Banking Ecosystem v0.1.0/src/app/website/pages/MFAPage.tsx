@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { Smartphone, Shield } from "lucide-react";
 import { PageMeta } from "../components/PageMeta";
 import { AuthShell, AuthCard, AuthError } from "../components/AuthShell";
 import { Btn } from "../shared/Btn";
+import { useAuth } from "../../context/AuthContext";
 
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 30;
@@ -10,7 +12,6 @@ const RESEND_COOLDOWN = 30;
 function useCountdown(initial: number) {
   const [seconds, setSeconds] = useState(0);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const start = () => {
     setSeconds(initial);
     if (timer.current) clearInterval(timer.current);
@@ -21,23 +22,22 @@ function useCountdown(initial: number) {
       });
     }, 1000);
   };
-
   useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
-
   return { seconds, start };
 }
 
 export default function MFAPage() {
-  const [mode, setMode] = useState<"totp" | "sms">("totp");
+  const { verifyMFA, sendMfaEmailCode } = useAuth();
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<"totp" | "email">("totp");
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const { seconds: smsCooldown, start: startSmsTimer } = useCountdown(RESEND_COOLDOWN);
+  const { seconds: cooldown, start: startCooldown } = useCountdown(RESEND_COOLDOWN);
 
-  useEffect(() => {
-    inputRefs.current[0]?.focus();
-  }, [mode]);
+  useEffect(() => { inputRefs.current[0]?.focus(); }, [mode]);
 
   const handleChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, "").slice(-1);
@@ -62,36 +62,60 @@ export default function MFAPage() {
     inputRefs.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus();
   };
 
-  const switchToSms = () => {
-    setMode("sms");
+  const switchToEmail = async () => {
+    setMode("email");
     setOtp(Array(OTP_LENGTH).fill(""));
     setError("");
-    startSmsTimer();
+    startCooldown();
+    const result = await sendMfaEmailCode();
+    if (result.success) setEmailSent(true);
+    else setError(result.error ?? "Failed to send code.");
   };
 
-  const handleResendSms = () => {
-    if (smsCooldown > 0) return;
-    startSmsTimer();
+  const handleResendEmail = async () => {
+    if (cooldown > 0) return;
+    startCooldown();
     setOtp(Array(OTP_LENGTH).fill(""));
     inputRefs.current[0]?.focus();
-    // TODO: trigger resend SMS API
+    const result = await sendMfaEmailCode();
+    if (!result.success) setError(result.error ?? "Failed to send code.");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = otp.join("");
-    if (code.length < OTP_LENGTH) {
-      setError("Please enter the full 6-digit code.");
-      return;
-    }
+    if (code.length < OTP_LENGTH) { setError("Please enter the full 6-digit code."); return; }
     setError("");
     setLoading(true);
-    // TODO: wire to auth API
-    setTimeout(() => {
-      setLoading(false);
-      setError("Two-factor authentication is not yet active. This is a UI preview.");
-    }, 600);
+    const result = await verifyMFA(code);
+    setLoading(false);
+    if (!result.success) { setError(result.error ?? "Unable to verify code."); return; }
+    navigate("/dashboard");
   };
+
+  const otpInput = (
+    <div
+      className="flex gap-2.5 justify-center"
+      role="group"
+      aria-label="One-time password"
+      onPaste={handlePaste}
+    >
+      {otp.map((digit, i) => (
+        <input
+          key={i}
+          ref={(el) => { inputRefs.current[i] = el; }}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={digit}
+          aria-label={`Digit ${i + 1} of ${OTP_LENGTH}`}
+          onChange={(e) => handleChange(i, e.target.value)}
+          onKeyDown={(e) => handleKeyDown(i, e)}
+          className="w-11 h-14 rounded-[10px] border border-[rgba(11,50,112,0.14)] text-center text-[20px] font-semibold text-[#0D1829] outline-none focus:border-[#0B3270] transition-colors caret-transparent"
+        />
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -119,8 +143,10 @@ export default function MFAPage() {
                 </h1>
                 <p className="text-[13px] text-[#5E6E8E] mt-0.5">
                   {mode === "totp"
-                    ? "Enter the code from your authenticator app."
-                    : "Enter the code sent to your phone ending in ••••."}
+                    ? "Enter the 6-digit code from your authenticator app."
+                    : emailSent
+                    ? "A code has been sent to your email address."
+                    : "Sending a code to your email…"}
                 </p>
               </div>
             </div>
@@ -129,28 +155,7 @@ export default function MFAPage() {
           {error && <AuthError message={error} />}
 
           <form onSubmit={handleSubmit} className="space-y-7 mt-5" noValidate>
-            <div
-              className="flex gap-2.5 justify-center"
-              role="group"
-              aria-label="One-time password"
-              onPaste={handlePaste}
-            >
-              {otp.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={(el) => { inputRefs.current[i] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  aria-label={`Digit ${i + 1} of ${OTP_LENGTH}`}
-                  onChange={(e) => handleChange(i, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(i, e)}
-                  className="w-11 h-14 rounded-[10px] border border-[rgba(11,50,112,0.14)] text-center text-[20px] font-semibold text-[#0D1829] outline-none focus:border-[#0B3270] transition-colors caret-transparent"
-                />
-              ))}
-            </div>
-
+            {otpInput}
             <Btn
               type="submit"
               size="lg"
@@ -167,33 +172,30 @@ export default function MFAPage() {
                 Can't access your app?{" "}
                 <button
                   type="button"
-                  onClick={switchToSms}
+                  onClick={switchToEmail}
                   className="font-semibold text-[#0B3270] hover:text-[#0E3E8C] transition-colors"
                 >
-                  Use SMS instead
+                  Send code to email
                 </button>
               </p>
             ) : (
               <p className="text-[13px] text-[#5E6E8E]">
-                Didn't receive a text?{" "}
-                {smsCooldown > 0 ? (
-                  <span className="text-[#9AAABF]">Resend in {smsCooldown}s</span>
+                Didn't receive it?{" "}
+                {cooldown > 0 ? (
+                  <span className="text-[#9AAABF]">Resend in {cooldown}s</span>
                 ) : (
                   <button
                     type="button"
-                    onClick={handleResendSms}
+                    onClick={handleResendEmail}
                     className="font-semibold text-[#0B3270] hover:text-[#0E3E8C] transition-colors"
                   >
-                    Resend SMS
+                    Resend to email
                   </button>
                 )}
               </p>
             )}
             <p className="text-[13px] text-[#5E6E8E]">
-              <a
-                href="/login"
-                className="font-semibold text-[#0B3270] hover:text-[#0E3E8C] transition-colors"
-              >
+              <a href="/login" className="font-semibold text-[#0B3270] hover:text-[#0E3E8C] transition-colors">
                 Back to sign in
               </a>
             </p>
