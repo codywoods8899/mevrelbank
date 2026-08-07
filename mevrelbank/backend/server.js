@@ -25,6 +25,7 @@ const fxRoutes        = require('./src/routes/fx');
 
 const app  = express();
 const PORT = process.env.PORT ?? process.env.BACKEND_PORT ?? 3001;
+const JSON_BODY_LIMIT = '3mb';
 
 const allowedOrigins = (process.env.CORS_ORIGIN ?? '')
   .split(',')
@@ -45,7 +46,7 @@ const corsOptions = {
 
 app.options('/{*splat}', cors(corsOptions));
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '3mb' }));
+app.use(express.json({ limit: JSON_BODY_LIMIT }));
 app.use(cookieParser());
 
 console.log('[cors] allowed origins:', allowedOrigins.length ? allowedOrigins : '(all — CORS_ORIGIN not set)');

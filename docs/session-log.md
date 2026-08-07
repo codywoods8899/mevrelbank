@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-26](#s-26) | 2026-08-07T07:05Z | (current) | Resolve profile upload PR merge conflicts | Copilot Coding Agent |
 | [S-25](#s-25) | 2026-08-07T06:04Z | (current) | Fix profile photo upload internal error | Copilot Coding Agent |
 | [S-24](#s-24) | 2026-08-07T05:54Z | — | Fix Sarah Brent July 2026 statement balances | Copilot Coding Agent |
 | [S-24](#s-24) | 2026-08-07T05:49Z | (current) | Fix admin account currency formatting | Copilot Coding Agent |
@@ -38,12 +39,34 @@
 
 ---
 
+<a id="s-26"></a>
+## S-26 · 2026-08-07T07:05Z · Resolve profile upload PR merge conflicts
+
+**Agent:** Copilot Coding Agent<br />
+**Branch:** `copilot/fix-smartsupp-display-issue`<br />
+**PR:** (current)<br />
+**Trigger:** PR comment asked @copilot to resolve merge conflicts in the profile photo upload pull request.
+
+### Objective
+Merge the latest `origin/main` into this PR branch, resolve file conflicts surgically, and preserve the working profile photo upload behavior plus the required session documentation.
+
+### Files Changed
+| File | Status | +Lines | −Lines | Notes |
+|------|--------|--------|--------|-------|
+| `mevrelbank/backend/server.js` | modified | ~2 | ~2 | Resolved merge conflict by keeping the shared JSON-body upload allowance and explicit 413 payload-too-large handling |
+| `docs/session-log.md` | modified | ~22 | 0 | Removed duplicate S-25 conflict, kept one profile-upload entry, and logged this merge-conflict resolution session |
+
+### Outcome
+This branch now cleanly merges with `origin/main`. The backend still accepts profile photo upload payloads within the existing size contract and still returns a clear 413 error for oversized uploads.
+
+---
+
 <a id="s-25"></a>
 ## S-25 · 2026-08-07T06:04Z · Fix profile photo upload internal error
 
-**Agent:** Copilot Coding Agent  
-**Branch:** `copilot/fix-profile-picture-upload-error`  
-**PR:** (current)  
+**Agent:** Copilot Coding Agent<br />
+**Branch:** `copilot/fix-profile-picture-upload-error`<br />
+**PR:** (current)<br />
 **Trigger:** User reported that uploading a profile picture showed an internal error.
 
 ### Objective
