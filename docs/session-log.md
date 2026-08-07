@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-24](#s-24) | 2026-08-07T05:54Z | — | Fix Sarah Brent July 2026 statement balances | Copilot Coding Agent |
 | [S-23](#s-23) | 2026-08-07T05:42Z | (current) | Fix FX rates "Could not load" in production | Copilot Coding Agent |
 | [S-22](#s-22) | 2026-08-07T05:27Z | (current) | Multi-currency accounts + FX dashboard panel | Copilot Coding Agent |
 | [S-21](#s-21) | 2026-08-07T04:43Z | (current) | Reduce TransactionsPage limit from 100 to 40 | Copilot Coding Agent |
@@ -32,6 +33,27 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-24"></a>
+## S-24 · 2026-08-07T05:54Z · Fix Sarah Brent July 2026 statement balances
+
+**Agent:** Copilot Coding Agent  
+**Branch:** `feat: multi-currency`  
+**PR:** —  
+**Trigger:** User asked to investigate and fix statement(s) for Sarah Brent's account that don't correspond.
+
+### Objective
+Identify and correct incorrect `opening_balance` and `closing_balance` values on Sarah Brent's July 2026 statement. The statement had fabricated balances (987,598.18 / 987,436.18) that did not match the account's actual balance (973,519.00) and implied a −162.00 movement despite zero transactions in July 2026.
+
+### Files Changed
+| File | Status | +Lines | −Lines | Notes |
+|------|--------|--------|--------|-------|
+| `statements` (DB record) | modified | — | — | opening_balance and closing_balance both set to 973519.00 |
+
+### Outcome
+The July 2026 statement for account `ebc1e5d7` (Brent Family Trust) now correctly shows opening and closing balances of 973,519.00 EUR, consistent with the live account balance and the absence of any July 2026 transactions.
 
 ---
 
