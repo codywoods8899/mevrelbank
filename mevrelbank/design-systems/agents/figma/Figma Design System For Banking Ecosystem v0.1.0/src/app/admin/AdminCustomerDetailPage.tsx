@@ -7,6 +7,7 @@ import {
 import { PageMeta } from "../website/components/PageMeta";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import AdminReAuthModal from "./AdminReAuthModal";
+import { formatAmount } from "../website/shared/currencyUtils";
 
 interface UserProfile {
   id: string;
@@ -29,6 +30,7 @@ interface AccountRow {
   id: string;
   name: string;
   type: string;
+  currency: string;
   routingNumber: string;
   accountNumber: string;
   balance: number;
@@ -45,6 +47,7 @@ interface TxRow {
   name: string;
   category: string;
   txType: string;
+  currency: string;
   amount: number;
   status: string;
   adminReason: string | null;
@@ -58,8 +61,7 @@ interface Detail {
   transactions: TxRow[];
 }
 
-const currency = (n: number) =>
-  n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+const currency = (n: number, code = "USD") => formatAmount(n, code);
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -447,8 +449,8 @@ export default function AdminCustomerDetailPage() {
                     <tr key={a.id} className="border-b border-[rgba(11,50,112,0.05)] last:border-0">
                       <td className="px-5 py-4 text-[14px] font-medium text-[#0D1829]">{a.name}</td>
                       <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{a.routingNumber} · {a.accountNumber}</td>
-                      <td className="px-5 py-4 text-[13px] font-semibold text-[#0D1829]">{currency(a.balance)}</td>
-                      <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{currency(a.available)}</td>
+                      <td className="px-5 py-4 text-[13px] font-semibold text-[#0D1829]">{currency(a.balance, a.currency)}</td>
+                      <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{currency(a.available, a.currency)}</td>
                       <td className="px-5 py-4">
                         {a.status === "closed" ? (
                           <div>
@@ -506,7 +508,7 @@ export default function AdminCustomerDetailPage() {
                       <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{t.account}</td>
                       <td className="px-5 py-4"><TxTypeBadge type={t.txType} /></td>
                       <td className={`px-5 py-4 text-[13px] font-semibold ${t.amount < 0 ? "text-[#C52B2B]" : "text-[#0E7C4D]"}`}>
-                        {currency(t.amount)}
+                        {currency(t.amount, t.currency)}
                       </td>
                       <td className="px-5 py-4 text-[13px] text-[#5E6E8E] capitalize">{t.status}</td>
                       <td className="px-5 py-4 text-[13px] text-[#9AAABF]">{new Date(t.date).toLocaleDateString()}</td>

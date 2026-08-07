@@ -6,11 +6,13 @@ import {
 import { PageMeta } from "../website/components/PageMeta";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import AdminReAuthModal from "./AdminReAuthModal";
+import { currencySymbol, formatAmount } from "../website/shared/currencyUtils";
 
 interface Account {
   id: string;
   name: string;
   type: string;
+  currency: string;
   routingNumber: string;
   accountNumber: string;
   balance: number;
@@ -25,8 +27,7 @@ interface Account {
   userId: string;
 }
 
-const currency = (n: number) =>
-  n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+const currency = (n: number, code = "USD") => formatAmount(n, code);
 
 type ActionMode = "credit" | "debit" | "transfer" | "rename" | "close";
 
@@ -74,7 +75,7 @@ function FinanceModal({
           headers: { "X-Admin-Confirm-Token": confirmToken },
           body: JSON.stringify({ fromAccountId: account.id, toAccountId, amount: parseFloat(amount), description: description.trim() || undefined }),
         });
-        onSuccess(`Transfer of ${currency(parseFloat(amount))} completed.`);
+        onSuccess(`Transfer of ${currency(parseFloat(amount), account.currency)} completed.`);
       } else {
         await authedJson(`/admin/accounts/${account.id}/${mode}`, {
           method: "POST",
@@ -87,7 +88,7 @@ function FinanceModal({
             allowNegative: mode === "debit" ? allowNegative : undefined,
           }),
         });
-        onSuccess(`${mode === "credit" ? "Credit" : "Debit"} of ${currency(parseFloat(amount))} posted.`);
+        onSuccess(`${mode === "credit" ? "Credit" : "Debit"} of ${currency(parseFloat(amount), account.currency)} posted.`);
       }
     } catch (err: any) {
       setError(err.message ?? "Operation failed.");
@@ -119,7 +120,7 @@ function FinanceModal({
         <div className="bg-[#F4F7FB] rounded-[10px] px-4 py-3 mb-4">
           <div className="text-[12px] font-semibold text-[#0D1829]">{account.userName}</div>
           <div className="text-[11px] text-[#8A9BBE]">{account.name} · {account.routingNumber} {account.accountNumber}</div>
-          <div className="text-[11px] text-[#5E6E8E] mt-1">Balance: {currency(account.balance)} · Available: {currency(account.available)}</div>
+          <div className="text-[11px] text-[#5E6E8E] mt-1">Balance: {currency(account.balance, account.currency)} · Available: {currency(account.available, account.currency)}</div>
         </div>
 
         {error && (
@@ -128,7 +129,7 @@ function FinanceModal({
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Amount ($)</label>
+            <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">Amount ({currencySymbol(account.currency)})</label>
             <input type="number" min="0.01" step="0.01" required value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
               className="w-full px-3 py-2 rounded-[8px] border border-[rgba(11,50,112,0.15)] text-[13px] outline-none focus:border-[#0B3270]" />
           </div>
@@ -164,7 +165,7 @@ function FinanceModal({
                 className="w-full px-3 py-2 rounded-[8px] border border-[rgba(11,50,112,0.15)] text-[13px] outline-none focus:border-[#0B3270]">
                 <option value="">Select account…</option>
                 {otherActive.map((a) => (
-                  <option key={a.id} value={a.id}>{a.userName} — {a.name} ({currency(a.balance)})</option>
+                  <option key={a.id} value={a.id}>{a.userName} — {a.name} ({currency(a.balance, a.currency)})</option>
                 ))}
               </select>
             </div>
@@ -279,7 +280,7 @@ function CloseAccountModal({ account, confirmToken, onClose, onSuccess, authedJs
           <button onClick={onClose} className="text-[#9AAABF] hover:text-[#5E6E8E]"><X size={16} /></button>
         </div>
         <div className="rounded-[10px] bg-[#EBF0FA] border border-[rgba(11,50,112,0.12)] px-4 py-3 mb-4">
-          <p className="text-[12px] font-semibold text-[#0B3270]">Account: {account.name} — {currency(account.balance)}</p>
+          <p className="text-[12px] font-semibold text-[#0B3270]">Account: {account.name} — {currency(account.balance, account.currency)}</p>
           <p className="text-[11px] text-[#5E6E8E] mt-0.5">
             Balance, available balance, held funds, and pending transactions must all be zero before closure can proceed. The backend will reject the request if any condition is unmet.
           </p>
@@ -461,8 +462,8 @@ export default function AdminAccountsPage() {
                     <div className="text-[13px] text-[#0D1829]">{a.name}</div>
                     <div className="text-[11px] text-[#9AAABF]">{a.routingNumber} · {a.accountNumber}</div>
                   </td>
-                  <td className="px-5 py-4 text-[13px] font-semibold text-[#0D1829]">{currency(a.balance)}</td>
-                  <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{currency(a.available)}</td>
+                  <td className="px-5 py-4 text-[13px] font-semibold text-[#0D1829]">{currency(a.balance, a.currency)}</td>
+                  <td className="px-5 py-4 text-[13px] text-[#5E6E8E]">{currency(a.available, a.currency)}</td>
                   <td className="px-5 py-4">
                     {a.status === "closed" ? (
                       <div>
