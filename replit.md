@@ -18,7 +18,7 @@ A secure, read-only Node.js/Express intelligence gateway that gives an authorize
 | `SESSION_SECRET` | Authorization credential — present this to `POST /authorize` |
 
 ### Run
-Workflow: **Start application** → `cd aicg && node server.js` (port 3000)
+⏸ **AICG is paused.** The "Start application" workflow now prints a notice instead of starting the server. See `aicg/README.md` for context. Do not re-enable it without deliberate human intent.
 
 ### Session Flow
 1. `POST /authorize` with `{ "token": "<SESSION_SECRET>" }` → returns `{ "sessionId": "..." }`
@@ -65,7 +65,7 @@ A digital banking platform currently in **Phase 2 — Authentication** (frontend
 
 ### Hosting
 - Frontend: Cloudflare Pages (live at mevrelbank.com) — in this Replit workspace it runs via Vite dev server instead
-- Backend: Railway (planned for production) — in this Replit workspace it runs as the **MevrelBank Backend** workflow on port 3001
+- Backend: Render (free tier, web service) — in this Replit workspace it runs as the **MevrelBank Backend** workflow on port 3001; see `render.yaml` at the project root for the deployment config
 - Database: Neon PostgreSQL (used by the Phase 2 backend here) + Cloudflare D1 (waitlist_submissions, production-only)
 - Storage: Cloudflare R2 (planned)
 

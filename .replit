@@ -31,13 +31,12 @@ args = "MevrelBank Backend"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd aicg && node server.js"
-waitForPort = 3000
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo '⏸  AICG is paused — see aicg/README.md for details'"
 
 [[workflows.workflow]]
 name = "MevrelBank Dev (verify)"

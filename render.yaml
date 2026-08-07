@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: mevrelbank-backend
+    runtime: docker
+    rootDir: mevrelbank/backend
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      # Set all of these in the Render dashboard — they are intentionally not
+      # committed here so secrets never appear in source control.
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: JWT_CONFIRM_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        # Set to your Cloudflare Pages domain, e.g. https://mevrelbank.com
+        sync: false
+      - key: HELLO_EMAIL_PASSWORD
+        sync: false
+      - key: SUPPORT_EMAIL_PASSWORD
+        sync: false
+      - key: CAREERS_EMAIL_PASSWORD
+        sync: false
+      - key: COMPLIANCE_EMAIL_PASSWORD
+        sync: false
+      - key: SECURITY_EMAIL_PASSWORD
+        sync: false

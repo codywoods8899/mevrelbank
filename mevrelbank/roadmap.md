@@ -205,7 +205,7 @@ Frontend
 - Cloudflare Pages
 
 Backend
-- Railway
+- Render (free tier web service, Docker deploy) — `render.yaml` at project root; Railway is no longer the deployment target (`mevrelbank/backend/railway.json` retained for reference only)
 
 Database
 - Cloudflare D1 (SQLite at the edge via Pages Functions — active, `waitlist_submissions`)
