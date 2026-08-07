@@ -235,16 +235,17 @@ router.post('/login', authLimiter, async (req, res) => {
   const accessToken = await startSession(res, user, !!remember);
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0] ?? req.socket?.remoteAddress;
-  try {
-    await sendLoginAlertEmail({
-      to: user.email,
-      name: user.name,
-      ip,
-      time: new Date().toUTCString(),
-    });
-  } catch (err) {
+  // Do not make account login wait for the notification mailbox. SMTP
+  // providers can take minutes to connect or respond; authentication should
+  // complete as soon as the session is created.
+  sendLoginAlertEmail({
+    to: user.email,
+    name: user.name,
+    ip,
+    time: new Date().toUTCString(),
+  }).catch((err) => {
     console.error('[email] Failed to send login alert:', err.message);
-  }
+  });
 
   return res.json({
     mfaRequired: false,

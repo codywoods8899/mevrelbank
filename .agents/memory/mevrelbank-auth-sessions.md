@@ -10,3 +10,9 @@ Refresh tokens are opaque `uuidv4()` values stored (hashed) in the `refresh_toke
 **How to apply:** Admin access is gated by exact-match `ADMIN_EMAIL` env var (default `support@mevrelbank.com`) plus `role = 'admin'` on the shared `users` table (no separate admin table) — enforced at login and via `requireAdmin` middleware. Admin credentials are provisioned by seeding the account then sending a real password-reset email through the existing flow, never by the agent inventing/knowing the password.
 
 In this dev workspace, the Vite frontend proxies `/api/*` to the local backend on port 3001 (see vite.config.ts), but `VITE_API_BASE_URL` env var was set to the production Railway URL — which made the dev preview silently bypass the local backend and proxy. Fix: frontend API clients must use relative `/api` (empty base) whenever `import.meta.env.DEV` is true, and only use `VITE_API_BASE_URL` in production builds where frontend/backend aren't same-origin.
+
+Login security-alert emails must be dispatched after the session response rather than awaited inside the login request. A slow SMTP provider must not hold a successful authentication open for minutes.
+
+**Why:** The login route previously waited for the SMTP connection/send operation before returning the access token, so mailbox delays appeared to users as a frozen login.
+
+**How to apply:** Keep login/session creation synchronous and handle alert-email failures asynchronously with logging; email delivery can be retried separately without blocking authentication.
