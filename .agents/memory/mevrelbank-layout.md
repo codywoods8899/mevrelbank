@@ -1,14 +1,14 @@
 ---
 name: MevrelBank repo layout
-description: Where the real MevrelBank frontend lives vs. the unrelated aicg app; governance doc set.
+description: Where the real MevrelBank frontend lives and the current governance doc set.
 ---
 
-Repo root has two independent apps: `aicg/` (Node/Express GitHub gateway, unrelated to banking work) and the real
-MevrelBank frontend nested deep under `mevrelbank/design-systems/agents/figma/Figma Design System For Banking Ecosystem v0.1.0/`
+The real MevrelBank frontend is nested deep under
+`mevrelbank/design-systems/agents/figma/Figma Design System For Banking Ecosystem v0.1.0/`
 (Vite+React+TS+Tailwind, own `package.json`/`node_modules`, no `tsconfig.json` so `vite build` does not type-check).
 
-The `aicg/` "Start application" workflow fails independent of any MevrelBank work — pre-existing, unrelated to this
-project's frontend changes; don't spend time chasing it as part of MevrelBank tasks.
+The retired AICG gateway is preserved only in `archives/aicg-retired-2026-08-07.zip`; it is not an active project,
+workflow, deployment command, or source directory.
 
 **Governance:** `.github/copilot-instructions.md` mandates every session touching code append an entry to
 `docs/session-log.md` (strict index + detail-block format), update `mevrelbank/roadmap.md` checkboxes when phase

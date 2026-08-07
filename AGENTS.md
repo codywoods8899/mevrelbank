@@ -7,9 +7,9 @@
 
 ## What This Repository Is
 
-This repository is the complete engineering home for **MevrelBank** — a digital banking platform — plus two supporting services: the **AICG** (AI Context Gateway) and a **GitHub → Dropbox Sync** utility.
+This repository is the complete engineering home for **MevrelBank** — a digital banking platform — plus a GitHub → Dropbox Sync utility.
 
-The product being actively built is MevrelBank. The AICG and sync system are operational utilities; do not refactor them unless explicitly asked.
+The product being actively built is MevrelBank. The sync system is a historical operational utility; do not refactor it unless explicitly asked.
 
 ---
 
@@ -33,7 +33,6 @@ The product being actively built is MevrelBank. The AICG and sync system are ope
 │   │   ├── src/middleware/         ← requireAuth.js, rateLimiter.js
 │   │   └── src/utils/              ← jwt.js, otp.js
 │   └── roadmap.md                  ← Living roadmap — read before planning new work
-├── aicg/                           ← AI Context Gateway (separate service, port 3000)
 ├── docs/                           ← Dropbox sync system documentation
 ├── .github/scripts/                ← Dropbox sync scripts
 └── AGENTS.md                       ← You are here
@@ -79,7 +78,6 @@ The product being actively built is MevrelBank. The AICG and sync system are ope
 |---|---|---|
 | `MevrelBank Dev (verify)` | `cd mevrelbank/design-systems/.../v0.1.0 && npx vite --port 5173 --host 0.0.0.0` | 5173 |
 | `MevrelBank Backend` | `cd mevrelbank/backend && node server.js` | 3001 |
-| `Start application` | `cd aicg && node server.js` | 3000 |
 
 The Vite dev server proxies `/api/*` → `http://localhost:3001` (see `vite.config.ts`). Frontend code should always use relative `/api/...` paths — never hardcode the port directly.
 
@@ -200,8 +198,6 @@ The schema in Neon PostgreSQL is additive and re-runnable. Run `node src/db/migr
 | `CAREERS_EMAIL_PASSWORD` | SpaceMail — careers@ inbox |
 | `SPACEMAIL_SMTP_HOST` | SpaceMail SMTP config |
 | `SPACEMAIL_SMTP_PORT` | SpaceMail SMTP config |
-| `SESSION_SECRET` | AICG service only |
-| `CHAT_GPT_READONLY_PAT` | AICG service only — GitHub read token |
 | `RENDER_API_KEY` | Deployment/Render operations when explicitly needed |
 
 **Never read secret values** from code execution or logs. Use `viewEnvVars({ type: "secret" })` to check existence only.
