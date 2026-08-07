@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-25](#s-25) | 2026-08-07T06:04Z | (current) | Fix profile photo upload internal error | Copilot Coding Agent |
 | [S-24](#s-24) | 2026-08-07T05:54Z | — | Fix Sarah Brent July 2026 statement balances | Copilot Coding Agent |
 | [S-24](#s-24) | 2026-08-07T05:49Z | (current) | Fix admin account currency formatting | Copilot Coding Agent |
 | [S-23](#s-23) | 2026-08-07T05:42Z | (current) | Fix FX rates "Could not load" in production | Copilot Coding Agent |
@@ -34,6 +35,28 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-25"></a>
+## S-25 · 2026-08-07T06:04Z · Fix profile photo upload internal error
+
+**Agent:** Copilot Coding Agent  
+**Branch:** `copilot/fix-profile-picture-upload-error`  
+**PR:** (current)  
+**Trigger:** User reported that uploading a profile picture showed an internal error.
+
+### Objective
+Fix the profile photo upload flow so valid avatar uploads no longer fail with a server-side internal error. Keep the existing 2 MB product limit while returning a clearer error when a request exceeds the upload allowance.
+
+### Files Changed
+| File | Status | +Lines | −Lines | Notes |
+|------|--------|--------|--------|-------|
+| `mevrelbank/backend/server.js` | modified | 4 | 1 | Raised JSON body limit to allow base64 avatar uploads and mapped oversized payloads to a clear 413 response instead of a generic 500 |
+| `docs/session-log.md` | modified | ~17 | 0 | Added this required session entry |
+
+### Outcome
+Profile picture uploads can now pass through the backend's JSON parser instead of failing at the previous 16 KB request cap. Oversized uploads now return an explicit size-related error rather than "Internal server error."
 
 ---
 
