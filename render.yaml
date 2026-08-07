@@ -2,8 +2,12 @@ services:
   - type: web
     name: mevrelbank-backend
     runtime: docker
-    rootDir: mevrelbank/backend
-    dockerfilePath: Dockerfile
+    # rootDir is intentionally omitted — it causes Render's git sparse-checkout
+    # to double-apply the path (mevrelbank/backend/mevrelbank/backend).
+    # Instead, the Dockerfile path is given relative to the repo root and the
+    # Docker build context is the repo root. The Dockerfile handles all paths
+    # explicitly (see mevrelbank/backend/Dockerfile).
+    dockerfilePath: mevrelbank/backend/Dockerfile
     plan: free
     region: oregon
     healthCheckPath: /api/health
