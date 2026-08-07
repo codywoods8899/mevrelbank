@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-18](#s-18) | 2026-08-07T01:34Z | — | GitHub synchronization, secret configuration audit, and repository consistency pass | Replit Agent |
 | [S-17](#s-17) | 2026-07-15T05:00Z | — | Brand asset audit: logo sizing, variant usage, email URL fix | Replit Agent |
 | [S-16](#s-16) | 2026-07-15T04:00Z | — | Orientation: full codebase review + restore all workflows | Replit Agent |
 | [S-14](#s-14) | 2026-07-15T01:40Z | — | Admin mailboxes, Smartsupp fix, AICG repair + Cloudflare Worker deployment | Replit Agent |
@@ -26,6 +27,44 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-18"></a>
+## S-18 · 2026-08-07T01:34Z · GitHub synchronization, secret configuration audit, and repository consistency pass
+
+**Agent:** Replit Agent  
+**Branch:** `main`  
+**PR:** —  
+**Trigger:** User requested a secret-configuration audit, synchronization with the latest GitHub changes, and a consistency pass across the imported MevrelBank project.
+
+### Purpose
+
+Reconcile the local workspace with `origin/main`, preserve the earlier local Phase 3 implementation without overwriting the newer remote implementation, remove credential material from tracked Replit configuration, and bring the project guidance documents in line with the current banking, session, admin, and Render architecture.
+
+### Changes
+
+| File | Added | Removed | Purpose |
+|---|---:|---:|---|
+| `.replit` | 0 | 3 | Removed three plaintext JWT secret values from tracked user environment configuration; retained non-secret workflow settings and public runtime configuration. |
+| `mevrelbank/backend/server.js` | 1 | 0 | Added `JWT_MFA_SECRET` to fail-fast startup validation so every JWT signing key required by `src/utils/jwt.js` is explicitly configured. |
+| `replit.md` | 8 | 7 | Updated current phase/status, real backend-backed banking behavior, pending ledger payment scope, cookie sessions, admin capabilities, and required secret configuration. |
+| `AGENTS.md` | 14 | 10 | Updated repository architecture, routes/schema summary, cookie-session behavior, secret names, phase status, Render deployment guidance, and migration notes. |
+| `mevrelbank/roadmap.md` | 2 | 2 | Replaced stale Railway references in the completed authentication items with Render. |
+| `docs/session-log.md` | 26 | 0 | Added this required session record and index entry. |
+
+The working tree was fast-forwarded from local commit `30150fbe` to `origin/main` commit `b0587d80` before this consistency pass. The pre-pull local banking work remains preserved in `stash@{0}` and was not reapplied because the fetched branch contains the newer implementation.
+
+### Verification
+
+- Public HTTPS fetch completed successfully and `main` matches `origin/main` before the consistency edits.
+- Backend and frontend workflows were running after synchronization; the AICG workflow is configured as a paused command and is not part of the MevrelBank runtime.
+- Secret existence was checked without reading values. `DATABASE_URL`, `RESEND_API_KEY`, `SESSION_SECRET`, and deployment/email/mailbox configuration are present. `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_MFA_SECRET`, and `JWT_CONFIRM_SECRET` are absent from the secure secret store.
+- The three JWT values previously present in `.replit` were removed through the validated Replit configuration path. They must be treated as exposed and rotated rather than reused.
+
+### Outcome
+
+The repository now documents the current remote implementation and no longer stores JWT credentials in tracked configuration. The backend remains intentionally blocked from clean startup until fresh values for all four JWT secrets are added through the secure secrets store; no secret values were displayed, copied, or rotated automatically.
 
 ---
 

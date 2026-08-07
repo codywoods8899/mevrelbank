@@ -25,10 +25,10 @@ The product being actively built is MevrelBank. The AICG and sync system are ope
 │   │           ├── src/            ← React frontend (the actual app)
 │   │           ├── vite.config.ts  ← Vite config (has /api proxy to backend)
 │   │           └── package.json
-│   ├── backend/                    ← Node.js/Express API (Phase 2 auth backend)
+│   ├── backend/                    ← Node.js/Express API (auth, banking, payments, admin)
 │   │   ├── server.js
 │   │   ├── src/db/                 ← Neon PostgreSQL pool + schema + migrate
-│   │   ├── src/routes/             ← auth.js, mfa.js, user.js
+│   │   ├── src/routes/             ← auth.js, mfa.js, user.js, banking.js, admin.js, mailboxes.js
 │   │   ├── src/services/           ← email.js (Resend), totp.js (otplib)
 │   │   ├── src/middleware/         ← requireAuth.js, rateLimiter.js
 │   │   └── src/utils/              ← jwt.js, otp.js
@@ -67,7 +67,7 @@ The product being actively built is MevrelBank. The AICG and sync system are ope
 
 ### Hosting (planned production)
 - **Frontend**: Cloudflare Pages → `https://mevrelbank.com`
-- **Backend**: Railway (Node.js) — `mevrelbank/backend/Dockerfile` is the production image; `railway.json` selects DOCKERFILE builder
+- **Backend**: Render (Node.js/Docker) — `render.yaml` defines the production service; the legacy `railway.json` is retained for reference
 - **Database**: Neon PostgreSQL
 - **Email**: Resend via `noreply@mevrelbank.com`
 
@@ -111,7 +111,7 @@ Register → Email OTP verification → Login → [TOTP MFA if enabled] → Dash
 2. SMS fallback sends an email OTP instead (no Twilio in Phase 2)
 3. Password reset uses a 6-digit code sent to email (not a magic link)
 4. Access token lives in React memory only — never `localStorage`
-5. Refresh token lives in `localStorage` under key `mb.refreshToken`
+5. Refresh token is stored in an httpOnly server cookie; it is never exposed to frontend JavaScript
 6. Never expose `DATABASE_URL`, `JWT_SECRET`, or any credential to the frontend
 
 **API prefix:** All backend endpoints are at `/api/...`
@@ -139,11 +139,15 @@ Register → Email OTP verification → Login → [TOTP MFA if enabled] → Dash
 
 ## Database Schema
 
-Three tables in Neon PostgreSQL. Run `node src/db/migrate.js` from `mevrelbank/backend/` to apply.
+The schema in Neon PostgreSQL is additive and re-runnable. Run `node src/db/migrate.js` from `mevrelbank/backend/` to apply.
 
-- `users` — id, name, email, password_hash, account_type, email_verified, totp_enabled, totp_secret
+- `users` — identity, authentication, profile, role, and active/archive status
 - `otp_codes` — user_id, code, type (email_verification | password_reset | mfa_email), expires_at, used
-- `refresh_tokens` — user_id, token_hash (SHA-256 of raw token), expires_at, revoked
+- `refresh_tokens` — user_id, token_hash (SHA-256 of raw token), expires_at, revoked, remember
+- `accounts` / `transactions` — customer account balances and the internal ledger, including pending/admin-reviewed actions
+- `statements` — generated statement metadata and opening/closing balances
+- `beneficiaries` / `notifications` — saved payees and actionable customer notifications
+- `site_settings` / `transaction_edits` — admin-managed settings and append-only transaction-description audit records
 
 ---
 
@@ -170,7 +174,7 @@ Three tables in Neon PostgreSQL. Run `node src/db/migrate.js` from `mevrelbank/b
 1. **TypeScript everywhere** in the frontend. Backend uses plain JS (CommonJS `require`).
 2. **No inline secrets** — all credentials come from environment secrets. Use `process.env.*` in backend.
 3. **No direct DB calls from frontend** — the frontend only calls `/api/*` endpoints.
-4. **No Supabase, Firebase, Clerk, PlanetScale, or similar** — the stack is locked (Neon + Railway + Resend).
+4. **No Supabase, Firebase, Clerk, PlanetScale, or similar** — the stack is locked (Neon + Render + Resend).
 5. **Keep components small** — if a page exceeds ~250 lines, split logic into sub-components.
 6. **Relative imports** — use `@/` alias (mapped to `src/`) in the frontend.
 7. **Rate-limit all auth endpoints** — never add unauthenticated mutation routes without rate limiting.
@@ -187,6 +191,7 @@ Three tables in Neon PostgreSQL. Run `node src/db/migrate.js` from `mevrelbank/b
 | `JWT_SECRET` | Backend — sign/verify access tokens |
 | `JWT_REFRESH_SECRET` | Backend — sign/verify refresh tokens |
 | `JWT_MFA_SECRET` | Backend — sign/verify MFA temp tokens |
+| `JWT_CONFIRM_SECRET` | Backend — short-lived destructive-action confirmation tokens |
 | `RESEND_API_KEY` | Backend — Resend email SDK |
 | `HELLO_EMAIL_PASSWORD` | SpaceMail — hello@ inbox |
 | `SUPPORT_EMAIL_PASSWORD` | SpaceMail — support@ inbox |
@@ -196,7 +201,8 @@ Three tables in Neon PostgreSQL. Run `node src/db/migrate.js` from `mevrelbank/b
 | `SPACEMAIL_SMTP_HOST` | SpaceMail SMTP config |
 | `SPACEMAIL_SMTP_PORT` | SpaceMail SMTP config |
 | `SESSION_SECRET` | AICG service only |
-| `G_TOKEN` | AICG service only — GitHub read token |
+| `CHAT_GPT_READONLY_PAT` | AICG service only — GitHub read token |
+| `RENDER_API_KEY` | Deployment/Render operations when explicitly needed |
 
 **Never read secret values** from code execution or logs. Use `viewEnvVars({ type: "secret" })` to check existence only.
 
@@ -208,9 +214,10 @@ Three tables in Neon PostgreSQL. Run `node src/db/migrate.js` from `mevrelbank/b
 |---|---|
 | 0 — Foundation | ✅ Complete |
 | 1 — Public Website | ✅ Complete (9 pages, SEO, routing) |
-| 2 — Auth Backend | ✅ Complete — backend live on Railway, wired to Cloudflare Pages |
-| 3 — Customer Banking | 🟡 Frontend scaffolded with mock data, awaiting real APIs |
-| 4–11 | ⬜ Planned — see roadmap.md |
+| 2 — Auth Backend | ✅ Complete — backend live on Render, wired to Cloudflare Pages |
+| 3 — Customer Banking | ✅ Complete — real Neon-backed API and frontend |
+| 4 — Payments | 🟡 Internal ledger transfers/payments implemented; external settlement rail not connected |
+| 5–11 | ⬜ Planned — see roadmap.md |
 
 ---
 
@@ -218,15 +225,15 @@ Three tables in Neon PostgreSQL. Run `node src/db/migrate.js` from `mevrelbank/b
 
 A record of hard-won lessons from the first production deployment. Read this before touching anything deployment-related.
 
-### Railway (Backend)
+### Render (Backend)
 
-**Root directory must be `mevrelbank/backend/`** — set this in Railway service Settings → Source. Without it Railway reads the wrong `package.json`.
+**Root directory must be `mevrelbank/backend/`** — set this in Render service settings. Without it Render reads the wrong `package.json`.
 
-**Port binding** — Railway injects its own `PORT` env var and expects the server to bind to it. The server reads `process.env.PORT ?? process.env.BACKEND_PORT ?? 3001`. Never hardcode a port. Do not set `PORT` manually in Railway Variables — Railway controls it.
+**Port binding** — Render injects its own `PORT` env var and expects the server to bind to it. The server reads `process.env.PORT ?? process.env.BACKEND_PORT ?? 3001`. Never hardcode a port. Do not set `PORT` manually in Render Variables — Render controls it.
 
-**`package-lock.json` must not be committed** — Replit generates lockfiles using an internal proxy (`package-firewall.replit.local`). Railway cannot reach that URL so `npm ci` silently fails and `node_modules` is empty. The lockfile is gitignored. Railway runs `npm install` fresh on each build using `.npmrc` (which pins `registry=https://registry.npmjs.org`).
+**`package-lock.json` must not be committed** — Replit generates lockfiles using an internal proxy (`package-firewall.replit.local`). Render cannot reach that URL so `npm ci` silently fails and `node_modules` is empty. The lockfile is gitignored. Render runs `npm install` fresh on each build using `.npmrc` (which pins `registry=https://registry.npmjs.org`).
 
-**Dockerfile is the build method** — `railway.json` sets `"builder": "DOCKERFILE"`. Railway builds from `mevrelbank/backend/Dockerfile`. The image runs as a non-root user (`mevrel`) on Alpine Node 20.
+**Dockerfile is the build method** — `render.yaml` defines the Docker-backed service. Render builds from `mevrelbank/backend/Dockerfile`. The image runs as a non-root user (`mevrel`) on Alpine Node 20.
 
 **Express 5 wildcard syntax** — Express 5 breaks the old `app.options('*', ...)` pattern. Use `app.options('/{*splat}', cors(corsOptions))` for CORS preflight handling.
 
@@ -234,7 +241,7 @@ A record of hard-won lessons from the first production deployment. Read this bef
 
 **DB errors need their own try/catch** — Express 5 catches unhandled async errors but the generic handler swallows the message. Wrap DB operations in explicit try/catch and return `res.status(500).json({ error: err.message })` so the real error is visible during debugging.
 
-### Railway Environment Variables (all required)
+### Render Environment Variables (all required)
 
 | Variable | Notes |
 |---|---|
@@ -242,12 +249,13 @@ A record of hard-won lessons from the first production deployment. Read this bef
 | `JWT_SECRET` | Generate with `openssl rand -hex 64` — do NOT reuse the Replit value |
 | `JWT_REFRESH_SECRET` | Same — fresh value for production |
 | `JWT_MFA_SECRET` | Same — fresh value for production |
+| `JWT_CONFIRM_SECRET` | Fresh value for destructive-action confirmation tokens |
 | `RESEND_API_KEY` | From resend.com → API Keys |
 | `CORS_ORIGIN` | `https://mevrelbank.com` |
 | `NOREPLY_EMAIL` | `noreply@mevrelbank.com` |
 | `NODE_ENV` | `production` |
 
-Railway injects `PORT` automatically — do not add it.
+Render injects `PORT` automatically — do not add it.
 
 ### Neon (Database)
 
@@ -255,7 +263,7 @@ Railway injects `PORT` automatically — do not add it.
 
 **Strip `channel_binding=require` from the URL** — Neon now appends `&channel_binding=require` to connection strings but node-postgres (`pg`) does not support this parameter and silently fails with an empty error message. `pool.js` strips it automatically via regex before passing the URL to `new Pool()`.
 
-**Run migration after first deploy, against the correct database** — Railway and Replit may be connected to *different* Neon projects. Confirm they share the same `DATABASE_URL` before running the migration. To migrate against Railway's database: update `DATABASE_URL` in Replit Secrets to Railway's Neon connection string, run `cd mevrelbank/backend && node src/db/migrate.js` from Replit, then verify tables appear in Neon. Signs they are different databases: migration says "Done" but Railway returns `relation "users" does not exist`.
+**Run migration after first deploy, against the correct database** — Render and Replit may be connected to *different* Neon projects. Confirm they share the same `DATABASE_URL` before running the migration. To migrate against Render's database: update `DATABASE_URL` in Replit Secrets to Render's Neon connection string, run `cd mevrelbank/backend && node src/db/migrate.js` from Replit, then verify tables appear in Neon. Signs they are different databases: migration says "Done" but Render returns `relation "users" does not exist`.
 
 ### Cloudflare Pages (Frontend)
 

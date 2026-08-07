@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 // ─── Fail fast if required secrets are absent ─────────────────────────────────
-const REQUIRED_ENV = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'JWT_CONFIRM_SECRET', 'SESSION_SECRET'];
+const REQUIRED_ENV = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'JWT_MFA_SECRET', 'JWT_CONFIRM_SECRET', 'SESSION_SECRET'];
 for (const key of REQUIRED_ENV) {
   if (!process.env[key]) {
     console.error(`[startup] FATAL: Required environment variable "${key}" is not set. Exiting.`);

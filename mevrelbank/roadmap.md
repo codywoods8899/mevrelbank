@@ -69,9 +69,9 @@ Build MevrelBank into a secure, modern, scalable digital banking ecosystem that 
 - [x] Forgot Password page (`/forgot-password`) — email input, success/inbox state
 - [x] Reset Password page (`/reset-password`) — new password form, strength indicator, success state
 - [x] MFA page (`/mfa`) — TOTP input, SMS fallback toggle, resend countdown
-- [x] Client-side auth flow wired end-to-end (register → verify-email → login → MFA → session) — now backed by real Railway backend + Neon PostgreSQL
+- [x] Auth flow wired end-to-end (register → verify-email → login → MFA → session) — backed by the Render Node.js backend + Neon PostgreSQL
 - [x] Protected route wrapper (redirect unauthenticated users away from `/dashboard`; redirect authenticated users away from `/login`/`/register`)
-- [x] Backend auth API (Railway / Node.js) — Node.js/Express on Replit dev (port 3001), deploys to Railway
+- [x] Backend auth API (Render / Node.js) — Node.js/Express on Replit dev (port 3001), deploys to Render
 - [x] JWT strategy (short-lived access token + refresh token) — access 15min, refresh 7d, MFA temp 5min
 - [x] Email service integration (verification + reset emails) — Resend via noreply@mevrelbank.com
 - [x] MFA TOTP provisioning (QR code setup flow) — otplib + qrcode, setup in /dashboard/profile
