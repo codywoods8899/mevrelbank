@@ -45,7 +45,7 @@ const corsOptions = {
 
 app.options('/{*splat}', cors(corsOptions));
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '16kb' }));
+app.use(express.json({ limit: '3mb' }));
 app.use(cookieParser());
 
 console.log('[cors] allowed origins:', allowedOrigins.length ? allowedOrigins : '(all — CORS_ORIGIN not set)');
@@ -81,6 +81,9 @@ app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
 // ─── Error handler ────────────────────────────────────────────────────────────
 
 app.use((err, req, res, _next) => {
+  if (err?.type === 'entity.too.large' || err?.status === 413) {
+    return res.status(413).json({ error: 'Uploaded image is too large. Please choose an image under 2 MB.' });
+  }
   console.error('[error]', err.message);
   res.status(500).json({ error: 'Internal server error.' });
 });
