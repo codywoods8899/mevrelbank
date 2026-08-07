@@ -251,3 +251,8 @@ CREATE INDEX IF NOT EXISTS idx_transaction_edits_tx ON transaction_edits(transac
 -- server is needed; the column provides the DB relation while the file bytes
 -- are kept entirely within the client-side payload.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+-- Phase 11 — Multi-currency accounts
+-- Each account can hold a different currency (ISO 4217 code).
+-- Existing accounts default to USD.
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS currency VARCHAR(3) NOT NULL DEFAULT 'USD';

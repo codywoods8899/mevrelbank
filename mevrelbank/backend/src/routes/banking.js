@@ -22,6 +22,7 @@ function publicAccount(a) {
     id: a.id,
     name: a.name,
     type: a.type,
+    currency: a.currency ?? 'USD',
     routingNumber: a.routing_number,
     accountNumber: a.account_number,
     balance: Number(a.balance),
@@ -93,12 +94,15 @@ router.get('/accounts', async (req, res) => {
 // Each account gets the bank's fixed routing number + a fresh account number.
 
 router.post('/accounts', async (req, res) => {
-  const { type, name } = req.body ?? {};
+  const { type, name, currency } = req.body ?? {};
 
   const VALID_TYPES = ['Current Account', 'Savings Account'];
   if (!type || !VALID_TYPES.includes(type)) {
     return res.status(400).json({ error: 'Account type must be "Current Account" or "Savings Account".' });
   }
+
+  const VALID_CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'CHF', 'JPY', 'AUD'];
+  const accountCurrency = currency && VALID_CURRENCIES.includes(currency) ? currency : 'USD';
 
   // Enforce a sensible cap so one customer can't create hundreds of accounts
   const { rows: existing } = await pool.query(
@@ -121,9 +125,9 @@ router.post('/accounts', async (req, res) => {
     (sameType[0].count === 0 ? type : `${type} ${sameType[0].count + 1}`);
 
   const { rows } = await pool.query(
-    `INSERT INTO accounts (user_id, name, type, routing_number, account_number, balance, available)
-     VALUES ($1, $2, $3, $4, $5, 0, 0) RETURNING *`,
-    [req.user.sub, defaultName, type, ROUTING_NUMBER, accountNumber]
+    `INSERT INTO accounts (user_id, name, type, routing_number, account_number, balance, available, currency)
+     VALUES ($1, $2, $3, $4, $5, 0, 0, $6) RETURNING *`,
+    [req.user.sub, defaultName, type, ROUTING_NUMBER, accountNumber, accountCurrency]
   );
 
   await pool.query(

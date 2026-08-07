@@ -9,6 +9,7 @@ import { Btn } from "../shared/Btn";
 import { useAuth } from "../../context/AuthContext";
 import { bankingApi, formatRelativeDate, type Account, type Transaction } from "../shared/bankingApi";
 import { applyRowHighlight } from "../services/notificationActionResolver";
+import { SUPPORTED_CURRENCIES, CURRENCY_META, formatAmount } from "../shared/currencyUtils";
 
 // ─── Transfer Modal ───────────────────────────────────────────────────────────
 
@@ -154,6 +155,7 @@ function OpenAccountModal({
   const { authedFetch } = useAuth();
   const [selected, setSelected] = useState<"Current Account" | "Savings Account" | null>(null);
   const [customName, setCustomName] = useState("");
+  const [currency, setCurrency] = useState("USD");
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
   const [done, setDone]     = useState<Account | null>(null);
@@ -166,6 +168,7 @@ function OpenAccountModal({
       const res = await bankingApi.openAccount(authedFetch, {
         type: selected,
         name: customName.trim() || undefined,
+        currency,
       });
       setDone(res.account);
       onOpened(res.account);
@@ -254,17 +257,38 @@ function OpenAccountModal({
             </div>
 
             {selected && (
-              <div className="mb-5">
-                <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">
-                  Account name (optional)
-                </label>
-                <input
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  placeholder={`e.g. Holiday Fund, ${selected}`}
-                  maxLength={60}
-                  className="w-full px-3 py-2 rounded-[8px] border border-[rgba(11,50,112,0.15)] text-[13px] outline-none focus:border-[#0B3270]"
-                />
+              <div className="mb-5 space-y-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">
+                    Account name (optional)
+                  </label>
+                  <input
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    placeholder={`e.g. Holiday Fund, ${selected}`}
+                    maxLength={60}
+                    className="w-full px-3 py-2 rounded-[8px] border border-[rgba(11,50,112,0.15)] text-[13px] outline-none focus:border-[#0B3270]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#8A9BBE] mb-1">
+                    Account currency
+                  </label>
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="w-full px-3 py-2 rounded-[8px] border border-[rgba(11,50,112,0.15)] text-[13px] outline-none focus:border-[#0B3270] bg-white"
+                  >
+                    {SUPPORTED_CURRENCIES.map((c) => {
+                      const m = CURRENCY_META[c];
+                      return (
+                        <option key={c} value={c}>
+                          {m.flag} {c} — {m.name}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
             )}
 
@@ -406,19 +430,24 @@ export default function AccountsPage() {
                   : <CreditCard size={16} />
                 }
               </div>
-              <span className="text-[10px] font-semibold tracking-[0.12em] uppercase px-2 py-0.5 rounded-full bg-[#F4F7FB] text-[#8A9BBE]">
-                {acc.type}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold tracking-[0.08em] uppercase px-2 py-0.5 rounded-full bg-[#F0F4FF] text-[#0B3270] border border-[rgba(11,50,112,0.12)]">
+                  {acc.currency ?? 'USD'}
+                </span>
+                <span className="text-[10px] font-semibold tracking-[0.12em] uppercase px-2 py-0.5 rounded-full bg-[#F4F7FB] text-[#8A9BBE]">
+                  {acc.type}
+                </span>
+              </div>
             </div>
             <div className="text-[11px] font-semibold text-[#8A9BBE] mb-1">{acc.name}</div>
             <div
               className="text-[26px] font-bold text-[#0D1829] leading-none mb-1"
               style={{ fontFamily: "'DM Mono', monospace" }}
             >
-              ${acc.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              {formatAmount(acc.balance, acc.currency ?? 'USD')}
             </div>
             <div className="text-[11px] text-[#8A9BBE] mb-4">
-              Available: ${acc.available.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              Available: {formatAmount(acc.available, acc.currency ?? 'USD')}
             </div>
             <div
               className="flex items-center gap-4 text-[11px] text-[#5E6E8E] pt-3 border-t border-[rgba(11,50,112,0.06)]"
@@ -486,7 +515,7 @@ export default function AccountsPage() {
                   color: tx.amount > 0 ? "#0E7C4D" : "#0D1829",
                 }}
               >
-                {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
+                {tx.amount > 0 ? "+" : ""}{formatAmount(Math.abs(tx.amount), accounts.find(a => a.id === tx.accountId)?.currency ?? 'USD')}
               </div>
             </div>
           ))}

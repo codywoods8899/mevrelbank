@@ -21,6 +21,7 @@ const bankingRoutes   = require('./src/routes/banking');
 const adminRoutes     = require('./src/routes/admin');
 const settingsRoutes  = require('./src/routes/settings');
 const mailboxRoutes   = require('./src/routes/mailboxes');
+const fxRoutes        = require('./src/routes/fx');
 
 const app  = express();
 const PORT = process.env.PORT ?? process.env.BACKEND_PORT ?? 3001;
@@ -64,6 +65,7 @@ app.use('/api/banking',          bankingRoutes);
 app.use('/api/admin',            adminRoutes);
 app.use('/api/admin/mailboxes',  mailboxRoutes);
 app.use('/api/settings',         settingsRoutes);
+app.use('/api/fx',               fxRoutes);
 
 // ─── Static brand assets (used in emails) ────────────────────────────────────
 
