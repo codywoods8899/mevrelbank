@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-24](#s-24) | 2026-08-07T05:54Z | — | Fix Sarah Brent July 2026 statement balances | Copilot Coding Agent |
 | [S-24](#s-24) | 2026-08-07T05:49Z | (current) | Fix admin account currency formatting | Copilot Coding Agent |
 | [S-23](#s-23) | 2026-08-07T05:42Z | (current) | Fix FX rates "Could not load" in production | Copilot Coding Agent |
 | [S-22](#s-22) | 2026-08-07T05:27Z | (current) | Multi-currency accounts + FX dashboard panel | Copilot Coding Agent |
@@ -37,6 +38,15 @@
 ---
 
 <a id="s-24"></a>
+## S-24 · 2026-08-07T05:54Z · Fix Sarah Brent July 2026 statement balances
+
+**Agent:** Copilot Coding Agent  
+**Branch:** `feat: multi-currency`  
+**PR:** —  
+**Trigger:** User asked to investigate and fix statement(s) for Sarah Brent's account that don't correspond.
+
+### Objective
+Identify and correct incorrect `opening_balance` and `closing_balance` values on Sarah Brent's July 2026 statement. The statement had fabricated balances (987,598.18 / 987,436.18) that did not match the account's actual balance (973,519.00) and implied a −162.00 movement despite zero transactions in July 2026.
 ## S-24 · 2026-08-07T05:49Z · Fix admin account currency formatting
 
 **Agent:** Copilot Coding Agent  
@@ -50,6 +60,10 @@ Make the admin account-specific views respect each account's configured currency
 ### Files Changed
 | File | Status | +Lines | −Lines | Notes |
 |------|--------|--------|--------|-------|
+| `statements` (DB record) | modified | — | — | opening_balance and closing_balance both set to 973519.00 |
+
+### Outcome
+The July 2026 statement for account `ebc1e5d7` (Brent Family Trust) now correctly shows opening and closing balances of 973,519.00 EUR, consistent with the live account balance and the absence of any July 2026 transactions.
 | `mevrelbank/backend/src/routes/admin.js` | modified | ~10 | ~4 | Added account currency to admin account and transaction API payloads |
 | `mevrelbank/design-systems/.../src/app/admin/AdminAccountsPage.tsx` | modified | ~12 | ~8 | Switched account actions and balances to currency-aware formatting and dynamic amount label |
 | `mevrelbank/design-systems/.../src/app/admin/AdminCustomerDetailPage.tsx` | modified | ~7 | ~4 | Used each account/transaction currency in customer detail tables |
