@@ -25,6 +25,7 @@ const fxRoutes        = require('./src/routes/fx');
 
 const app  = express();
 const PORT = process.env.PORT ?? process.env.BACKEND_PORT ?? 3001;
+const JSON_BODY_LIMIT = '4mb';
 
 const allowedOrigins = (process.env.CORS_ORIGIN ?? '')
   .split(',')
@@ -45,7 +46,7 @@ const corsOptions = {
 
 app.options('/{*splat}', cors(corsOptions));
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '16kb' }));
+app.use(express.json({ limit: JSON_BODY_LIMIT }));
 app.use(cookieParser());
 
 console.log('[cors] allowed origins:', allowedOrigins.length ? allowedOrigins : '(all — CORS_ORIGIN not set)');
@@ -81,6 +82,9 @@ app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
 // ─── Error handler ────────────────────────────────────────────────────────────
 
 app.use((err, req, res, _next) => {
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request payload too large. Profile photos must stay under 2 MB.' });
+  }
   console.error('[error]', err.message);
   res.status(500).json({ error: 'Internal server error.' });
 });
