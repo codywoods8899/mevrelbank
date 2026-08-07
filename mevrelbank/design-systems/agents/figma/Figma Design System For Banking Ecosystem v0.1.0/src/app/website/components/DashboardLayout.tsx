@@ -26,6 +26,7 @@ export default function DashboardLayout() {
       <DashboardShell
         userName={user?.name ?? "Customer"}
         accountLabel={user ? accountLabel[user.accountType] ?? "Personal" : "Personal"}
+        avatarUrl={user?.avatarUrl}
         onLogout={handleLogout}
       >
         <Outlet />

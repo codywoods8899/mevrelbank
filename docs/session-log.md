@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-19](#s-19) | 2026-08-07T04:03Z | (current) | Trust fund account seed + profile photo upload | Copilot Coding Agent |
 | [S-18](#s-18) | 2026-08-07T01:34Z | — | GitHub synchronization, secret configuration audit, and repository consistency pass | Replit Agent |
 | [S-17](#s-17) | 2026-07-15T05:00Z | — | Brand asset audit: logo sizing, variant usage, email URL fix | Replit Agent |
 | [S-16](#s-16) | 2026-07-15T04:00Z | — | Orientation: full codebase review + restore all workflows | Replit Agent |
@@ -27,6 +28,34 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-19"></a>
+## S-19 · 2026-08-07T04:03Z · Trust fund account seed + profile photo upload
+
+**Agent:** Copilot Coding Agent  
+**Branch:** `main`  
+**PR:** (current)  
+**Trigger:** Convert the demo customer's account into a trust fund account (father's transactions 1999–2016) and add profile picture upload to the dashboard.
+
+### Objective
+Seed a realistic trust fund account history for the demo user with historical transactions attributed to the account holder's father (1999–2016). Add a profile photo upload feature: images are converted to base64 data URLs in the browser and stored in the `avatar_url` DB column — no file server required.
+
+### Files Changed
+| File | Status | +Lines | −Lines | Notes |
+|------|--------|--------|--------|-------|
+| `mevrelbank/backend/src/db/schema.sql` | modified | ~6 | 0 | Added `avatar_url TEXT` column to users table (Phase 10) |
+| `mevrelbank/backend/src/routes/user.js` | modified | ~20 | ~10 | Expose `avatarUrl` in publicUser; validate + accept `avatarUrl` in PATCH /me |
+| `mevrelbank/backend/src/db/seedTrustFund.js` | added | ~220 | 0 | New seed script — converts demo user's first account to trust fund, inserts ~50 transactions (1999–2016) attributed to the father |
+| `mevrelbank/design-systems/.../src/app/context/AuthContext.tsx` | modified | ~3 | ~2 | Added `avatarUrl` field to `AuthUser` interface and `updateProfile` signature |
+| `mevrelbank/design-systems/.../src/app/website/pages/ProfilePage.tsx` | modified | ~80 | ~5 | Added `AvatarUpload` component with file picker, base64 conversion, preview, remove; integrated into Personal Details card |
+| `mevrelbank/design-systems/.../src/app/website/components/DashboardShell.tsx` | modified | ~8 | ~2 | Accept `avatarUrl` prop; render photo in sidebar user footer, fall back to initials |
+| `mevrelbank/design-systems/.../src/app/website/components/DashboardLayout.tsx` | modified | ~1 | ~1 | Pass `user?.avatarUrl` to `DashboardShell` |
+| `docs/session-log.md` | modified | ~30 | 0 | This entry |
+
+### Outcome
+Trust fund seed script is ready to run (`DEMO_EMAIL=<email> node src/db/seedTrustFund.js`). Profile photo upload works end-to-end: select image → base64 → PATCH /api/user/me → stored in DB → shown in profile card and sidebar. Run `node src/db/migrate.js` to apply the schema change (adds `avatar_url` column).
 
 ---
 

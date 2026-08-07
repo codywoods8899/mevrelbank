@@ -245,3 +245,9 @@ CREATE TABLE IF NOT EXISTS transaction_edits (
 );
 
 CREATE INDEX IF NOT EXISTS idx_transaction_edits_tx ON transaction_edits(transaction_id);
+
+-- Phase 10 — Profile avatar
+-- Stored as a base64 data URL (e.g. data:image/jpeg;base64,...) so no file
+-- server is needed; the column provides the DB relation while the file bytes
+-- are kept entirely within the client-side payload.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;

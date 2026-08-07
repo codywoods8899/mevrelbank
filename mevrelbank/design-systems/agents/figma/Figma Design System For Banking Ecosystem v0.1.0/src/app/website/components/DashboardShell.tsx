@@ -31,6 +31,7 @@ const BOTTOM_NAV = NAV_ITEMS.filter((n) =>
 export interface DashboardShellProps {
   userName?: string;
   accountLabel?: string;
+  avatarUrl?: string | null;
   onLogout?: () => void;
   children: ReactNode;
 }
@@ -38,6 +39,7 @@ export interface DashboardShellProps {
 export function DashboardShell({
   userName = "James Chen",
   accountLabel = "Personal · Premium",
+  avatarUrl,
   onLogout,
   children,
 }: DashboardShellProps) {
@@ -124,9 +126,13 @@ export function DashboardShell({
       {/* User footer */}
       <div className="p-4 border-t border-[rgba(255,255,255,0.06)]">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full bg-[#1764C0] flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0">
-            {initialsFor(userName)}
-          </div>
+        {avatarUrl ? (
+            <img src={avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[rgba(255,255,255,0.15)]" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-[#1764C0] flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0">
+              {initialsFor(userName)}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="text-[12px] font-semibold text-white truncate">{userName}</div>
             <div className="text-[10px] text-[rgba(255,255,255,0.35)] truncate">{accountLabel}</div>
