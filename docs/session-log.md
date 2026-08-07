@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-25](#s-25) | 2026-08-07T06:14Z | (current) | Fix profile photo upload server error | Copilot Coding Agent |
 | [S-24](#s-24) | 2026-08-07T05:54Z | — | Fix Sarah Brent July 2026 statement balances | Copilot Coding Agent |
 | [S-24](#s-24) | 2026-08-07T05:49Z | (current) | Fix admin account currency formatting | Copilot Coding Agent |
 | [S-23](#s-23) | 2026-08-07T05:42Z | (current) | Fix FX rates "Could not load" in production | Copilot Coding Agent |
@@ -34,6 +35,28 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-25"></a>
+## S-25 · 2026-08-07T06:14Z · Fix profile photo upload server error
+
+**Agent:** Copilot Coding Agent  
+**Branch:** `copilot/fix-smartsupp-display-issue`  
+**PR:** (current)  
+**Trigger:** User shared a production screenshot showing “Internal server error.” after clicking Upload photo on `/dashboard/profile`.
+
+### Objective
+Identify why profile photo uploads were failing in production and restore the existing avatar upload flow without widening the accepted product scope beyond the current 2 MB image cap.
+
+### Files Changed
+| File | Status | +Lines | −Lines | Notes |
+|------|--------|--------|--------|-------|
+| `mevrelbank/backend/server.js` | modified | ~5 | ~1 | Raised the JSON request-body limit so base64 avatar uploads fit within the existing 2 MB client limit and added a specific 413 response for oversized payloads |
+| `docs/session-log.md` | modified | ~22 | 0 | Added this session entry |
+
+### Outcome
+Profile photo uploads no longer hit the backend's old 16 KB JSON limit, so normal avatar uploads can complete successfully. Requests that are genuinely too large now return a clear payload-too-large message instead of a generic 500 error.
 
 ---
 
