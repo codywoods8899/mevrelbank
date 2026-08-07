@@ -1,11 +1,23 @@
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 const { baseTemplate } = require('./emailTemplates');
 
-const FROM = process.env.NOREPLY_EMAIL ?? 'noreply@mevrelbank.com';
+const SMTP_USER = process.env.EMAIL_SMTP_USER ?? 'support@mevrelbank.com';
+const FROM = process.env.EMAIL_FROM ?? SMTP_USER;
 
 function getClient() {
-  if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY is not set');
-  return new Resend(process.env.RESEND_API_KEY);
+  const host = process.env.SPACEMAIL_SMTP_HOST;
+  const password = process.env.EMAIL_SMTP_PASSWORD ?? process.env.SUPPORT_EMAIL_PASSWORD;
+  const port = Number(process.env.SPACEMAIL_SMTP_PORT ?? 587);
+
+  if (!host) throw new Error('SPACEMAIL_SMTP_HOST is not set');
+  if (!password) throw new Error('Support mailbox SMTP password is not set');
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user: SMTP_USER, pass: password },
+  });
 }
 
 function otpBlock(code) {
@@ -46,7 +58,7 @@ async function sendVerificationEmail({ to, name, code }) {
       Didn't create a MevrelBank account? You can safely ignore this email.
     </p>`;
 
-  return getClient().emails.send({
+  return getClient().sendMail({
     from: `MevrelBank <${FROM}>`,
     to,
     subject: `${code} — verify your MevrelBank email`,
@@ -64,7 +76,7 @@ async function sendPasswordResetEmail({ to, name, code }) {
     ${otpBlock(code)}
     <p style="margin:0;font-size:13px;color:#9AAABF;">This code expires in 30 minutes. If you didn't request a reset, please contact <a href="mailto:security@mevrelbank.com" style="color:#0B3270;">security@mevrelbank.com</a>.</p>`;
 
-  return getClient().emails.send({
+  return getClient().sendMail({
     from: `MevrelBank <${FROM}>`,
     to,
     subject: `${code} — reset your MevrelBank password`,
@@ -84,7 +96,7 @@ async function sendLoginAlertEmail({ to, name, ip, time }) {
       If this wasn't you, please <a href="mailto:security@mevrelbank.com" style="color:#0B3270;">contact security immediately</a> and change your password.
     </p>`;
 
-  return getClient().emails.send({
+  return getClient().sendMail({
     from: `MevrelBank <${FROM}>`,
     to,
     subject: 'New sign-in to your MevrelBank account',
@@ -104,7 +116,7 @@ async function sendMfaEmailFallback({ to, name, code }) {
       If you didn't attempt to sign in, please contact <a href="mailto:security@mevrelbank.com" style="color:#0B3270;">security@mevrelbank.com</a>.
     </p>`;
 
-  return getClient().emails.send({
+  return getClient().sendMail({
     from: `MevrelBank <${FROM}>`,
     to,
     subject: `${code} — your MevrelBank sign-in code`,
@@ -134,7 +146,7 @@ async function sendTransactionSubmittedEmail({ to, name, type, amount, descripti
       We'll send you another email once your transaction has been completed. If you have questions, contact <a href="mailto:support@mevrelbank.com" style="color:#0B3270;">support@mevrelbank.com</a>.
     </p>`;
 
-  return getClient().emails.send({
+  return getClient().sendMail({
     from: `MevrelBank <${FROM}>`,
     to,
     subject: `Transaction received — ${fmt}`,
@@ -162,7 +174,7 @@ async function sendTransactionConfirmedEmail({ to, name, type, amount, descripti
       If you didn't authorise this transaction, contact <a href="mailto:security@mevrelbank.com" style="color:#0B3270;">security@mevrelbank.com</a> immediately.
     </p>`;
 
-  return getClient().emails.send({
+  return getClient().sendMail({
     from: `MevrelBank <${FROM}>`,
     to,
     subject: `Transaction completed — ${fmt}`,
@@ -190,7 +202,7 @@ async function sendTransactionRejectedEmail({ to, name, type, amount, descriptio
       For questions, contact <a href="mailto:support@mevrelbank.com" style="color:#0B3270;">support@mevrelbank.com</a>.
     </p>`;
 
-  return getClient().emails.send({
+  return getClient().sendMail({
     from: `MevrelBank <${FROM}>`,
     to,
     subject: `Transaction unsuccessful — ${fmt}`,

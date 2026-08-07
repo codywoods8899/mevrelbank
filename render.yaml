@@ -28,8 +28,14 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
-      - key: RESEND_API_KEY
+      - key: SPACEMAIL_SMTP_HOST
         sync: false
+      - key: SPACEMAIL_SMTP_PORT
+        value: "587"
+      - key: EMAIL_SMTP_USER
+        value: support@mevrelbank.com
+      - key: EMAIL_FROM
+        value: support@mevrelbank.com
       - key: CORS_ORIGIN
         # Set to your Cloudflare Pages domain, e.g. https://mevrelbank.com
         sync: false

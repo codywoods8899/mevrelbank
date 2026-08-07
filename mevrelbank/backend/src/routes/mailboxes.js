@@ -13,7 +13,7 @@
 const express = require('express');
 const imaps   = require('imap-simple');
 const { simpleParser } = require('mailparser');
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 const requireAuth = require('../middleware/requireAuth');
 const { requireAdmin } = require('../middleware/requireAuth');
 const { baseTemplate } = require('../services/emailTemplates');
@@ -221,8 +221,12 @@ router.post('/:account/send', async (req, res) => {
   if (!subject?.trim())     return res.status(400).json({ error: 'Subject is required.' });
   if (!bodyContent?.trim()) return res.status(400).json({ error: 'Message body is required.' });
 
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) return res.status(500).json({ error: 'Email service not configured.' });
+  const smtpHost = process.env.SPACEMAIL_SMTP_HOST;
+  const smtpPassword = process.env[account.passwordEnv];
+  const smtpPort = parseInt(process.env.SPACEMAIL_SMTP_PORT ?? '587', 10);
+  if (!smtpHost || !smtpPassword) {
+    return res.status(500).json({ error: 'Mailbox SMTP is not configured.' });
+  }
 
   // Wrap the body in the MevrelBank branded template
   const html = baseTemplate({
@@ -231,18 +235,21 @@ router.post('/:account/send', async (req, res) => {
     body: `<p style="margin:0 0 20px;font-size:15px;color:#0D1829;line-height:1.6;white-space:pre-line;">${escapeHtml(bodyContent)}</p>`,
   });
 
-  const resend = new Resend(resendKey);
+  const mailer = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: { user: account.email, pass: smtpPassword },
+  });
 
   try {
-    const { error } = await resend.emails.send({
+    await mailer.sendMail({
       from:    `MevrelBank — ${account.label} <${account.email}>`,
-      to:      [to.trim()],
+      to:      to.trim(),
       subject: subject.trim(),
       html,
       ...(replyTo ? { replyTo } : {}),
     });
-
-    if (error) throw new Error(error.message ?? JSON.stringify(error));
 
     res.json({ ok: true, from: account.email, to: to.trim(), subject: subject.trim() });
   } catch (err) {
