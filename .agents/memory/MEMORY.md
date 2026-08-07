@@ -1,0 +1,1 @@
+- [MevrelBank banking portal structure](mevrelbank-banking-portal.md) — /app/* routes live in the Figma design system src dir; AppShell + ProtectedRoute pattern established in Phase 1.5
