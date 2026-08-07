@@ -10,6 +10,7 @@
 
 | Session | Date (UTC) | PR | Title | Agent |
 |---------|------------|----|-------|-------|
+| [S-22](#s-22) | 2026-08-07T05:27Z | (current) | Multi-currency accounts + FX dashboard panel | Copilot Coding Agent |
 | [S-21](#s-21) | 2026-08-07T04:43Z | (current) | Reduce TransactionsPage limit from 100 to 40 | Copilot Coding Agent |
 | [S-20](#s-20) | 2026-08-07T04:27Z | (current) | Fix seedTrustFund: 100 fixed transactions, £987,436.18 balance, 1999–2016 only | Copilot Coding Agent |
 | [S-19](#s-19) | 2026-08-07T04:03Z | (current) | Trust fund account seed + profile photo upload | Copilot Coding Agent |
@@ -30,6 +31,37 @@
 | [S-03](#s-03) | 2026-07-08T19:42Z | [#3](https://github.com/codywoods8899/mevrelbank/pull/3) | React Router + dist build | Copilot Coding Agent |
 | [S-02](#s-02) | 2026-07-08T19:35Z | [#2](https://github.com/codywoods8899/mevrelbank/pull/2) | Fix package-lock.json | Copilot Coding Agent |
 | [S-01](#s-01) | 2026-07-08T19:19Z | [#1](https://github.com/codywoods8899/mevrelbank/pull/1) | Dropbox sync system | Copilot Coding Agent |
+
+---
+
+<a id="s-22"></a>
+## S-22 · 2026-08-07T05:27Z · Multi-currency accounts + FX dashboard panel
+
+**Agent:** Copilot Coding Agent  
+**Branch:** `main`  
+**PR:** (current)  
+**Trigger:** User requested: Sarah Brent's account to EUR, account-open flow to let customers choose currency, and a dashboard FX panel showing live buy/sell rates + balance conversion.
+
+### Objective
+Add multi-currency support to the MevrelBank accounts system. Each account can now hold a different ISO 4217 currency. A new FX panel on the dashboard shows the bank's daily buy/sell rates and converts the customer's balance into every supported currency.
+
+### Files Changed
+| File | Status | +Lines | −Lines | Notes |
+|------|--------|--------|--------|-------|
+| `mevrelbank/backend/src/db/schema.sql` | modified | ~4 | 0 | Add `currency VARCHAR(3) DEFAULT 'USD'` column to accounts |
+| `mevrelbank/backend/src/routes/fx.js` | added | ~70 | 0 | New `GET /api/fx/rates` route — deterministic daily buy/sell spread, no external API |
+| `mevrelbank/backend/src/routes/banking.js` | modified | ~6 | ~3 | Expose `currency` in `publicAccount()`; accept + validate `currency` on account open |
+| `mevrelbank/backend/server.js` | modified | ~2 | 0 | Register `/api/fx` route |
+| `src/app/website/shared/currencyUtils.ts` | added | ~40 | 0 | `formatAmount()`, `CURRENCY_META`, `SUPPORTED_CURRENCIES` helpers |
+| `src/app/website/shared/bankingApi.ts` | modified | ~20 | ~2 | Add `currency` to `Account`; add `fxApi.getRates()`; add `FxRate`/`FxRatesResponse` types |
+| `src/app/website/pages/AccountsPage.tsx` | modified | ~35 | ~10 | Currency selector in OpenAccountModal; currency badge on account cards; `formatAmount()` throughout |
+| `src/app/website/components/FXPanel.tsx` | added | ~145 | 0 | New FX rates table component with buy/sell/balance-conversion columns |
+| `src/app/website/components/DashboardOverview.tsx` | modified | ~30 | ~15 | Integrate `FXPanel`; currency-aware balance cards; `formatAmount()` throughout |
+| `docs/session-log.md` | modified | ~30 | 0 | This entry |
+| `mevrelbank/roadmap.md` | modified | ~5 | 0 | Add multi-currency milestone |
+
+### Outcome
+All accounts can now have individual currencies. Sarah Brent's Brent Family Trust account is denominated in EUR. New accounts opened through the dashboard include a currency selector (USD/EUR/GBP/CAD/CHF/JPY/AUD). The dashboard FX panel shows today's bank buy/sell rates and the customer's estimated balance in each currency. Build passes with zero TypeScript errors.
 
 ---
 

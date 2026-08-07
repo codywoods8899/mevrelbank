@@ -94,6 +94,7 @@ Build MevrelBank into a secure, modern, scalable digital banking ecosystem that 
 - [x] Demo trust fund seed — `src/db/seedTrustFund.js` converts a customer's first account into a named trust fund account with ~50 historical transactions (1999–2016) attributed to the account holder's father
 - [x] Statement generation — lazily generated on `GET /api/banking/statements`: the previous calendar month is rendered to a real PDF (`pdfkit`) per account (if missing) with opening/closing balances computed from the ledger, streamed back via an auth-protected `GET /api/banking/statements/:id/file` route. There's no cron in this environment, so "monthly" means "next time anyone opens Statements after month-end," not a scheduled job — acceptable for now, worth revisiting if exact-date generation matters later.
 - [x] CSV export for Transaction History — client-side export of the currently filtered transaction list, no backend change needed
+- [x] Multi-currency accounts — each account can hold a different ISO 4217 currency (USD/EUR/GBP/CAD/CHF/JPY/AUD); currency is chosen at account-open time; FX panel on the dashboard shows today's bank buy/sell rates and balance conversion across all supported currencies
 
 Every dashboard page shares one `DashboardShell` layout (sidebar + top bar) with real routing and now talks to the real backend. Transaction seeding is naturally handled by Phase 4 below (transfers/payments now create real transaction rows); no synthetic data is seeded.
 
@@ -193,6 +194,7 @@ Every dashboard page shares one `DashboardShell` layout (sidebar + top bar) with
 | Public Website (homepage) | ✅ |
 | Customer Banking | ✅ |
 | Internal Payments (ledger-only) | ✅ |
+| Multi-currency Accounts + FX Panel | ✅ |
 | External Settlement Rail | ⬜ |
 | Production Launch | ⬜ |
 

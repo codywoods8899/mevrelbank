@@ -9,6 +9,8 @@ import { StatusDot } from "../shared/StatusDot";
 import { useAuth } from "../../context/AuthContext";
 import { bankingApi, formatRelativeDate, type Account, type Transaction } from "../shared/bankingApi";
 import { TransactionReceiptModal } from "./TransactionReceiptModal";
+import { FXPanel } from "./FXPanel";
+import { formatAmount } from "../shared/currencyUtils";
 
 /** The default /dashboard landing content: balance cards, trend chart, quick actions, recent activity. */
 export function DashboardOverview({ userName = "James Chen" }: { userName?: string }) {
@@ -32,12 +34,10 @@ export function DashboardOverview({ userName = "James Chen" }: { userName?: stri
     return () => { active = false; };
   }, [authedFetch]);
 
-  // Balance card logic:
   // - If the user has no accounts yet → show a single "Total Balance" card ($0.00).
-  // - Once they open a Current Account → show that card.
-  // - Once they open a Savings Account → show that card.
-  // This means a brand-new user sees one clean "Total Balance" card instead of
-  // two misleading $0.00 account-type cards.
+  // - Once they open accounts → show individual per-account cards.
+  // - When all accounts share the same currency the Total card shows the summed amount.
+  // - When currencies differ the Total card is labelled "Multiple Currencies".
   const summaryCards = useMemo(() => {
     const subByType: Record<string, string> = {
       "Current Account": "Available balance",
@@ -45,20 +45,31 @@ export function DashboardOverview({ userName = "James Chen" }: { userName?: stri
     };
 
     if (accounts.length === 0) {
-      return [{ label: "Total Balance", amount: 0, sub: "Across all accounts", isTotal: true }];
+      return [{ label: "Total Balance", amount: 0, currency: "USD", sub: "Across all accounts", isTotal: true }];
     }
 
-    const totalAmount = accounts.reduce((sum, a) => sum + (a.available ?? 0), 0);
+    const currencies = [...new Set(accounts.map((a) => a.currency ?? "USD"))];
+    const singleCurrency = currencies.length === 1 ? currencies[0] : null;
+    const totalAmount = singleCurrency
+      ? accounts.reduce((sum, a) => sum + (a.available ?? 0), 0)
+      : 0;
+
     const typeCards = accounts.map((a) => ({
-      label: a.type,
+      label: a.name,
       amount: a.available ?? 0,
+      currency: a.currency ?? "USD",
       sub: subByType[a.type] ?? "Available balance",
       isTotal: false,
     }));
 
-    // Show Total Balance card + individual account type cards
     return [
-      { label: "Total Balance", amount: totalAmount, sub: "Across all accounts", isTotal: true },
+      {
+        label: singleCurrency ? "Total Balance" : "Multiple Currencies",
+        amount: totalAmount,
+        currency: singleCurrency ?? "USD",
+        sub: singleCurrency ? "Across all accounts" : "See individual accounts below",
+        isTotal: true,
+      },
       ...typeCards,
     ];
   }, [accounts]);
@@ -83,20 +94,25 @@ export function DashboardOverview({ userName = "James Chen" }: { userName?: stri
             >
               <div className="text-[9px] font-semibold tracking-[0.16em] uppercase text-[rgba(255,255,255,0.55)] mb-3">{c.label}</div>
               <div className="text-[28px] font-bold text-white leading-none mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>
-                ${c.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {c.amount > 0 ? formatAmount(c.amount, c.currency) : formatAmount(0, c.currency)}
               </div>
               <div className="text-[11px] text-[rgba(255,255,255,0.5)]">{c.sub}</div>
             </div>
           ))}
 
-          {/* Individual account type cards — only appear once that account type exists */}
+          {/* Individual account cards — only appear once accounts exist */}
           {summaryCards.filter((c) => !c.isTotal).length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {summaryCards.filter((c) => !c.isTotal).map((c) => (
                 <div key={c.label} className="p-4 bg-white rounded-[10px] border border-[rgba(11,50,112,0.07)] shadow-[0_1px_4px_rgba(11,50,112,0.04)] hover:shadow-[0_3px_10px_rgba(11,50,112,0.07)] transition-shadow">
-                  <div className="text-[9px] font-semibold tracking-[0.16em] uppercase text-[#8A9BBE] mb-3">{c.label}</div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-[9px] font-semibold tracking-[0.16em] uppercase text-[#8A9BBE]">{c.label}</div>
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-[#F0F4FF] text-[#0B3270] border border-[rgba(11,50,112,0.12)]">
+                      {c.currency}
+                    </span>
+                  </div>
                   <div className="text-[22px] font-bold text-[#0D1829] leading-none mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>
-                    ${c.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {formatAmount(c.amount, c.currency)}
                   </div>
                   <div className="text-[11px] text-[#8A9BBE]">{c.sub}</div>
                 </div>
@@ -104,6 +120,11 @@ export function DashboardOverview({ userName = "James Chen" }: { userName?: stri
             </div>
           )}
         </div>
+      )}
+
+      {/* FX Rates Panel */}
+      {!loading && accounts.length > 0 && (
+        <FXPanel accounts={accounts} />
       )}
 
       {/* Quick Actions */}
@@ -151,7 +172,7 @@ export function DashboardOverview({ userName = "James Chen" }: { userName?: stri
             </div>
             <StatusDot status={tx.status} />
             <div className="text-[12px] font-medium w-20 text-right" style={{ fontFamily: "'DM Mono', monospace", color: tx.amount > 0 ? "#0E7C4D" : "#0D1829" }}>
-              {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
+              {tx.amount > 0 ? "+" : ""}{formatAmount(Math.abs(tx.amount), accounts.find(a => a.id === tx.accountId)?.currency ?? 'USD')}
             </div>
           </button>
         ))}

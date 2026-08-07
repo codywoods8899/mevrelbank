@@ -6,6 +6,7 @@ export interface Account {
   id: string;
   name: string;
   type: "Current Account" | "Savings Account";
+  currency: string;
   routingNumber: string;
   accountNumber: string;
   balance: number;
@@ -110,7 +111,7 @@ export const bankingApi = {
       body: JSON.stringify(data),
     }),
 
-  openAccount: (authedFetch: AuthedFetch, data: { type: "Current Account" | "Savings Account"; name?: string }) =>
+  openAccount: (authedFetch: AuthedFetch, data: { type: "Current Account" | "Savings Account"; name?: string; currency?: string }) =>
     json<{ account: Account }>(authedFetch, "/banking/accounts", {
       method: "POST",
       body: JSON.stringify(data),
@@ -160,3 +161,26 @@ export function formatRelativeTime(iso: string): string {
   if (days < 7) return `${days} days ago`;
   return date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
+
+// ─── FX rate types + client ──────────────────────────────────────────────────
+
+export interface FxRate {
+  code: string;
+  /** Mid-market rate vs USD (e.g. 1.082 for EUR means 1 EUR = $1.082) */
+  mid: number;
+  /** Bank sell rate: price a customer pays to buy that currency */
+  sell: number;
+  /** Bank buy rate: price a customer receives when selling that currency */
+  buy: number;
+}
+
+export interface FxRatesResponse {
+  base: string;
+  date: string;
+  rates: Record<string, FxRate>;
+}
+
+export const fxApi = {
+  getRates: () =>
+    fetch("/api/fx/rates").then((r) => r.json() as Promise<FxRatesResponse>),
+};
