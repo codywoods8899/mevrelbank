@@ -181,6 +181,6 @@ export interface FxRatesResponse {
 }
 
 export const fxApi = {
-  getRates: () =>
-    fetch("/api/fx/rates").then((r) => r.json() as Promise<FxRatesResponse>),
+  getRates: (authedFetch: AuthedFetch) =>
+    json<FxRatesResponse>(authedFetch, "/fx/rates"),
 };

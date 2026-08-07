@@ -3,11 +3,14 @@ import { TrendingUp, RefreshCw } from "lucide-react";
 import { fxApi, type FxRatesResponse, type Account } from "../shared/bankingApi";
 import { CURRENCY_META, formatAmount } from "../shared/currencyUtils";
 
+type AuthedFetch = (path: string, options?: RequestInit) => Promise<Response>;
+
 interface FXPanelProps {
   accounts: Account[];
+  authedFetch: AuthedFetch;
 }
 
-export function FXPanel({ accounts }: FXPanelProps) {
+export function FXPanel({ accounts, authedFetch }: FXPanelProps) {
   const [data, setData] = useState<FxRatesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -16,7 +19,7 @@ export function FXPanel({ accounts }: FXPanelProps) {
     setLoading(true);
     setError(false);
     fxApi
-      .getRates()
+      .getRates(authedFetch)
       .then((r) => setData(r))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
